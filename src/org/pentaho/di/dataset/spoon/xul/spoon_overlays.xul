@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="file://E:/workspaces/sprint_workspace/pentaho-xul/test/resource/documents/xul.css" type="text/css"?>
+<overlay id="spoon-trans-graph-popupmenu-dataset" title="TransGraph DataSet Menu"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	xmlns:HTML="http://www.w3.org/Profiles/XHTML-transitional" height="600"
+	width="800" xmlns:pen="http://www.pentaho.org/2008/xul">
+
+  <!-- 
+     
+     This is the overlay for the Spoon Tools menu
+     
+   -->
+  <menupopup id="tools-popup">
+    <menu id="spoon-tools-menu-dataset" label="Data set">
+      <menupopup id="spoon-tools-menu-dataset-popup">
+
+        <menu id="spoon-tools-menu-dataset-groups" label="Data set groups">
+          <menupopup id="spoon-tools-menu-datasetgroups-popup">
+            <menuitem label="Add data set group" command="dataSetHelper.addDataSetGroup()" />
+            <menuitem label="Edit data set group" command="dataSetHelper.editDataSetGroup()" />
+            <menuitem label="Remove data set group" command="dataSetHelper.removeDataSetGroup()" />
+
+          </menupopup>
+        </menu>
+
+        <menu id="spoon-tools-menu-datasets" label="Data sets">
+          <menupopup id="spoon-tools-menu-datasets-popup">
+            <menuitem label="Add data set" command="dataSetHelper.addDataSet()" />
+            <menuitem label="Edit data set" command="dataSetHelper.editDataSet()" />
+          </menupopup>
+        </menu>
+
+        <menu id="spoon-tools-menu-unittests" label="Transformation Unit tests">
+          <menupopup id="spoon-tools-menu-unittests-popup">
+            <menuitem label="Add unit test" command="dataSetHelper.addUnitTest()" />
+            <menuitem label="Edit unit test" command="dataSetHelper.editUnitTest()" />
+          </menupopup>
+        </menu>
+
+      </menupopup>
+    </menu>
+  </menupopup>
+
+</overlay>
