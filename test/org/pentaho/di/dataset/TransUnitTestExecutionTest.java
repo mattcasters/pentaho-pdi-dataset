@@ -4,18 +4,23 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.KettleClientEnvironment;
 import org.pentaho.di.core.KettleEnvironment;
+import org.pentaho.di.core.Result;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleStepException;
+import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.util.EnvUtil;
 import org.pentaho.di.dataset.trans.ChangeTransMetaPriorToExecutionExtensionPoint;
 import org.pentaho.di.dataset.trans.IndicateUsingDataSetExtensionPoint;
 import org.pentaho.di.dataset.trans.InjectDataSetIntoTransExtensionPoint;
+import org.pentaho.di.dataset.trans.RowCollection;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.shared.SharedObjects;
@@ -31,7 +36,8 @@ import junit.framework.TestCase;
 
 public class TransUnitTestExecutionTest extends TestCase {
 
-
+  private static final String INPUT_STEP_NAME = "Input";
+  private static final String OUTPUT_STEP_NAME = "Output";
 
   public static final String NAMESPACE = "test";
 
@@ -58,6 +64,7 @@ public class TransUnitTestExecutionTest extends TestCase {
   protected DataSet inputDataSet;
   protected DataSet goldenDataSet;
   protected TransUnitTest unitTest;
+  protected int setSize;
 
   @Override
   protected void setUp() throws Exception {
@@ -138,36 +145,40 @@ public class TransUnitTestExecutionTest extends TestCase {
     rows.add( new Object[] { "a2", "b2", "c2",  });
     rows.add( new Object[] { "a3", "b3", "c3",  });
     
-    inputDataSet = DataSetConst.writeDataSet( INPUT_SET_NAME, INPUT_SET_DESC, dataSetGroup, INPUT_SET_TABLE, fields, rows );
+    inputDataSet = DataSetConst.writeDataSet( INPUT_SET_NAME, INPUT_SET_DESC, dataSetGroup, INPUT_SET_TABLE, fields, rows );    
   }
 
   private void createGoldenDataSet() throws KettleException {
     List<DataSetField> fields = new ArrayList<>();
-    fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
-    fields.add( new DataSetField( "b", "column_b", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
-    fields.add( new DataSetField( "c", "column_c", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
+
+    // Add the fields in a different order to see if we can correctly compare data against it!
+    //
     fields.add( new DataSetField( "d", "column_d", ValueMetaInterface.TYPE_INTEGER, 6, 0, null ) );
+    fields.add( new DataSetField( "c", "column_c", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
+    fields.add( new DataSetField( "b", "column_b", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
+    fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
 
     List<Object[]> rows = new ArrayList<Object[]>();
-    rows.add( new Object[] { "a1", "b1", "c1", Long.valueOf( 123456), });
-    rows.add( new Object[] { "a2", "b2", "c2", Long.valueOf( 123456), });
-    rows.add( new Object[] { "a3", "b3", "c3", Long.valueOf( 123456), });
-    
+    rows.add( new Object[] { Long.valueOf( 123456), "c1", "b1", "a1",  });
+    rows.add( new Object[] { Long.valueOf( 123456), "c2", "b2", "a2",  });
+    rows.add( new Object[] { Long.valueOf( 123456), "c3", "b3", "a3",  });
+
     goldenDataSet = DataSetConst.writeDataSet( GOLDEN_SET_NAME, GOLDEN_SET_DESC, dataSetGroup, GOLDEN_SET_TABLE, fields, rows );
+    setSize = rows.size();
   }
 
   
   private void createUnitTest() {
     
     List<TransUnitTestSetLocation> inputs = new ArrayList<TransUnitTestSetLocation>();
-    inputs.add( new TransUnitTestSetLocation("Input", INPUT_SET_NAME, Arrays.asList( 
+    inputs.add( new TransUnitTestSetLocation(INPUT_STEP_NAME, INPUT_SET_NAME, Arrays.asList( 
         new TransUnitTestFieldMapping( "a", "a", "1" ),
         new TransUnitTestFieldMapping( "b", "b", "2" ),
         new TransUnitTestFieldMapping( "c", "c", "3" )
     )) );
     
     List<TransUnitTestSetLocation> goldens = new ArrayList<TransUnitTestSetLocation>();
-    goldens.add( new TransUnitTestSetLocation("Output", GOLDEN_SET_NAME, Arrays.asList( 
+    goldens.add( new TransUnitTestSetLocation(OUTPUT_STEP_NAME, GOLDEN_SET_NAME, Arrays.asList( 
         new TransUnitTestFieldMapping( "a", "a", "1" ),
         new TransUnitTestFieldMapping( "b", "b", "2" ),
         new TransUnitTestFieldMapping( "c", "c", "3" ),
@@ -213,12 +224,73 @@ public class TransUnitTestExecutionTest extends TestCase {
 
     // Create an in-memory data-set group and data sets to test with...
     //
-    StepMeta stepMeta = transMeta.findStep( "Input" );
+    StepMeta stepMeta = transMeta.findStep( INPUT_STEP_NAME );
     stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, inputDataSet.getName() );
 
     Trans trans = new Trans( transMeta );
     trans.setPreview( true ); // data set only works in preview right now
     trans.execute( null );
     trans.waitUntilFinished();
+    
+    // All OK?  Did we read rows in the output step?
+    //
+    Result result = trans.getResult();
+    assertTrue(result.getResult());
+    assertEquals(0, result.getNrErrors());
+    assertEquals(setSize, result.getNrLinesRead());
+    
+    @SuppressWarnings( "unchecked" )
+    Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get( DataSetConst.ROW_COLLECTION_MAP );
+    assertNotNull(collectionMap);
+    
+    int rowNumber = 0;
+    for (TransUnitTestSetLocation location : unitTest.getGoldenDataSets()) {
+      RowCollection resultCollection = collectionMap.get( location.getStepname() );
+      RowCollection goldenCollection = unitTest.getGoldenRows( metaStore, Arrays.asList( databaseMeta ), location.getStepname() );
+      
+      assertEquals(OUTPUT_STEP_NAME, location.getStepname());
+      assertEquals(setSize, resultCollection.getRows().size());
+      
+      // TODO: Create compare method
+      //
+      List<Object[]> resultRows = resultCollection.getRows();
+      List<Object[]> goldenRows = goldenCollection.getRows();
+      
+      if ( resultRows.size() != goldenRows.size() ) {
+        throw new KettleException( "Incorrect number of rows received from step, golden data set '" + goldenDataSet.getName() + "' has " + goldenRows.size() + " rows in it and we received "+resultRows.size() );
+      }
+      
+      final int[] stepFieldIndices = new int[location.getFieldMappings().size()];
+      final int[] goldenIndices = new int[location.getFieldMappings().size()];
+      for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
+        TransUnitTestFieldMapping fieldMapping = location.getFieldMappings().get( i );
+
+        stepFieldIndices[i] = resultCollection.getRowMeta().indexOfValue( fieldMapping.getStepFieldName() );
+        goldenIndices[i] = goldenCollection.getRowMeta().indexOfValue( fieldMapping.getDataSetFieldName() );
+      }
+      
+      Object[] resultRow = resultRows.get( rowNumber );
+      Object[] goldenRow = goldenRows.get( rowNumber );
+      rowNumber++;
+      
+      // Now compare the input to the golden row
+      //
+      for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
+        ValueMetaInterface stepValueMeta = resultCollection.getRowMeta().getValueMeta( stepFieldIndices[i] );
+        Object stepValue = resultRow[stepFieldIndices[i]];
+
+        ValueMetaInterface goldenValueMeta = goldenCollection.getRowMeta().getValueMeta( goldenIndices[i] );
+        Object goldenValue = goldenRow[goldenIndices[i]];
+        try {
+          int cmp = stepValueMeta.compare( stepValue, goldenValueMeta, goldenValue );
+          if ( cmp != 0 ) {
+            throw new KettleStepException( "Validation againt golden data failed for row number " + rowNumber
+              + ": step value [" + stepValueMeta.getString( stepValue ) + "] does not correspond to data set value [" + goldenValueMeta.getString( goldenValue ) + "]" );
+          }
+        } catch ( KettleValueException e ) {
+          throw new KettleStepException( "Unable to compare step data against golden data set '" + goldenDataSet.getName() + "'", e );
+        }
+      }
+    }
   }
 }

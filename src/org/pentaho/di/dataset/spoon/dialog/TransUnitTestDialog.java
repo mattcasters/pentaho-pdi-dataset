@@ -34,6 +34,7 @@ import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.repository.StringObjectId;
+import org.pentaho.di.shared.SharedObjects;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
@@ -81,15 +82,18 @@ public class TransUnitTestDialog extends Dialog {
 
   private FactoriesHierarchy factoriesHierarchy;
 
-  public TransUnitTestDialog( Shell parent, Repository repository, IMetaStore metaStore, TransUnitTest transUnitTest ) throws KettleException, MetaStoreException {
+  private SharedObjects sharedObjects;
+
+  public TransUnitTestDialog( Shell parent, Repository repository, IMetaStore metaStore, TransUnitTest transUnitTest, SharedObjects sharedObjects ) throws KettleException, MetaStoreException {
     super( parent, SWT.NONE );
     this.repository = repository;
     this.metaStore = metaStore;
     this.transUnitTest = transUnitTest;
+    this.setSharedObjects(sharedObjects);
     props = PropsUI.getInstance();
     ok = false;
 
-    List<DatabaseMeta> databases = DataSetConst.getAvailableDatabases( repository );
+    List<DatabaseMeta> databases = DataSetConst.getAvailableDatabases( repository, sharedObjects );
     factoriesHierarchy = new FactoriesHierarchy( metaStore, databases );
     sets = factoriesHierarchy.getSetFactory().getElements();
     groups = factoriesHierarchy.getGroupFactory().getElements();
@@ -248,7 +252,7 @@ public class TransUnitTestDialog extends Dialog {
       shell,
       SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL,
       columns,
-      transUnitTest.getFieldMappings().size(),
+      5, // transUnitTest.getFieldMappings().size(),
       null, props );
 
     FormData fdFieldMapping = new FormData();
@@ -356,6 +360,7 @@ public class TransUnitTestDialog extends Dialog {
 
     wName.setText( Const.NVL( transUnitTest.getName(), "" ) );
     wDescription.setText( Const.NVL( transUnitTest.getDescription(), "" ) );
+    /*
     wDataSet.setText( Const.NVL( transUnitTest.getGoldenDataSet() == null ? null : transUnitTest.getGoldenDataSet().getName(), "" ) );
     wStepname.setText( Const.NVL( transUnitTest.getStepname(), "" ) );
     for ( int i = 0; i < transUnitTest.getFieldMappings().size(); i++ ) {
@@ -365,6 +370,7 @@ public class TransUnitTestDialog extends Dialog {
       wFieldMapping.setText( Const.NVL( field.getDataSetFieldName(), "" ), colnr++, i );
       wFieldMapping.setText( Const.NVL( field.getSortOrder(), "" ), colnr++, i );
     }
+    */
     try {
 
       if ( repository != null ) {
@@ -399,6 +405,7 @@ public class TransUnitTestDialog extends Dialog {
 
     test.setName( wName.getText() );
     test.setDescription( wDescription.getText() );
+    /*
     test.setGoldenDataSet( DataSetConst.findDataSet( sets, wDataSet.getText() ) );
     test.setStepname( wStepname.getText() );
     test.getFieldMappings().clear();
@@ -413,6 +420,7 @@ public class TransUnitTestDialog extends Dialog {
       TransUnitTestFieldMapping mapping = new TransUnitTestFieldMapping( stepFieldName, dataSetFieldName, sortOrder );
       test.getFieldMappings().add( mapping );
     }
+    */
 
   }
 
@@ -438,5 +446,13 @@ public class TransUnitTestDialog extends Dialog {
   public void setFactoriesHierarchy( FactoriesHierarchy factoriesHierarchy ) {
     this.factoriesHierarchy = factoriesHierarchy;
   }
+
+public SharedObjects getSharedObjects() {
+	return sharedObjects;
+}
+
+public void setSharedObjects(SharedObjects sharedObjects) {
+	this.sharedObjects = sharedObjects;
+}
 
 }

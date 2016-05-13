@@ -5,18 +5,20 @@ import java.util.Collection;
 import java.util.List;
 
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.RowMetaAndData;
+import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.logging.LoggingObjectType;
+import org.pentaho.di.core.logging.SimpleLoggingObject;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.dataset.DataSet;
+import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.shared.SharedObjectInterface;
 import org.pentaho.di.shared.SharedObjects;
-import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.api.exceptions.MetaStoreException;
-import org.pentaho.metastore.persist.MetaStoreFactory;
-import org.pentaho.metastore.util.PentahoDefaults;
 
 public class DataSetConst {
   public static String DATA_SET_GROUP_TYPE_NAME = "Data Set Group";
@@ -41,7 +43,10 @@ public class DataSetConst {
   public static final String ATTR_GROUP_DATASET = "DataSet";
   public static final String ATTR_STEP_DATASET_INPUT = "DataSetInput";
   public static final String VAR_STEP_DATASET_ENABLED = "__DataSetEnabled__";
+  public static final String VAR_UNIT_TEST_NAME = "__UnitTest__";
   public static final String ATTR_STEP_UNIT_TEST = "UnitTest";
+  
+  public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
 
   public static final DataSet findDataSet( List<DataSet> list, String dataSetName ) {
     if ( Const.isEmpty( dataSetName ) ) {
@@ -67,7 +72,7 @@ public class DataSetConst {
     return null;
   }
 
-  public static List<DatabaseMeta> getAvailableDatabases( Repository repository ) throws KettleException {
+  public static List<DatabaseMeta> getAvailableDatabases( Repository repository, SharedObjects sharedObjects ) throws KettleException {
     List<DatabaseMeta> list = new ArrayList<DatabaseMeta>();
 
     // Load database connections from the central repository if we're connected to one
@@ -79,9 +84,8 @@ public class DataSetConst {
       }
     }
 
-    // Also load from the standard shared objects file
+    // Also load from the shared objects file of the transformation
     //
-    SharedObjects sharedObjects = new SharedObjects( Const.getSharedObjectsFile() );
     Collection<SharedObjectInterface> localSharedObjects = sharedObjects.getObjectsMap().values();
 
     for ( SharedObjectInterface localSharedObject : localSharedObjects ) {
@@ -97,17 +101,41 @@ public class DataSetConst {
 
     return list;
   }
+  
+  public static final DataSet writeDataSet(String name, String description, DataSetGroup dataSetGroup, String tableName, List<DataSetField> fields, List<Object[]> dataRows) throws KettleException {
+    DataSet dataSet = new DataSet( name, description, dataSetGroup, tableName, fields );
+    RowMetaInterface rowMeta = dataSet.getSetRowMeta( true );
+    List<RowMetaAndData> rows = new ArrayList<RowMetaAndData>();
+    for (Object[] dataRow : dataRows) {
+      RowMetaAndData row = new RowMetaAndData();
+      row.setRowMeta( rowMeta );
+      row.setData( dataRow );
+      rows.add( row );
+    }
+    
+    Database database = new Database( new SimpleLoggingObject( "Writing Data Set", LoggingObjectType.TRANS, null ), dataSetGroup.getDatabaseMeta());
+    try {
+      database.connect();
+      String sql;
+      if ( database.checkTableExists( tableName) ) {
+        sql = database.getAlterTableStatement( tableName, rowMeta, null, false, null, true );
+      } else {
+        sql = database.getCreateTableStatement( tableName, rowMeta, null, false, null, true );
+      }
+      if ( !Const.isEmpty( sql ) ) {
+        database.execStatements( sql );
+      }
+      database.prepareInsert( rowMeta, tableName );
+      for ( RowMetaAndData row : rows ) {
+        database.setValuesInsert( row );
+        database.insertRow();
+      }
+      database.commit();
+    } finally {
+      database.disconnect();
+    }
 
-  public static final MetaStoreFactory<DataSet> createDataSetFactory( IMetaStore metaStore, Repository repository ) throws KettleException, MetaStoreException {
-    MetaStoreFactory<DataSetGroup> groupFactory = new MetaStoreFactory<DataSetGroup>( DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE );
-    List<DatabaseMeta> databases = getAvailableDatabases( repository );
-    groupFactory.addNameList( DataSetConst.DATABASE_LIST_KEY, databases );
-    List<DataSetGroup> groups = groupFactory.getElements();
-
-    MetaStoreFactory<DataSet> setFactory = new MetaStoreFactory<DataSet>( DataSet.class, metaStore, PentahoDefaults.NAMESPACE );
-    setFactory.addNameList( DataSetConst.GROUP_LIST_KEY, groups );
-
-    return setFactory;
+    return dataSet;
   }
-
+  
 }

@@ -226,13 +226,13 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     String newName = test.getName();
     if ( Const.isEmpty( newName ) ) {
       message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoNameSpecified.Message" );
-    } else if ( Const.isEmpty( test.getStepname() ) ) {
-      message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoStepNameSpecified.Message" );
     } else if ( !Const.isEmpty( previousName ) && !previousName.equals( newName ) ) {
       message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.RenamingOfATransUnitTestNotSupported.Message" );
+    } /* else if ( Const.isEmpty( test.getStepname() ) ) {
+      message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoStepNameSpecified.Message" );
     } else if ( test.getGoldenDataSet() == null ) {
       message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoGoldenDataSetSpecified.Message" );
-    } else {
+    } */ else {
       if ( Const.isEmpty( previousName ) && Const.indexOfString( newName, testNames ) >= 0 ) {
         message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.ATransUnitTestSetWithNameExists.Message", newName );
       }
@@ -510,7 +510,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         test.setTransFilename( transMeta.getFilename() );
       }
 
-      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test );
+      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test, transMeta.getSharedObjects() );
       while ( dialog.open() ) {
         MetaStoreFactory<TransUnitTest> testFactory = dialog.getFactoriesHierarchy().getTestFactory();
 
@@ -552,7 +552,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         return;
       }
 
-      FactoriesHierarchy fh = new FactoriesHierarchy( metaStore, DataSetConst.getAvailableDatabases( repository ) );
+      FactoriesHierarchy fh = new FactoriesHierarchy( metaStore, DataSetConst.getAvailableDatabases( repository, transMeta.getSharedObjects() ) );
       List<String> testNames = fh.getTestFactory().getElementNames();
       Collections.sort( testNames );
       EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), testNames.toArray( new String[testNames.size()] ), "Select the test", "Select the transformation unit test to edit..." );
@@ -562,7 +562,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       }
       TransUnitTest test = fh.getTestFactory().loadElement( testName );
 
-      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test );
+      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test, transMeta.getSharedObjects() );
       while ( dialog.open() ) {
         MetaStoreFactory<TransUnitTest> testFactory = dialog.getFactoriesHierarchy().getTestFactory();
 
@@ -603,7 +603,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       }
 
       TransUnitTest test = new TransUnitTest();
-      test.setStepname( stepMeta.getName() );
+      // TODO FIX : test.setStepname( stepMeta.getName() );
 
       if ( repository != null ) {
         test.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + RepositoryDirectory.DIRECTORY_SEPARATOR + transMeta.getName() );
@@ -616,7 +616,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         test.setTransFilename( transMeta.getFilename() );
       }
 
-      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test );
+      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test, transMeta.getSharedObjects() );
       while ( dialog.open() ) {
         MetaStoreFactory<TransUnitTest> testFactory = dialog.getFactoriesHierarchy().getTestFactory();
 

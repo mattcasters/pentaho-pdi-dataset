@@ -39,7 +39,7 @@ public class DataSetTest extends TestCase {
   protected void setUp() throws Exception {
     KettleClientEnvironment.init();
     metaStore = new MemoryMetaStore();
-    databaseMeta = new DatabaseMeta( "foo", "H2", "JDBC", null, null, null, null, null );
+    databaseMeta = new DatabaseMeta( "dataset", "H2", "JDBC", null, "/tmp/datasets", null, null, null );
     dataSetGroup = new DataSetGroup( GROUP_NAME, GROUP_DESC, databaseMeta, GROUP_SCHEMA );
 
     List<DataSetField> fields = new ArrayList<>();
@@ -104,5 +104,4 @@ public class DataSetTest extends TestCase {
       assertEquals( referenceField, verifyField );
     }
   }
-
 }

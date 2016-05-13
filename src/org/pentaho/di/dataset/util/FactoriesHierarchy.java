@@ -29,6 +29,8 @@ public class FactoriesHierarchy {
     setFactory.addNameList( DataSetConst.GROUP_LIST_KEY, groups );
     List<DataSet> sets = setFactory.getElements();
 
+    setFactory.addNameFactory( DataSetConst.GROUP_LIST_KEY, groupFactory );
+
     testFactory = new MetaStoreFactory<TransUnitTest>( TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE );
     testFactory.addNameList( DataSetConst.SET_LIST_KEY, sets );
 

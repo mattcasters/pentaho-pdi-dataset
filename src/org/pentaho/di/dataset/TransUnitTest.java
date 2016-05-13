@@ -6,9 +6,12 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.dataset.util.DataSetConst;
+import org.pentaho.di.dataset.trans.RowCollection;
+import org.pentaho.di.dataset.util.FactoriesHierarchy;
+import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 
@@ -28,15 +31,6 @@ public class TransUnitTest {
   @MetaStoreAttribute( key = "description" )
   private String description;
 
-  @MetaStoreAttribute(
-    key = "golden_data_set_name",
-    nameReference = true,
-    nameListKey = DataSetConst.SET_LIST_KEY )
-  private DataSet goldenDataSet;
-
-  @MetaStoreAttribute( key = "stepname" )
-  protected String stepname;
-
   @MetaStoreAttribute( key = "transformation_rep_object_id" )
   protected String transObjectId; // rep: by reference (1st priority)
 
@@ -45,24 +39,30 @@ public class TransUnitTest {
 
   @MetaStoreAttribute( key = "transformation_filename" )
   protected String transFilename; // file (3rd priority)
+  
+  @MetaStoreAttribute( key = "input_data_sets" )
+  protected List<TransUnitTestSetLocation> inputDataSets;
 
-  @MetaStoreAttribute( key = "field_mappings" )
-  protected List<TransUnitTestFieldMapping> fieldMappings;
+  @MetaStoreAttribute( key = "golden_data_sets" )
+  protected List<TransUnitTestSetLocation> goldenDataSets;
 
   public TransUnitTest() {
-    fieldMappings = new ArrayList<TransUnitTestFieldMapping>();
+    inputDataSets = new ArrayList<TransUnitTestSetLocation>();
+    goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
   }
 
-  public TransUnitTest( String name, String description, DataSet goldenDataSet, String stepname, String transObjectId, String transRepositoryPath, String transFilename, List<TransUnitTestFieldMapping> fieldMappings ) {
+  public TransUnitTest( String name, String description, 
+      String transObjectId, String transRepositoryPath, String transFilename, 
+      List<TransUnitTestSetLocation> inputDataSets, 
+      List<TransUnitTestSetLocation> goldenDataSets ) {
     this();
     this.name = name;
     this.description = description;
-    this.goldenDataSet = goldenDataSet;
-    this.stepname = stepname;
     this.transObjectId = transObjectId;
     this.transRepositoryPath = transRepositoryPath;
     this.transFilename = transFilename;
-    this.fieldMappings = fieldMappings;
+    this.inputDataSets = inputDataSets;
+    this.goldenDataSets = goldenDataSets;
   }
 
   public String getName() {
@@ -81,20 +81,12 @@ public class TransUnitTest {
     this.description = description;
   }
 
-  public DataSet getGoldenDataSet() {
-    return goldenDataSet;
+  public List<TransUnitTestSetLocation> getInputDataSets() {
+    return inputDataSets;
   }
 
-  public void setGoldenDataSet( DataSet goldenDataSet ) {
-    this.goldenDataSet = goldenDataSet;
-  }
-
-  public String getStepname() {
-    return stepname;
-  }
-
-  public void setStepname( String stepname ) {
-    this.stepname = stepname;
+  public void setInputDataSets( List<TransUnitTestSetLocation> inputDataSets ) {
+    this.inputDataSets = inputDataSets;
   }
 
   public String getTransObjectId() {
@@ -120,18 +112,60 @@ public class TransUnitTest {
   public void setTransFilename( String transFilename ) {
     this.transFilename = transFilename;
   }
-
-  public List<TransUnitTestFieldMapping> getFieldMappings() {
-    return fieldMappings;
+  
+  public TransUnitTestSetLocation findGoldenLocation(String stepName) {
+    for (TransUnitTestSetLocation location : goldenDataSets) {
+      if (stepName.equalsIgnoreCase( location.getStepname() )) {
+        return location;
+      }
+    }
+    return null;
   }
-
-  public void setFieldMappings( List<TransUnitTestFieldMapping> fieldMappings ) {
-    this.fieldMappings = fieldMappings;
+  
+  public TransUnitTestSetLocation findInputLocation(String stepName) {
+    for (TransUnitTestSetLocation location : inputDataSets) {
+      if (stepName.equalsIgnoreCase( location.getStepname() )) {
+        return location;
+      }
+    }
+    return null;
   }
+  
+  /**
+   * Retrieve the golden data rows, for the specified step name, from the data sets;
+   * 
+   * @param stepName The step to check
+   * @return The golden data rows 
+   * 
+   * @throws KettleException
+   */
+  public RowCollection getGoldenRows(IMetaStore metaStore, List<DatabaseMeta> databases, String stepName) throws KettleException {
 
-  public List<Object[]> getGoldenRows() throws KettleException {
-
-    try {
+    try {      
+      // TODO: expensive operation, push upstairs or cache...
+      //
+      FactoriesHierarchy hierarchy = new FactoriesHierarchy( metaStore, databases );
+      
+      // Look in the golden data sets list for the mentioned step name
+      //
+      String goldenDataSetName = null;
+      List<TransUnitTestFieldMapping> fieldMappings = null;
+      for (TransUnitTestSetLocation location : goldenDataSets) {
+        if (stepName.equalsIgnoreCase( location.getStepname() )) {
+          goldenDataSetName = location.getDataSetName();
+          fieldMappings = location.getFieldMappings();
+          break;
+        }
+      }
+      if (goldenDataSetName==null) {
+        throw new KettleException("Unable to find golden data set for step '"+stepName+"'");
+      }
+      
+      DataSet goldenDataSet = hierarchy.getSetFactory().loadElement( goldenDataSetName );
+      if (goldenDataSet==null) {
+        throw new KettleException("Unable to find golden data set '"+goldenDataSetName+"' for step '"+stepName+"'");
+      }
+      
       // Create a sorted list of all the field mappings.
       List<TransUnitTestFieldMapping> sortedMappings = new ArrayList<TransUnitTestFieldMapping>();
       sortedMappings.addAll( fieldMappings );
@@ -194,10 +228,17 @@ public class TransUnitTest {
 
       // All done
       //
-      return allRows;
+      return new RowCollection(setFields, allRows);
     } catch ( Exception e ) {
-      e.printStackTrace();
-      throw new KettleException( "Unable to retrieve sorted golden row data set", e );
+      throw new KettleException( "Unable to retrieve sorted golden row data set for step '"+stepName+"'", e );
     }
+  }
+
+  public List<TransUnitTestSetLocation> getGoldenDataSets() {
+    return goldenDataSets;
+  }
+
+  public void setGoldenDataSets( List<TransUnitTestSetLocation> goldenDataSets ) {
+    this.goldenDataSets = goldenDataSets;
   }
 }
