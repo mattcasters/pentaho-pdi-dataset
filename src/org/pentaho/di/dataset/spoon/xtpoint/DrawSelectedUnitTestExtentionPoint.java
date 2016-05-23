@@ -30,6 +30,7 @@ public class DrawSelectedUnitTestExtentionPoint implements ExtensionPointInterfa
     TransPainter painter = (TransPainter) object;
     TransMeta transMeta = painter.getTransMeta();
     String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME);
+    // System.out.println("Drawing unit test usage/editing : '"+testName+"'");
     drawInputDataSetMarker( painter, transMeta, testName );
   }
 

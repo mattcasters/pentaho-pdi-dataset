@@ -19,9 +19,10 @@ import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestFieldMapping;
+import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.spoon.dialog.DataSetDialog;
 import org.pentaho.di.dataset.spoon.dialog.DataSetGroupDialog;
-import org.pentaho.di.dataset.spoon.dialog.TransUnitTestDialog;
 import org.pentaho.di.dataset.trans.InjectDataSetIntoTransExtensionPoint;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -35,6 +36,7 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.dialog.EnterMappingDialog;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
+import org.pentaho.di.ui.core.dialog.EnterStringDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.spoon.ISpoonMenuController;
 import org.pentaho.di.ui.spoon.Spoon;
@@ -50,7 +52,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   protected static Class<?> PKG = DataSetHelper.class; // for i18n
 
   private static DataSetHelper instance = null;
-
+    
   private DataSetHelper() {
   }
 
@@ -313,6 +315,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
   }
 
+  /**
+   * We set an input data set
+   */
   public void setInputDataSet() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     TransGraph transGraph = spoon.getActiveTransGraph();
@@ -324,14 +329,11 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     IMetaStore metaStore = spoon.getMetaStore();
 
     try {
-      MetaStoreFactory<DataSetGroup> groupFactory = new MetaStoreFactory<DataSetGroup>( DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE );
+      
       List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
-      groupFactory.addNameList( DataSetConst.DATABASE_LIST_KEY, databases );
-      List<DataSetGroup> groups = groupFactory.getElements();
-
-      MetaStoreFactory<DataSet> setFactory = new MetaStoreFactory<DataSet>( DataSet.class, metaStore, PentahoDefaults.NAMESPACE );
-      setFactory.addNameList( DataSetConst.GROUP_LIST_KEY, groups );
-
+      FactoriesHierarchy hierarchy = new FactoriesHierarchy( metaStore, databases );
+      
+      MetaStoreFactory<DataSet> setFactory = hierarchy.getSetFactory();
       List<String> setNames = setFactory.getElementNames();
       Collections.sort( setNames );
       EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), setNames.toArray( new String[setNames.size()] ), "Select the set", "Select the data set to edit..." );
@@ -339,15 +341,151 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       if ( setName != null ) {
         DataSet dataSet = setFactory.loadElement( setName );
         stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, dataSet.getName() );
-        stepMeta.setChanged();
+        
+        // Now we need to map the fields from the input data set to the step...
+        //
+        RowMetaInterface stepFields = transMeta.getStepFields( stepMeta );
+        RowMetaInterface setFields = dataSet.getSetRowMeta( false );
+        
+        String[] stepFieldNames = stepFields.getFieldNames();
+        String[] setFieldNames = setFields.getFieldNames();
+        
+        EnterMappingDialog mappingDialog = new EnterMappingDialog(spoon.getShell(), setFieldNames, stepFieldNames);
+        List<SourceToTargetMapping> mappings = mappingDialog.open();
+        if (mappings==null) {
+          return;
+        }
+        
+        // What is the unit test we are using?
+        //
+        String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+        if (Const.isEmpty( testName )) {
+          return;
+        }
+        TransUnitTest unitTest = hierarchy.getTestFactory().loadElement( testName );
+        
+        // TODO: check existence
+        //
+        
+        // Modify the test
+        //
+        TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepMeta.getName() );
+        if (inputLocation == null) {
+          inputLocation = new TransUnitTestSetLocation();
+          unitTest.getInputDataSets().add( inputLocation );
+        }
+        
+        inputLocation.setStepname( stepMeta.getName() );
+        inputLocation.setDataSetName( dataSet.getName() );
+        List<TransUnitTestFieldMapping> fieldMappings = inputLocation.getFieldMappings();
+        fieldMappings.clear();
+        int sortOrder = 1;
+        for (SourceToTargetMapping mapping : mappings) {
+          fieldMappings.add( new TransUnitTestFieldMapping(
+              mapping.getSourceString( setFieldNames ),
+              mapping.getTargetString( stepFieldNames ), 
+              Integer.toString( sortOrder++ )) );
+        }
+        
+        // Save the unit test...
+        //
+        hierarchy.getTestFactory().saveElement( unitTest );
+        
         spoon.refreshGraph();
+        
+        
+        
+      }
+    } catch ( Exception e ) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error retrieving the list of data set groups", e );
+    }
+  }
+  
+  /**
+   * We set an golden data set on the selected unit test
+   */
+  public void setGoldenDataSet() {
+    Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
+    TransGraph transGraph = spoon.getActiveTransGraph();
+    TransMeta transMeta = spoon.getActiveTransformation();
+    StepMeta stepMeta = transGraph.getCurrentStep();
+    if ( transGraph == null || transMeta == null || stepMeta == null ) {
+      return;
+    }
+    IMetaStore metaStore = spoon.getMetaStore();
+
+    try {
+      
+      List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
+      FactoriesHierarchy hierarchy = new FactoriesHierarchy( metaStore, databases );
+      
+      MetaStoreFactory<DataSet> setFactory = hierarchy.getSetFactory();
+      List<String> setNames = setFactory.getElementNames();
+      Collections.sort( setNames );
+      EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), setNames.toArray( new String[setNames.size()] ), "Select the golden data set", "Select the golden data set..." );
+      String setName = esd.open();
+      if ( setName != null ) {
+        DataSet dataSet = setFactory.loadElement( setName );
+        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, dataSet.getName() );
+        
+        // Now we need to map the fields from the step to golden data set fields...
+        //
+        RowMetaInterface stepFields = transMeta.getPrevStepFields( stepMeta );
+        RowMetaInterface setFields = dataSet.getSetRowMeta( false );
+        
+        String[] stepFieldNames = stepFields.getFieldNames();
+        String[] setFieldNames = setFields.getFieldNames();
+        
+        EnterMappingDialog mappingDialog = new EnterMappingDialog(spoon.getShell(), stepFieldNames, setFieldNames);
+        List<SourceToTargetMapping> mappings = mappingDialog.open();
+        if (mappings==null) {
+          return;
+        }
+        
+        // What is the unit test we are using?
+        //
+        String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+        if (Const.isEmpty( testName )) {
+          return;
+        }
+        TransUnitTest goldenTest = hierarchy.getTestFactory().loadElement( testName );
+        
+        // TODO: check existence
+        //
+        
+        // Modify the test
+        //
+        TransUnitTestSetLocation goldenLocation = goldenTest.findInputLocation( stepMeta.getName() );
+        if (goldenLocation == null) {
+          goldenLocation = new TransUnitTestSetLocation();
+          goldenTest.getGoldenDataSets().add( goldenLocation );
+        }
+        
+        goldenLocation.setStepname( stepMeta.getName() );
+        goldenLocation.setDataSetName( dataSet.getName() );
+        List<TransUnitTestFieldMapping> fieldMappings = goldenLocation.getFieldMappings();
+        fieldMappings.clear();
+        int sortOrder = 1;
+        for (SourceToTargetMapping mapping : mappings) {
+          fieldMappings.add( new TransUnitTestFieldMapping(
+              mapping.getSourceString( stepFieldNames ),
+              mapping.getTargetString( setFieldNames ), 
+              Integer.toString( sortOrder++ )) );
+        }
+        
+        // Save the unit test...
+        //
+        hierarchy.getTestFactory().saveElement( goldenTest );
+        
+        spoon.refreshGraph();       
       }
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error retrieving the list of data set groups", e );
     }
   }
 
-  public void clearDataSet() {
+
+  public void clearInputDataSet() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     TransGraph transGraph = spoon.getActiveTransGraph();
     TransMeta transMeta = spoon.getActiveTransformation();
@@ -357,6 +495,19 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     }
 
     stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, null );
+    transGraph.redraw();
+  }
+  
+  public void clearGoldenDataSet() {
+    Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
+    TransGraph transGraph = spoon.getActiveTransGraph();
+    TransMeta transMeta = spoon.getActiveTransformation();
+    StepMeta stepMeta = transGraph.getCurrentStep();
+    if ( transGraph == null || transMeta == null || stepMeta == null ) {
+      return;
+    }
+
+    stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, null );
     transGraph.redraw();
   }
 
@@ -483,109 +634,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     }
   }
 
-  public void addUnitTest() {
-    Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
-    Repository repository = spoon.getRepository();
-    try {
-      TransGraph transGraph = spoon.getActiveTransGraph();
-      IMetaStore metaStore = spoon.getMetaStore();
-      if ( transGraph == null ) {
-        return;
-      }
-      TransMeta transMeta = spoon.getActiveTransformation();
-      if ( transMeta == null ) {
-        return;
-      }
-
-      TransUnitTest test = new TransUnitTest();
-
-      if ( repository != null ) {
-        test.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + RepositoryDirectory.DIRECTORY_SEPARATOR + transMeta.getName() );
-        if ( repository.getRepositoryMeta().getRepositoryCapabilities().supportsReferences() ) {
-          test.setTransObjectId( transMeta.getObjectId().toString() );
-        } else {
-          test.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + "/" + transMeta.getName() );
-        }
-      } else {
-        test.setTransFilename( transMeta.getFilename() );
-      }
-
-      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test, transMeta.getSharedObjects() );
-      while ( dialog.open() ) {
-        MetaStoreFactory<TransUnitTest> testFactory = dialog.getFactoriesHierarchy().getTestFactory();
-
-        // Verify empty name, existing name...
-        //
-        String message = validateTransUnitTest( test, null, testFactory.getElementNames() );
-
-        // Save the test case ...
-        //
-        if ( message == null ) {
-          testFactory.saveElement( test );
-          break;
-        } else {
-          MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
-          box.setText( "Error" );
-          box.setMessage( message );
-          box.open();
-        }
-      }
-    } catch ( Exception e ) {
-      new ErrorDialog( spoon.getShell(), "Error", "Error creating a new transformation unit test", e );
-    }
-
-  }
-
-  public void editUnitTest() {
-
-    Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
-    Repository repository = spoon.getRepository();
-
-    try {
-      TransGraph transGraph = spoon.getActiveTransGraph();
-      IMetaStore metaStore = spoon.getMetaStore();
-      if ( transGraph == null ) {
-        return;
-      }
-      TransMeta transMeta = spoon.getActiveTransformation();
-      if ( transMeta == null ) {
-        return;
-      }
-
-      FactoriesHierarchy fh = new FactoriesHierarchy( metaStore, DataSetConst.getAvailableDatabases( repository, transMeta.getSharedObjects() ) );
-      List<String> testNames = fh.getTestFactory().getElementNames();
-      Collections.sort( testNames );
-      EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), testNames.toArray( new String[testNames.size()] ), "Select the test", "Select the transformation unit test to edit..." );
-      String testName = esd.open();
-      if ( testName == null ) {
-        return;
-      }
-      TransUnitTest test = fh.getTestFactory().loadElement( testName );
-
-      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test, transMeta.getSharedObjects() );
-      while ( dialog.open() ) {
-        MetaStoreFactory<TransUnitTest> testFactory = dialog.getFactoriesHierarchy().getTestFactory();
-
-        // Verify empty name, existing name...
-        //
-        String message = validateTransUnitTest( test, testName, testFactory.getElementNames() );
-
-        // Save the test case ...
-        //
-        if ( message == null ) {
-          testFactory.saveElement( test );
-          break;
-        } else {
-          MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
-          box.setText( "Error" );
-          box.setMessage( message );
-          box.open();
-        }
-      }
-    } catch ( Exception e ) {
-      new ErrorDialog( spoon.getShell(), "Error", "Error editing a transformation unit test", e );
-    }
-  }
 
   public void createUnitTest() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
@@ -596,15 +644,30 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       if ( transGraph == null ) {
         return;
       }
-      StepMeta stepMeta = transGraph.getCurrentStep();
-      TransMeta transMeta = spoon.getActiveTransformation();
-      if ( stepMeta == null || transMeta == null ) {
+      TransMeta transMeta = transGraph.getTransMeta();
+      
+      EnterStringDialog stringDialog = new EnterStringDialog( spoon.getShell(), "", "Enter unit test name", "Unit test name: " );
+      String testName = stringDialog.open();
+      if (testName==null) {
         return;
       }
-
+      
+      MetaStoreFactory<TransUnitTest> testFactory = new MetaStoreFactory<TransUnitTest>( TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
+      if (testFactory.loadElement( testName )!=null) {
+        MessageBox box = new MessageBox( spoon.getShell(), SWT.YES | SWT.NO  );
+        box.setText( "A test with that name exists" );
+        box.setMessage( "A test with that name already exists.  Would you like to use and edit this test in this transformation?" );
+        int answer = box.open();
+        if ((answer&SWT.YES)!=0) {
+          transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
+          transGraph.redraw();
+        }
+        return;
+      }
+      
       TransUnitTest test = new TransUnitTest();
-      // TODO FIX : test.setStepname( stepMeta.getName() );
-
+      test.setName( testName );
+      
       if ( repository != null ) {
         test.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + RepositoryDirectory.DIRECTORY_SEPARATOR + transMeta.getName() );
         if ( repository.getRepositoryMeta().getRepositoryCapabilities().supportsReferences() ) {
@@ -616,32 +679,11 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         test.setTransFilename( transMeta.getFilename() );
       }
 
-      TransUnitTestDialog dialog = new TransUnitTestDialog( spoon.getShell(), repository, metaStore, test, transMeta.getSharedObjects() );
-      while ( dialog.open() ) {
-        MetaStoreFactory<TransUnitTest> testFactory = dialog.getFactoriesHierarchy().getTestFactory();
-
-        // Verify empty name, existing name...
-        //
-        String message = validateTransUnitTest( test, null, testFactory.getElementNames() );
-
-        // Save the test case ...
-        //
-        if ( message == null ) {
-          testFactory.saveElement( test );
-
-          // Also leave a trace in the step metadata so that we know what to draw.
-          //
-          stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_UNIT_TEST, test.getName() );
-          stepMeta.setChanged();
-          spoon.refreshGraph();
-          break;
-        } else {
-          MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
-          box.setText( "Error" );
-          box.setMessage( message );
-          box.open();
-        }
-      }
+      testFactory.saveElement( test );
+      transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
+      // System.out.println( "Transformation '"+transMeta.getName()+"' : unit test parent name set to '"+testName+"'" );
+      transGraph.redraw();
+      
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error creating a new transformation unit test", e );
     }
@@ -660,7 +702,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         return;
       }
 
-      stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_UNIT_TEST, null );
+      stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, null );
       transGraph.redraw();
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error detaching a new transformation unit test", e );
@@ -689,7 +731,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), names, "Select a unit test", "Select the unit test to use" );
       String testName = esd.open();
       if ( testName != null ) {
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_UNIT_TEST, testName );
+        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, testName );
         stepMeta.setChanged();
         spoon.refreshGraph();
       }

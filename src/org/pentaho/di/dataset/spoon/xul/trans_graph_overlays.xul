@@ -13,16 +13,35 @@
   <menupopup id="trans-graph-entry">
      <menu id="trans-graph-step-dataset" label="Data set">
       <menupopup id="trans-graph-step-dataset-popup">
-        <menuitem label="Select an input data set" command="dataSetHelper.setInputDataSet()" />
-        <menuitem label="Clear input data set" command="dataSetHelper.clearDataSet()" />
+        <menuitem label="Input data : select a data set" command="dataSetHelper.setInputDataSet()" />
+        <menuitem label="Clear input data set" command="dataSetHelper.clearInputDataSet()" />
+        <menuseparator />
+        <menuitem label="Golden data : select a data set" command="dataSetHelper.setGoldenDataSet()" />
+        <menuitem label="Clear golden data set" command="dataSetHelper.clearGoldenDataSet()" />
+        <menuseparator />
         <menuitem label="Define data set with step output" command="dataSetHelper.createDataSetFromStep()" />
         <menuitem label="Write data from step to data set" command="dataSetHelper.writeStepDataToDataSet()" />
         <menuseparator />
+
+      </menupopup>
+     </menu>        
+  </menupopup>
+
+  <!-- 
+     
+     This is the overlay for the transformation background context menu
+     
+   -->
+  <menupopup id="trans-graph-background">  
+     <menuseparator />
+     <menu id="trans-graph-unit-tests" label="Unit tests">
+	    <menupopup id="trans-graph-unit-tests-popup">
         <menuitem label="Create unit test" command="dataSetHelper.createUnitTest()" />
         <menuitem label="Select unit test" command="dataSetHelper.selectUnitTest()" />
         <menuitem label="Detach unit test" command="dataSetHelper.detachUnitTest()" />
       </menupopup>
      </menu>        
   </menupopup>
+  
 
 </overlay>

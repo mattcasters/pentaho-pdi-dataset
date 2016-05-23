@@ -16,10 +16,10 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -28,7 +28,6 @@ import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
-import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.i18n.BaseMessages;
@@ -57,6 +56,11 @@ public class TransUnitTestDialog extends Dialog {
 
   private Text wName;
   private Text wDescription;
+  
+  protected Group ioGroup;
+  protected Button wInputs;
+  protected Button wGolden;
+  
   private CCombo wStepname;
   private CCombo wDataSet;
   private TableView wFieldMapping;

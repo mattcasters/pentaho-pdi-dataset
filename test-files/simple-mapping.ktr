@@ -155,7 +155,7 @@
     </fields>
 <attributes><group><name>DataSet</name>
 <attribute><key>DataSetInput</key>
-<value/>
+<value>Mapping input</value>
 </attribute></group></attributes>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
@@ -176,6 +176,8 @@
            <method>none</method>
            <schema_name/>
            </partitioning>
+<attributes><group><name>DataSet</name>
+</group></attributes>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
       <xloc>480</xloc>
@@ -222,5 +224,9 @@
    <slave-step-copy-partition-distribution>
 </slave-step-copy-partition-distribution>
    <slave_transformation>N</slave_transformation>
+<attributes><group><name>DataSet</name>
+<attribute><key>SelectedUnitTest</key>
+<value>T4</value>
+</attribute></group></attributes>
 
 </transformation>

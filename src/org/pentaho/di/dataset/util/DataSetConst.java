@@ -42,9 +42,13 @@ public class DataSetConst {
 
   public static final String ATTR_GROUP_DATASET = "DataSet";
   public static final String ATTR_STEP_DATASET_INPUT = "DataSetInput";
+  public static final String ATTR_STEP_DATASET_GOLDEN = "UnitTest";
   public static final String VAR_STEP_DATASET_ENABLED = "__DataSetEnabled__";
   public static final String VAR_UNIT_TEST_NAME = "__UnitTest__";
-  public static final String ATTR_STEP_UNIT_TEST = "UnitTest";
+  public static final String ATTR_TRANS_SELECTED_UNIT_TEST_NAME = "SelectedUnitTest";
+  
+  public static final String AREA_DRAWN_UNIT_TEST_PARENT_NAME = "DrawmnUnitTestArea";
+  
   
   public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
 

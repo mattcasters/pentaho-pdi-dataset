@@ -28,15 +28,9 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
     TransPainterExtension ext = (TransPainterExtension) object;
     StepMeta stepMeta = ext.stepMeta;
     String dataSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT );
-    String testName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_UNIT_TEST );
     if ( !Const.isEmpty( dataSetName ) ) {
       drawInputDataSetMarker( ext, stepMeta, dataSetName );
     }
-
-    if ( !Const.isEmpty( testName ) ) {
-      drawUnitTestMarker( ext, stepMeta, testName );
-    }
-
   }
 
   private void drawInputDataSetMarker( TransPainterExtension ext, StepMeta stepMeta, String dataSetName ) {
@@ -73,7 +67,7 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
 
   }
 
-  private void drawUnitTestMarker( TransPainterExtension ext, StepMeta stepMeta, String testName ) {
+  protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, String testName ) {
     // Now we're here, draw a marker and indicate the name of the unit test
     //
     GCInterface gc = ext.gc;
