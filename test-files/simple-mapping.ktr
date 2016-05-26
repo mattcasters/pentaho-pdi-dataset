@@ -155,7 +155,7 @@
     </fields>
 <attributes><group><name>DataSet</name>
 <attribute><key>DataSetInput</key>
-<value>Mapping input</value>
+<value>New Input</value>
 </attribute></group></attributes>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
@@ -178,7 +178,7 @@
            </partitioning>
 <attributes><group><name>DataSet</name>
 <attribute><key>UnitTest</key>
-<value>Mapping Golden</value>
+<value>New Golden</value>
 </attribute></group></attributes>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
@@ -228,7 +228,7 @@
    <slave_transformation>N</slave_transformation>
 <attributes><group><name>DataSet</name>
 <attribute><key>SelectedUnitTest</key>
-<value>T4</value>
+<value>New</value>
 </attribute></group></attributes>
 
 </transformation>
