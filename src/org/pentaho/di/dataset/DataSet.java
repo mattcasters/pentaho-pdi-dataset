@@ -60,6 +60,11 @@ public class DataSet {
     DataSet cmp = (DataSet) obj;
     return name.equals( cmp );
   }
+  
+  @Override
+  public int hashCode() {
+    return name.hashCode();
+  }
 
   public String getName() {
     return name;
@@ -160,6 +165,24 @@ public class DataSet {
         sql += " FROM " + schemaTable;
 
         rows = database.getRows( sql, 0 );
+        
+        // Now, our work is not done...
+        // We will probably have data conversation issues so let's handle this...
+        //
+        RowMetaInterface dbRowMeta = database.getReturnRowMeta();
+        RowMetaInterface setRowMeta = getSetRowMeta( true );
+        for (int i=0;i<dbRowMeta.size();i++) {
+          ValueMetaInterface setValueMeta = setRowMeta.getValueMeta( i );
+          ValueMetaInterface dbValueMeta = dbRowMeta.getValueMeta( i );
+          if (dbValueMeta.getType()!=setValueMeta.getType()) {
+            // Convert the values in the result set...
+            //
+            for (Object[] row : rows) {
+              row[i] = setValueMeta.convertData( dbValueMeta, row[i] );
+            }
+          }
+        }
+        
 
       } finally {
         if ( database != null ) {

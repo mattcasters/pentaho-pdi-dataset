@@ -16,10 +16,10 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPainter;
 
 @ExtensionPoint(
-  id = "DrawSelectedUnitTestExtentionPoint",
+  id = "DrawUnitTestOnTransExtentionPoint",
   description = "Indicates graphically which unit test is currently selected.",
   extensionPointId = "TransPainterEnd" )
-public class DrawSelectedUnitTestExtentionPoint implements ExtensionPointInterface {
+public class DrawUnitTestOnTransExtentionPoint implements ExtensionPointInterface {
 
   @Override
   public void callExtensionPoint( LogChannelInterface log, Object object ) throws KettleException {
@@ -31,12 +31,12 @@ public class DrawSelectedUnitTestExtentionPoint implements ExtensionPointInterfa
     TransMeta transMeta = painter.getTransMeta();
     String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME);
     // System.out.println("Drawing unit test usage/editing : '"+testName+"'");
-    drawInputDataSetMarker( painter, transMeta, testName );
+    drawUnitTestName( painter, transMeta, testName );
   }
 
-  private void drawInputDataSetMarker( TransPainter painter, TransMeta transMeta, String unitTestName ) {
+  private void drawUnitTestName( TransPainter painter, TransMeta transMeta, String unitTestName ) {
     
-    // Now we're here, draw a marker and indicate the name of the data set name
+    // Draw the name of the unit test in a rectangle
     //
     GCInterface gc = painter.getGc();
     int x = 5;

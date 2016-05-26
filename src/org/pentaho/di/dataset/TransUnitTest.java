@@ -64,6 +64,23 @@ public class TransUnitTest {
     this.inputDataSets = inputDataSets;
     this.goldenDataSets = goldenDataSets;
   }
+  
+  @Override
+  public boolean equals( Object obj ) {
+    if (obj==this) {
+      return true;
+    }
+    if (!(obj instanceof TransUnitTest)) {
+      return false;
+    }
+    return ((TransUnitTest)obj).name.equalsIgnoreCase( name );
+  }
+  
+  @Override
+  public int hashCode() {
+    return name.hashCode();
+  }
+  
 
   public String getName() {
     return name;
@@ -134,17 +151,15 @@ public class TransUnitTest {
   /**
    * Retrieve the golden data rows, for the specified step name, from the data sets;
    * 
+   * @param hierarchy The factories to load sets with
    * @param stepName The step to check
    * @return The golden data rows 
    * 
    * @throws KettleException
    */
-  public RowCollection getGoldenRows(IMetaStore metaStore, List<DatabaseMeta> databases, String stepName) throws KettleException {
+  public RowCollection getGoldenRows(FactoriesHierarchy hierarchy, String stepName) throws KettleException {
 
     try {      
-      // TODO: expensive operation, push upstairs or cache...
-      //
-      FactoriesHierarchy hierarchy = new FactoriesHierarchy( metaStore, databases );
       
       // Look in the golden data sets list for the mentioned step name
       //

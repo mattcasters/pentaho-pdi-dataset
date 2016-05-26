@@ -49,6 +49,11 @@ public class DataSetGroup {
 
     return name.equals( cmp.name );
   }
+  
+  @Override
+  public int hashCode() {
+    return name.hashCode();
+  }
 
   public void setName( String name ) {
     this.name = name;

@@ -159,7 +159,7 @@
 </attribute></group></attributes>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
-      <xloc>144</xloc>
+      <xloc>176</xloc>
       <yloc>112</yloc>
       <draw>Y</draw>
       </GUI>
@@ -177,10 +177,12 @@
            <schema_name/>
            </partitioning>
 <attributes><group><name>DataSet</name>
-</group></attributes>
+<attribute><key>UnitTest</key>
+<value>Mapping Golden</value>
+</attribute></group></attributes>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
-      <xloc>480</xloc>
+      <xloc>512</xloc>
       <yloc>112</yloc>
       <draw>Y</draw>
       </GUI>
@@ -213,7 +215,7 @@
     </fields>
      <cluster_schema/>
  <remotesteps>   <input>   </input>   <output>   </output> </remotesteps>    <GUI>
-      <xloc>320</xloc>
+      <xloc>352</xloc>
       <yloc>112</yloc>
       <draw>Y</draw>
       </GUI>

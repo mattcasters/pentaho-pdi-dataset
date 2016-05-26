@@ -221,28 +221,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     return message;
   }
 
-  private String validateTransUnitTest( TransUnitTest test, String previousName, List<String> testNames ) {
-
-    String message = null;
-
-    String newName = test.getName();
-    if ( Const.isEmpty( newName ) ) {
-      message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoNameSpecified.Message" );
-    } else if ( !Const.isEmpty( previousName ) && !previousName.equals( newName ) ) {
-      message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.RenamingOfATransUnitTestNotSupported.Message" );
-    } /* else if ( Const.isEmpty( test.getStepname() ) ) {
-      message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoStepNameSpecified.Message" );
-    } else if ( test.getGoldenDataSet() == null ) {
-      message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.NoGoldenDataSetSpecified.Message" );
-    } */ else {
-      if ( Const.isEmpty( previousName ) && Const.indexOfString( newName, testNames ) >= 0 ) {
-        message = BaseMessages.getString( PKG, "DataSetHelper.TransUnitTest.ATransUnitTestSetWithNameExists.Message", newName );
-      }
-    }
-
-    return message;
-  }
-
   public void addDataSet() {
 
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
@@ -391,10 +369,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         //
         hierarchy.getTestFactory().saveElement( unitTest );
         
-        spoon.refreshGraph();
-        
-        
-        
+        stepMeta.setChanged();
+
+        spoon.refreshGraph();        
       }
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error retrieving the list of data set groups", e );
@@ -477,6 +454,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         //
         hierarchy.getTestFactory().saveElement( goldenTest );
         
+        stepMeta.setChanged();
+
         spoon.refreshGraph();       
       }
     } catch ( Exception e ) {
@@ -681,14 +660,18 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
       testFactory.saveElement( test );
       transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
-      // System.out.println( "Transformation '"+transMeta.getName()+"' : unit test parent name set to '"+testName+"'" );
-      transGraph.redraw();
+      
+      // Don't carry on old indicators...
+      //
+      DataSetConst.clearStepDataSetIndicators( transMeta );
+      
+      spoon.refreshGraph();
       
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error creating a new transformation unit test", e );
     }
   }
-
+  
   public void detachUnitTest() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     try {
@@ -696,20 +679,26 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       if ( transGraph == null ) {
         return;
       }
-      StepMeta stepMeta = transGraph.getCurrentStep();
       TransMeta transMeta = spoon.getActiveTransformation();
-      if ( stepMeta == null || transMeta == null ) {
+      if (transMeta == null ) {
         return;
       }
 
-      stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, null );
-      transGraph.redraw();
+      transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, null );
+      transMeta.setChanged();
+      
+      DataSetConst.clearStepDataSetIndicators( transMeta );
+      
+      spoon.refreshGraph();
     } catch ( Exception e ) {
-      new ErrorDialog( spoon.getShell(), "Error", "Error detaching a new transformation unit test", e );
+      new ErrorDialog( spoon.getShell(), "Error", "Error detaching unit test", e );
     }
   }
 
   public void selectUnitTest() {
+    
+    System.out.println("XXXXXX selectUnitTest()");
+    
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     try {
       TransGraph transGraph = spoon.getActiveTransGraph();
@@ -717,22 +706,30 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       if ( transGraph == null ) {
         return;
       }
-      StepMeta stepMeta = transGraph.getCurrentStep();
       TransMeta transMeta = spoon.getActiveTransformation();
-      if ( stepMeta == null || transMeta == null ) {
+      if ( transMeta == null ) {
         return;
       }
 
-      List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
-      FactoriesHierarchy fh = new FactoriesHierarchy( metaStore, databases );
-      List<String> testNames = fh.getTestFactory().getElementNames();
+      MetaStoreFactory<TransUnitTest> testFactory = new MetaStoreFactory<TransUnitTest>( TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
+      List<String> testNames = testFactory.getElementNames();
       String[] names = testNames.toArray( new String[testNames.size()] );
       Arrays.sort( names );
       EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), names, "Select a unit test", "Select the unit test to use" );
       String testName = esd.open();
       if ( testName != null ) {
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, testName );
-        stepMeta.setChanged();
+        
+        transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
+        
+        TransUnitTest unitTest = testFactory.loadElement( testName );
+        if (unitTest==null) {
+          throw new KettleException( "Unit test '"+testName+"' could not be found (deleted)?" );
+        }
+        
+        DataSetConst.loadStepDataSetIndicators( transMeta, unitTest);
+
+        transMeta.setChanged();
+        
         spoon.refreshGraph();
       }
     } catch ( Exception e ) {

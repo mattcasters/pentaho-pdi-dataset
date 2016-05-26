@@ -1,8 +1,10 @@
 package org.pentaho.di.dataset.trans;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-import org.apache.tools.ant.filters.StringInputStream;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -26,7 +28,7 @@ import org.pentaho.metastore.api.exceptions.MetaStoreException;
 @ExtensionPoint(
   extensionPointId = "TransformationPrepareExecution",
   id = "ChangeTransMetaPriorToExecutionExtensionPoint",
-  description = "Change the transformation metadata in Trans prior to execution preperation" )
+  description = "Change the transformation metadata in Trans prior to execution preperatio but only during execution in Spoon" )
 public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionPointInterface {
 
   @Override
@@ -38,16 +40,16 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     Trans trans = (Trans) object;
     TransMeta transMeta = trans.getTransMeta();
 
-    String strEnabled = transMeta.getVariable( DataSetConst.VAR_STEP_DATASET_ENABLED );
-    boolean dataSetEnabled = "Y".equalsIgnoreCase( strEnabled );
-    String unitTestName = transMeta.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
+    boolean runUnitTest = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
+    if (!runUnitTest) {
+      // No business here...
+      return;
+    }
+    String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    
     TransUnitTest unitTest = null;
     FactoriesHierarchy factoriesHierarchy = null;
     
-    if ( !trans.isPreview() && !dataSetEnabled ) {
-      return;
-    }
-
     // TODO: The next 2 lines are very expensive: see how we can cache this or move it upstairs somewhere.
     //
     if (!Const.isEmpty( unitTestName )) {
@@ -65,7 +67,13 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     // However, we don't want to have the user see this so we need to copy trans.transMeta first...
     //
     // Clone seems to has problems so we'll take the long (XML) way around...
-    TransMeta copyTransMeta = new TransMeta(new StringInputStream( transMeta.getXML() ), transMeta.getRepository(), true, transMeta, null);
+    InputStream stream;
+    try {
+      stream = new ByteArrayInputStream( transMeta.getXML().getBytes(Const.XML_ENCODING) );
+    } catch ( UnsupportedEncodingException e ) {
+      throw new KettleException( "Encoding error", e );
+    }
+    TransMeta copyTransMeta = new TransMeta(stream, transMeta.getRepository(), true, transMeta, null);
     
     // Lets's simply replace the inputs with an Injector Step
     //

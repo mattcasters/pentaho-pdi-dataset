@@ -60,14 +60,14 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
     final Trans trans = (Trans) object;
     final TransMeta transMeta = trans.getTransMeta();
-    String dsEnabled = transMeta.getVariable( DataSetConst.VAR_STEP_DATASET_ENABLED );
-    boolean dataSetEnabled = "Y".equalsIgnoreCase( dsEnabled );
-    String unitTestName = transMeta.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
+    boolean dataSetEnabled = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
 
-    if ( !trans.isPreview() && !dataSetEnabled ) {
+    if ( !dataSetEnabled ) {
       return;
     }
 
+    String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    
     try {
       IMetaStore metaStore = transMeta.getMetaStore();
       Repository repository = transMeta.getRepository();

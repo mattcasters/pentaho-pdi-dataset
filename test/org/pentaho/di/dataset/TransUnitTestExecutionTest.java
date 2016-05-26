@@ -18,9 +18,9 @@ import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.util.EnvUtil;
 import org.pentaho.di.dataset.trans.ChangeTransMetaPriorToExecutionExtensionPoint;
-import org.pentaho.di.dataset.trans.IndicateUsingDataSetExtensionPoint;
 import org.pentaho.di.dataset.trans.InjectDataSetIntoTransExtensionPoint;
 import org.pentaho.di.dataset.trans.RowCollection;
+import org.pentaho.di.dataset.trans.ValidateTransUnitTestExtensionPoint;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.shared.SharedObjects;
@@ -192,8 +192,8 @@ public class TransUnitTestExecutionTest extends TestCase {
 
     List<Class<? extends ExtensionPointInterface>> pluginClasses = Arrays.asList(
       ChangeTransMetaPriorToExecutionExtensionPoint.class,
-      IndicateUsingDataSetExtensionPoint.class,
-      InjectDataSetIntoTransExtensionPoint.class
+      InjectDataSetIntoTransExtensionPoint.class,
+      ValidateTransUnitTestExtensionPoint.class
       );
     String plugins = Const.NVL( EnvUtil.getSystemProperty( Const.KETTLE_PLUGIN_CLASSES ), "" );
     for ( Class<? extends ExtensionPointInterface> cl : pluginClasses ) {
@@ -209,14 +209,18 @@ public class TransUnitTestExecutionTest extends TestCase {
     TransMeta transMeta = new TransMeta( unitTest.getTransFilename() );
     transMeta.setSharedObjects(sharedObjects);
     transMeta.addDatabase( databaseMeta );
-
-    // Enable data sets
+    
+    // Enable unit test validation
     //
-    transMeta.setVariable( DataSetConst.VAR_STEP_DATASET_ENABLED, "Y" );
+    transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
+    
+    // Pass indicators for the transformation (might be existing stuff the user is working on)
+    //
+    DataSetConst.loadStepDataSetIndicators( transMeta, unitTest );
     
     // This will cause the transformation to be a unit test...
     //
-    transMeta.setVariable( DataSetConst.VAR_UNIT_TEST_NAME, unitTest.getName() );
+    transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
 
     // pass our metastore reference
     //
@@ -246,7 +250,7 @@ public class TransUnitTestExecutionTest extends TestCase {
     int rowNumber = 0;
     for (TransUnitTestSetLocation location : unitTest.getGoldenDataSets()) {
       RowCollection resultCollection = collectionMap.get( location.getStepname() );
-      RowCollection goldenCollection = unitTest.getGoldenRows( metaStore, Arrays.asList( databaseMeta ), location.getStepname() );
+      RowCollection goldenCollection = unitTest.getGoldenRows( factories, location.getStepname() );
       
       assertEquals(OUTPUT_STEP_NAME, location.getStepname());
       assertEquals(setSize, resultCollection.getRows().size());
