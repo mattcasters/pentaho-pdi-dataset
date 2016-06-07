@@ -1,6 +1,5 @@
 package org.pentaho.di.dataset.trans;
 
-import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +16,6 @@ import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
@@ -233,8 +231,6 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
     final DataSet dataSet = dataSetFactory.loadElement( dataSetName );
     final DataSetGroup group = dataSet.getGroup();
     final Database database = new Database( trans, group.getDatabaseMeta() );
-    final String schemaTable = group.getDatabaseMeta().getQuotedSchemaTableCombination( group.getSchemaName(), dataSet.getTableName() );
-    final RowMetaInterface columnRowMeta = dataSet.getSetRowMeta( true );
     final RowMetaInterface fieldRowMeta = dataSet.getSetRowMeta( false );
 
     final RowProducer rowProducer = trans.addRowProducer( stepMeta.getName(), 0 );
@@ -253,37 +249,22 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
     if ( combi != null ) {
 
       trans.getLogChannel().logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "'" );
+      final List<Object[]> rows = dataSet.getAllRows();
       
-      String query = "SELECT ";
-      for ( int i = 0; i < columnRowMeta.size(); i++ ) {
-        ValueMetaInterface colValueMeta = columnRowMeta.getValueMeta( i );
-        if ( i > 0 ) {
-          query += ", ";
-        }
-        query += group.getDatabaseMeta().quoteField( colValueMeta.getName() );
-      }
-      query += " FROM " + schemaTable;
-
       // Pass rows
       try {
-        database.connect();
-        final ResultSet resultSet = database.openQuery( query );
-
         Runnable runnable = new Runnable() {
           @Override
           public void run() {
             try {
-              Object[] row = database.getRow( resultSet );
-              while ( row != null ) {
+              
+              for( Object[] row : rows ) {
                 // pass the row with the external names
                 //
-                rowProducer.putRow( fieldRowMeta, row );
-
-                row = database.getRow( resultSet );
+                rowProducer.putRow( fieldRowMeta, row );                
               }
               rowProducer.finished();
               
-              resultSet.close();
             } catch ( Exception e ) {
               throw new RuntimeException( "Problem injecting data set '" + dataSetName + "' row into step '" + stepMeta.getName() + "'", e );
             }

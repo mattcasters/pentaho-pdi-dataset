@@ -6,12 +6,10 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.dataset.trans.RowCollection;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
-import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 

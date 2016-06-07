@@ -70,6 +70,7 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
         DataSetConst.validateTransResultAgainstUnitTest( trans, unitTest, factoriesHierarchy );
         trans.getLogChannel().logBasic( "Unit test '"+unitTest.getName()+"' passed succesfully" );
       } catch(Exception e) {
+    	  trans.stopAll();
         throw new KettleException( "Unable to validate against golden data for unit test '"+unitTest.getName()+"'", e );
       }
       

@@ -14,6 +14,7 @@ import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.plugins.PluginRegistry;
 import org.pentaho.di.core.plugins.StepPluginType;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.util.DataSetConst;
@@ -43,6 +44,7 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     boolean runUnitTest = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
     if (!runUnitTest) {
       // No business here...
+      log.logBasic("Not running unit test...");
       return;
     }
     String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
@@ -91,9 +93,19 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
       }
       
       if ( !Const.isEmpty( dataSetName ) ) {
+        log.logBasic("Replacing step '"+stepMeta.getName()+"' with an Injector for dataset '"+dataSetName+"'");
+        
+        DataSet dataSet;
+        try {
+			dataSet = factoriesHierarchy.getSetFactory().loadElement(dataSetName);
+		} catch (MetaStoreException e) {
+			throw new KettleException("Unable to load data set '"+dataSetName+"'");
+		}
+        
         // OK, this step needs to be replaced by an Injector step...
         //
-        RowMetaInterface stepFields = copyTransMeta.getStepFields( stepMeta );
+        RowMetaInterface stepFields = dataSet.getSetRowMeta(false);
+        log.logBasic("Input Data Set '"+dataSetName+"' Injector fields : '"+stepFields.toString());
         
         InjectorMeta injectorMeta = new InjectorMeta();
         injectorMeta.allocate( stepFields.size() );
