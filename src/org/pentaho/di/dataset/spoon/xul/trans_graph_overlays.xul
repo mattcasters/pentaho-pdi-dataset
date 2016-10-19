@@ -31,7 +31,6 @@
      
      This is the overlay for the transformation background context menu
      
-   -->
   <menupopup id="trans-graph-background">  
      <menuseparator />
      <menu id="trans-graph-unit-tests" label="Unit tests">
@@ -43,5 +42,6 @@
      </menu>        
   </menupopup>
   
+   -->
 
 </overlay>
