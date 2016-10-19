@@ -719,21 +719,43 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       String testName = esd.open();
       if ( testName != null ) {
         
-        transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
-        
         TransUnitTest unitTest = testFactory.loadElement( testName );
         if (unitTest==null) {
           throw new KettleException( "Unit test '"+testName+"' could not be found (deleted)?" );
         }
-        
-        DataSetConst.loadStepDataSetIndicators( transMeta, unitTest);
 
-        transMeta.setChanged();
+        selectUnitTest(transMeta, unitTest);
         
-        spoon.refreshGraph();
       }
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error selecting a new transformation unit test", e );
     }
+  }
+  
+  public void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) 
+      throws MetaStoreException, KettleException {
+    transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, 
+        DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
+    
+    DataSetConst.loadStepDataSetIndicators( transMeta, unitTest);
+
+    transMeta.setChanged();
+    
+    Spoon.getInstance().refreshGraph();
+
+  }
+
+  public TransUnitTest getCurrentUnitTest(TransMeta transMeta) throws MetaStoreException, KettleException {
+    // What is the unit test we are using?
+    //
+    String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    if (Const.isEmpty( testName )) {
+      return null;
+    }
+    Spoon spoon = Spoon.getInstance();
+    List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
+    FactoriesHierarchy hierarchy = new FactoriesHierarchy( spoon.getMetaStore(), databases );
+    TransUnitTest unitTest = hierarchy.getTestFactory().loadElement( testName );
+    return unitTest;
   }
 }

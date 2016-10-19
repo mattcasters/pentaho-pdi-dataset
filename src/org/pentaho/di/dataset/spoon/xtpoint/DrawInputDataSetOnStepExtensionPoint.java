@@ -42,7 +42,7 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
     int y = ext.y1;
 
     gc.setLineWidth( stepMeta.isSelected() ? 2 : 1 );
-    gc.setForeground( EColor.BLUE );
+    gc.setForeground( EColor.CRYSTAL );
     gc.setBackground( EColor.LIGHTGRAY );
     gc.setFont( EFont.GRAPH );
     Point textExtent = gc.textExtent( dataSetName );
@@ -76,7 +76,7 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
     int y = ext.y1;
 
     gc.setLineWidth( stepMeta.isSelected() ? 2 : 1 );
-    gc.setForeground( EColor.BLUE );
+    gc.setForeground( EColor.CRYSTAL );
     gc.setBackground( EColor.LIGHTGRAY );
     gc.setFont( EFont.GRAPH );
     Point textExtent = gc.textExtent( testName );
