@@ -54,14 +54,13 @@ public class DataSetConst {
   public static final String ATTR_GROUP_DATASET = "DataSet";
   public static final String ATTR_STEP_DATASET_INPUT = "DataSetInput";
   public static final String ATTR_STEP_DATASET_GOLDEN = "UnitTest";
-
+  public static final String ATTR_STEP_TWEAK= "UnitTestStepTweak";
+  
   public static final String VAR_RUN_UNIT_TEST = "__UnitTest__";
   
   public static final String ATTR_TRANS_SELECTED_UNIT_TEST_NAME = "SelectedUnitTest";
   
   public static final String AREA_DRAWN_UNIT_ICON = "DrawnUnitTestIcon";
-  
-  
   public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
 
   public static final DataSet findDataSet( List<DataSet> list, String dataSetName ) {

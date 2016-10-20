@@ -94,14 +94,17 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
             MenuItem editItem = new MenuItem(menu, SWT.PUSH);
             editItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Edit.Label"));
             editItem.addSelectionListener(lsEdit);
+            editItem.setEnabled(StringUtils.isNotBlank(unitTestName));
             
             MenuItem deleteItem = new MenuItem(menu, SWT.PUSH);
             deleteItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Delete.Label"));
             deleteItem.addSelectionListener(lsDelete);
+            deleteItem.setEnabled(StringUtils.isNotBlank(unitTestName));
             
             MenuItem disableItem = new MenuItem(menu, SWT.PUSH);
             disableItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Disable.Label"));
             disableItem.addSelectionListener(lsDisable);
+            disableItem.setEnabled(StringUtils.isNotBlank(unitTestName));
             
             MenuItem switchItem = new MenuItem(menu, SWT.CASCADE);
             switchItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Switch.Label"));
@@ -144,8 +147,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
       if (unitTest==null) {
         throw new KettleException(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorEditingUnitTest.Message", unitTestName));
       }
-      TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), spoon.getRepository(), spoon.getMetaStore(), 
-          unitTest, transMeta.getSharedObjects());
+      TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), transMeta, spoon.getMetaStore(), unitTest);
       if (dialog.open()) {
         setFactory.saveElement(unitTest);
       }

@@ -18,9 +18,11 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
+import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
+import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.spoon.dialog.DataSetDialog;
 import org.pentaho.di.dataset.spoon.dialog.DataSetGroupDialog;
 import org.pentaho.di.dataset.trans.InjectDataSetIntoTransExtensionPoint;
@@ -758,4 +760,63 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     TransUnitTest unitTest = hierarchy.getTestFactory().loadElement( testName );
     return unitTest;
   }
+  
+  public void enableTweakRemoveStepInUnitTest() {
+    tweakRemoveStepInUnitTest(true);
+  }
+  public void disableTweakRemoveStepInUnitTest() {
+    tweakRemoveStepInUnitTest(false);
+  }
+  public void tweakRemoveStepInUnitTest(boolean enable) {
+    tweakUnitTestStep(TransTweak.REMOVE_STEP, enable);
+  }
+
+  private void tweakUnitTestStep(TransTweak stepTweak, boolean enable) {
+    Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
+    TransGraph transGraph = spoon.getActiveTransGraph();
+    IMetaStore metaStore = spoon.getMetaStore();
+    if ( transGraph == null ) {
+      return;
+    }
+    StepMeta stepMeta = transGraph.getCurrentStep();
+    TransMeta transMeta = spoon.getActiveTransformation();
+    if ( stepMeta == null || transMeta == null ) {
+      return;
+    }
+
+    try {
+      TransUnitTest unitTest = getCurrentUnitTest(transMeta);
+      if (unitTest==null) {
+        return;
+      }
+      TransUnitTestTweak unitTestTweak = unitTest.findTweak(stepMeta.getName());
+      if (unitTestTweak!=null) {
+        unitTest.getTweaks().remove(unitTestTweak);
+        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK, null);
+      }
+      if (enable) {
+        unitTest.getTweaks().add(new TransUnitTestTweak(stepTweak, stepMeta.getName()));
+        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK, stepTweak.name());
+      }
+      
+      new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE)
+        .saveElement(unitTest);
+      
+      spoon.refreshGraph();
+      
+    } catch(Exception exception) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error tweaking transformation unit test on step '"+stepMeta.getName()+"' with operation "+stepTweak.name(), exception );
+    }
+  }
+
+  public void enableTweakBypassStepInUnitTest() {
+    tweakBypassStepInUnitTest(true);
+  }
+  public void disableTweakBypassStepInUnitTest() {
+    tweakBypassStepInUnitTest(false);
+  }
+  public void tweakBypassStepInUnitTest(boolean enable) {
+    tweakUnitTestStep(TransTweak.BYPASS_STEP, enable);
+  }
+
 }

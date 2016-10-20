@@ -44,15 +44,20 @@ public class TransUnitTest {
   @MetaStoreAttribute( key = "golden_data_sets" )
   protected List<TransUnitTestSetLocation> goldenDataSets;
 
+  @MetaStoreAttribute( key = "trans_test_tweaks" )
+  protected List<TransUnitTestTweak> tweaks;
+
   public TransUnitTest() {
     inputDataSets = new ArrayList<TransUnitTestSetLocation>();
     goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
+    tweaks = new ArrayList<TransUnitTestTweak>();
   }
 
   public TransUnitTest( String name, String description, 
       String transObjectId, String transRepositoryPath, String transFilename, 
       List<TransUnitTestSetLocation> inputDataSets, 
-      List<TransUnitTestSetLocation> goldenDataSets ) {
+      List<TransUnitTestSetLocation> goldenDataSets,
+      List<TransUnitTestTweak> tweaks) {
     this();
     this.name = name;
     this.description = description;
@@ -61,6 +66,7 @@ public class TransUnitTest {
     this.transFilename = transFilename;
     this.inputDataSets = inputDataSets;
     this.goldenDataSets = goldenDataSets;
+    this.tweaks = tweaks;
   }
   
   @Override
@@ -126,6 +132,22 @@ public class TransUnitTest {
 
   public void setTransFilename( String transFilename ) {
     this.transFilename = transFilename;
+  }
+
+  public List<TransUnitTestSetLocation> getGoldenDataSets() {
+    return goldenDataSets;
+  }
+
+  public void setGoldenDataSets( List<TransUnitTestSetLocation> goldenDataSets ) {
+    this.goldenDataSets = goldenDataSets;
+  }
+
+  public List<TransUnitTestTweak> getTweaks() {
+    return tweaks;
+  }
+
+  public void setTweaks(List<TransUnitTestTweak> tweaks) {
+    this.tweaks = tweaks;
   }
   
   public TransUnitTestSetLocation findGoldenLocation(String stepName) {
@@ -247,11 +269,17 @@ public class TransUnitTest {
     }
   }
 
-  public List<TransUnitTestSetLocation> getGoldenDataSets() {
-    return goldenDataSets;
+  /** Find the first tweak for a certain step 
+   * @param stepname the name of the step on which a tweak is put
+   * @return the first tweak for a certain step or null if nothing was found
+   */
+  public TransUnitTestTweak findTweak(String stepname) {
+    for (TransUnitTestTweak tweak : tweaks) {
+      if (tweak.getStepName()!=null && tweak.getStepName().equalsIgnoreCase(stepname)) {
+        return tweak;
+      }
+    }
+    return null;
   }
 
-  public void setGoldenDataSets( List<TransUnitTestSetLocation> goldenDataSets ) {
-    this.goldenDataSets = goldenDataSets;
-  }
 }

@@ -11,7 +11,7 @@
      
    -->
   <menupopup id="trans-graph-entry">
-     <menu id="trans-graph-step-dataset" label="Data set">
+     <menu id="trans-graph-step-dataset" label="Unit test">
       <menupopup id="trans-graph-step-dataset-popup">
         <menuitem label="Input data : select a data set" command="dataSetHelper.setInputDataSet()" />
         <menuitem label="Clear input data set" command="dataSetHelper.clearInputDataSet()" />
@@ -21,6 +21,12 @@
         <menuseparator />
         <menuitem label="Define data set with step output" command="dataSetHelper.createDataSetFromStep()" />
         <menuitem label="Write data from step to data set" command="dataSetHelper.writeStepDataToDataSet()" />
+        <menuseparator />
+        <menuitem label="Enable tweak : remove step in unit test" command="dataSetHelper.enableTweakRemoveStepInUnitTest()" />
+        <menuitem label="Disable tweak : remove step in unit test" command="dataSetHelper.disableTweakRemoveStepInUnitTest()" />
+        <menuseparator />
+        <menuitem label="EnableTweak : bypass step in unit test" command="dataSetHelper.enableTweakBypassStepInUnitTest()" />
+        <menuitem label="DisableTweak : bypass step in unit test" command="dataSetHelper.disableTweakBypassStepInUnitTest()" />
         <menuseparator />
 
       </menupopup>
