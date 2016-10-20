@@ -1,7 +1,7 @@
 # pentaho-pdi-dataset
 
-This is a set of PDI plugins to more easily work with data sets and do test driven development (TDD). 
-We also want to provide unit testing capabilities through input data sets and golden data sets.
+This is a set of PDI plugins to more easily work with data sets. 
+We also want to provide Test Driven Development (TDD) capabilities through unit tests, input data sets and golden data sets.
 
 # build instructions
 
