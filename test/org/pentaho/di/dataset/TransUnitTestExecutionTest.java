@@ -185,7 +185,12 @@ public class TransUnitTestExecutionTest extends TestCase {
         new TransUnitTestFieldMapping( "d", "d", "4" )
     )) );
     
-    unitTest = new TransUnitTest(UNIT_TEST_NAME, UNIT_TEST_DESCRIPTION, null, null, "test-files/simple-mapping.ktr", inputs, goldens);
+    List<TransUnitTestTweak> tweaks = new ArrayList<TransUnitTestTweak>();
+    tweaks.add( new TransUnitTestTweak(TransTweak.NONE, "step1") );
+    tweaks.add( new TransUnitTestTweak(TransTweak.BYPASS_STEP, "step2") );
+    tweaks.add( new TransUnitTestTweak(TransTweak.REMOVE_STEP, "step3") );
+    
+    unitTest = new TransUnitTest(UNIT_TEST_NAME, UNIT_TEST_DESCRIPTION, null, null, "test-files/simple-mapping.ktr", inputs, goldens, tweaks);
   }
 
   public void testExecution() throws Exception {

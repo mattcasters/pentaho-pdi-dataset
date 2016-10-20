@@ -49,10 +49,16 @@ public class TransUnitTestTest extends TestCase {
     
     goldens = new ArrayList<TransUnitTestSetLocation>();
     
+    List<TransUnitTestTweak> tweaks = new ArrayList<TransUnitTestTweak>();
+    tweaks.add( new TransUnitTestTweak(TransTweak.NONE, "step1") );
+    tweaks.add( new TransUnitTestTweak(TransTweak.BYPASS_STEP, "step2") );
+    tweaks.add( new TransUnitTestTweak(TransTweak.REMOVE_STEP, "step3") );
+    
     test = new TransUnitTest(NAME, DESCRIPTION, 
         null, null, "sometrans.ktr",
         inputs,
-        goldens
+        goldens,
+        tweaks
         );
   }
 
