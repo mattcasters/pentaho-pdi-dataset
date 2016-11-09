@@ -17,9 +17,9 @@
     
   <dependencies defaultconf="default->default">
 
-    <dependency org="pentaho-kettle"      name="kettle-core"         rev="5.4.0.1-130"   transitive="true"/>
-    <dependency org="pentaho-kettle"      name="kettle-engine"       rev="5.4.0.1-130"   transitive="true"/>
-    <dependency org="pentaho-kettle"      name="kettle-ui-swt"       rev="5.4.0.1-130"   transitive="true"/>
+    <dependency org="pentaho-kettle"      name="kettle-core"         rev="6.1-SNAPSHOT"   transitive="true"/>
+    <dependency org="pentaho-kettle"      name="kettle-engine"       rev="6.1-SNAPSHOT"   transitive="true"/>
+    <dependency org="pentaho-kettle"      name="kettle-ui-swt"       rev="6.1-SNAPSHOT"   transitive="true"/>
     <dependency org="junit"               name="junit"               rev="4.7"              transitive="false" conf="test->default"/>          
     <dependency org="com.h2database"      name="h2"                  rev="1.2.131"          transitive="false"/>
 
