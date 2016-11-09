@@ -193,6 +193,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
           BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorSwitchingUnitTest.Message", targetTest.getName()),
           exception);
     }
+    Spoon.getInstance().refreshGraph();
   }
 
   private List<TransUnitTest> findUnitTests(TransMeta transMeta, DelegatingMetaStore metaStore) {

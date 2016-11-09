@@ -1,9 +1,10 @@
-package org.pentaho.di.dataset.trans;
+package org.pentaho.di.dataset.spoon.xtpoint;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.SourceToTargetMapping;
@@ -59,12 +60,13 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
     final Trans trans = (Trans) object;
     final TransMeta transMeta = trans.getTransMeta();
     boolean dataSetEnabled = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
-
+    log.logBasic("Data Set enabled? "+dataSetEnabled);
     if ( !dataSetEnabled ) {
       return;
     }
 
     String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    log.logBasic("Unit test name: "+unitTestName);
     
     try {
       IMetaStore metaStore = transMeta.getMetaStore();
@@ -81,31 +83,41 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
       // If the transformation has a variable set with the unit test in it, we're dealing with a unit test situation.
       //
-      TransUnitTest unitTest = null;
-      if (!Const.isEmpty( unitTestName )) {
-        unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
+      if (Const.isEmpty( unitTestName )) {
+        return;
+      }
+      TransUnitTest unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
+      if (unitTest==null) {
+        log.logBasic("Unit test '"+unitTestName+"' could not be found");
+        return;
       }
 
       // Replace all steps with input data sets with Injector steps.
       // Replace all steps with a golden data set, attached to a unit test, with a Dummy
+      // Apply tweaks
       //
       for ( final StepMeta stepMeta : trans.getTransMeta().getSteps() ) {
-        String dataSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT );
-        
-        // See if there's a unit test if the step isn't flagged...
-        //
-        if ( unitTest!=null && Const.isEmpty( dataSetName ) ) {
-          TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepMeta.getName() );
-          if (inputLocation!=null) {
-            dataSetName = inputLocation.getDataSetName();
-          }
-        }
-        
-        if ( !Const.isEmpty( dataSetName ) ) {
-
-          // We need to inject data from the data set with the specified name into the step
+        String stepname = stepMeta.getName();
+        String inputDataSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT );
+        if (StringUtils.isNotEmpty(inputDataSetName)) {
+          // See if there's a unit test if the step isn't flagged...
           //
-          injectDataSetIntoStep( trans, transMeta, dataSetName, factoriesHierarchy.getSetFactory(), repository, metaStore, stepMeta );
+          TransUnitTestSetLocation inputLocation = null;
+          if ( unitTest!=null ) {
+            inputLocation = unitTest.findInputLocation( stepname );
+            if (inputLocation!=null) {
+              log.logBasic("Data Set location found for step '"+stepname+"' and data set  "+inputDataSetName);
+            } else {
+              log.logBasic("NO data set location found for step '"+stepname+"' and data set  "+inputDataSetName);
+            }
+          }
+          
+          if ( !Const.isEmpty( inputDataSetName ) && inputLocation!=null ) {
+  
+            // We need to inject data from the data set with the specified name into the step
+            //
+            injectDataSetIntoStep( trans, transMeta, inputDataSetName, factoriesHierarchy.getSetFactory(), repository, metaStore, stepMeta, inputLocation );
+          }
         }
 
         // We might want to pass the data from this step into a data set all by itself...
@@ -122,42 +134,43 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
         // How about capturing rows for golden data review?
         //
-        if ( unitTest!=null) {
-          TransUnitTestSetLocation goldenLocation = unitTest.findGoldenLocation( stepMeta.getName() );
-          if (goldenLocation!=null) {
-            String goldenDataSetName = goldenLocation.getDataSetName();
-            if (!Const.isEmpty( goldenDataSetName )) {
-              
-              final RowCollection rowCollection = new RowCollection();
-              
-              // Create a row collection map if it's missing...
-              //
-              @SuppressWarnings( "unchecked" )
-              Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get(DataSetConst.ROW_COLLECTION_MAP);
-              if (collectionMap==null) {
-                collectionMap = new HashMap<String, RowCollection>();
-                trans.getExtensionDataMap().put(DataSetConst.ROW_COLLECTION_MAP, collectionMap);
-              }
-              
-              // Keep the map for safe keeping...
-              //
-              collectionMap.put( stepMeta.getName(), rowCollection );
-              
-              // We'll capture the rows from this one and then evaluate them after execution...
-              //
-              StepInterface stepInterface = trans.findStepInterface( stepMeta.getName(), 0 );
-              stepInterface.addRowListener( new RowAdapter() {
-                @Override
-                public void rowReadEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
-                  if (rowCollection.getRowMeta()==null) {
-                    rowCollection.setRowMeta( rowMeta ); 
-                  }
-                  rowCollection.getRows().add( row );
-                }
-              });
+        TransUnitTestSetLocation goldenLocation = unitTest.findGoldenLocation( stepname );
+        if (goldenLocation!=null) {
+          String goldenDataSetName = goldenLocation.getDataSetName();
+          if (!Const.isEmpty( goldenDataSetName )) {
+            
+            log.logBasic("Capturing rows for validation at transformation end, step='"+stepMeta.getName()+"', golden set '"+goldenDataSetName);
+            
+            final RowCollection rowCollection = new RowCollection();
+            
+            // Create a row collection map if it's missing...
+            //
+            @SuppressWarnings( "unchecked" )
+            Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get(DataSetConst.ROW_COLLECTION_MAP);
+            if (collectionMap==null) {
+              collectionMap = new HashMap<String, RowCollection>();
+              trans.getExtensionDataMap().put(DataSetConst.ROW_COLLECTION_MAP, collectionMap);
             }
+            
+            // Keep the map for safe keeping...
+            //
+            collectionMap.put( stepMeta.getName(), rowCollection );
+            
+            // We'll capture the rows from this one and then evaluate them after execution...
+            //
+            StepInterface stepInterface = trans.findStepInterface( stepMeta.getName(), 0 );
+            stepInterface.addRowListener( new RowAdapter() {
+              @Override
+              public void rowReadEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
+                if (rowCollection.getRowMeta()==null) {
+                  rowCollection.setRowMeta( rowMeta ); 
+                }
+                rowCollection.getRows().add( row );
+              }
+            });
           }
         }
+      
       }
     } catch ( Throwable e ) {
       throw new KettleException( "Unable to inject data set rows", e );
@@ -226,17 +239,18 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
   private void injectDataSetIntoStep( final Trans trans, final TransMeta transMeta,
     final String dataSetName, final MetaStoreFactory<DataSet> dataSetFactory,
-    final Repository repository, final IMetaStore metaStore, final StepMeta stepMeta ) throws MetaStoreException, KettleException {
+    final Repository repository, final IMetaStore metaStore, final StepMeta stepMeta, 
+    TransUnitTestSetLocation inputLocation ) throws MetaStoreException, KettleException {
 
     final DataSet dataSet = dataSetFactory.loadElement( dataSetName );
     final DataSetGroup group = dataSet.getGroup();
     final Database database = new Database( trans, group.getDatabaseMeta() );
-    final RowMetaInterface fieldRowMeta = dataSet.getSetRowMeta( false );
-
+    final LogChannelInterface log = trans.getLogChannel();
+    
+    final RowMetaInterface injectRowMeta = DataSetConst.getStepOutputFields(log, transMeta, stepMeta, dataSet, inputLocation);    
     final RowProducer rowProducer = trans.addRowProducer( stepMeta.getName(), 0 );
 
-    // This step needs to be replaced...
-    // This is somewhat hack-ish, exceptional work...
+    // Look for the step into which we'll inject rows...
     //
     StepMetaDataCombi combi = null;
     for ( StepMetaDataCombi step : trans.getSteps() ) {
@@ -248,8 +262,8 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
     if ( combi != null ) {
 
-      trans.getLogChannel().logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "'" );
-      final List<Object[]> rows = dataSet.getAllRows();
+      log.logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: "+injectRowMeta.toStringMeta() );
+      final List<Object[]> rows = dataSet.getAllRows(log, inputLocation, injectRowMeta);
       
       // Pass rows
       try {
@@ -261,7 +275,7 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
               for( Object[] row : rows ) {
                 // pass the row with the external names
                 //
-                rowProducer.putRow( fieldRowMeta, row );                
+                rowProducer.putRow( injectRowMeta, row );                
               }
               rowProducer.finished();
               

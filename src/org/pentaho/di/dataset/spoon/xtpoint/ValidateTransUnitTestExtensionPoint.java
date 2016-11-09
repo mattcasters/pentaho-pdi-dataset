@@ -1,7 +1,9 @@
-package org.pentaho.di.dataset.trans;
+package org.pentaho.di.dataset.spoon.xtpoint;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.swt.SWT;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -9,11 +11,14 @@ import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.UnitTestResult;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
+import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
+import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.metastore.api.IMetaStore;
 
 /**
@@ -64,18 +69,47 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
       //
       TransUnitTest unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
       
+      final List<UnitTestResult> results = new ArrayList<UnitTestResult>();
+      trans.getExtensionDataMap().put(DataSetConst.UNIT_TEST_RESULTS, results);
+      
+      
       // Validate execution results with what's in the data sets...
       //
-      try {
-        DataSetConst.validateTransResultAgainstUnitTest( trans, unitTest, factoriesHierarchy );
-        trans.getLogChannel().logBasic( "Unit test '"+unitTest.getName()+"' passed succesfully" );
-      } catch(Exception e) {
-    	  trans.stopAll();
-        throw new KettleException( "Unable to validate against golden data for unit test '"+unitTest.getName()+"'", e );
+      int errors = DataSetConst.validateTransResultAgainstUnitTest( trans, unitTest, factoriesHierarchy, results );
+      if (errors==0) {
+        log.logBasic( "Unit test '"+unitTest.getName()+"' passed succesfully" );
+      } else {
+        log.logBasic( "Unit test '"+unitTest.getName()+"' failed, "+errors+" errors detected, "+results.size()+" comments to report." );
+        
+        final Spoon spoon = Spoon.getInstance();
+        if (spoon!=null) {
+          spoon.getShell().getDisplay().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+              PreviewRowsDialog dialog = new PreviewRowsDialog(spoon.getShell(), trans, SWT.NONE, 
+                  "Unit test results", 
+                  UnitTestResult.getRowMeta(), 
+                  UnitTestResult.getRowData(results));
+              dialog.setDynamic(false);
+              dialog.setProposingToGetMoreRows(false);
+              dialog.setProposingToStop(false);
+              dialog.setTitleMessage("Unit test results", "Here are the results of the unit test validations:");
+              dialog.open();
+            }
+          });
+        }
       }
-      
+      log.logBasic( "----------------------------------------------" );
+      for (UnitTestResult result : results) {
+        if (result.getDataSetName()!=null) {
+          log.logBasic(result.getStepName()+" - "+result.getDataSetName()+" : "+result.getComment());
+        } else {
+          log.logBasic(result.getComment());
+        }
+      }
+      log.logBasic( "----------------------------------------------" );
     } catch ( Throwable e ) {
-      throw new KettleException( "Unable to validate unit test/golden rows", e );
+      log.logError( "Unable to validate unit test/golden rows", e );
     }
 
   }

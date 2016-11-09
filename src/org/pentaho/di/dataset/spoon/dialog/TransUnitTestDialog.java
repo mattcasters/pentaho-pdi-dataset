@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -24,6 +25,7 @@ import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.variables.Variables;
+import org.pentaho.di.dataset.TestType;
 import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestTweak;
@@ -34,6 +36,7 @@ import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.gui.WindowProperty;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
+import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
@@ -41,18 +44,19 @@ import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.metastore.util.PentahoDefaults;
 
 public class TransUnitTestDialog extends Dialog {
-  private static Class<?> PKG = TransUnitTestDialog.class; // for i18n purposes,
-                                                           // needed by
-                                                           // Translator2!!
+  private static Class<?> PKG = TransUnitTestDialog.class; // for i18n purposes, needed by Translator2!!
 
-  public static final String[] tweakDesc = new String[] {
+  private static final String[] tweakDesc = new String[] {
       BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.NONE.Desc"),
       BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.BYPASS_STEP.Desc"),
-      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.REMOVE_STEP.Desc"),
-      /*
-        BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.REMOVE_STEPS_AFTER.Desc"),
-        BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.REMOVE_STEPS_BEFORE.Desc"), 
-      */
+      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.REMOVE_STEP.Desc"),      
+      };
+
+  private static final String[] testTypeDesc = new String[] {
+      BaseMessages.getString(PKG, "TransUnitTestDialog.TestType.NONE.Desc"),
+      BaseMessages.getString(PKG, "TransUnitTestDialog.TestType.CONCEPTUAL.Desc"),
+      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.DEVELOPMENT.Desc"),
+      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.UNIT_TEST.Desc"),
       };
 
   private TransUnitTest transUnitTest;
@@ -62,6 +66,8 @@ public class TransUnitTestDialog extends Dialog {
 
   private Text wName;
   private Text wDescription;
+  private CCombo wTestType;
+  private TextVar wFilename;
 
   private TableView wTweaks;
 
@@ -143,6 +149,46 @@ public class TransUnitTestDialog extends Dialog {
     wDescription.setLayoutData(fdDescription);
     lastControl = wDescription;
 
+    // The type of test...
+    //
+    Label wlTestType = new Label(shell, SWT.RIGHT);
+    props.setLook(wlTestType);
+    wlTestType.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.TestType.Label"));
+    FormData fdlTestType = new FormData();
+    fdlTestType.top = new FormAttachment(lastControl, margin);
+    fdlTestType.left = new FormAttachment(0, 0);
+    fdlTestType.right = new FormAttachment(middle, -margin);
+    wlTestType.setLayoutData(fdlTestType);
+    wTestType = new CCombo(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+    props.setLook(wTestType);
+    FormData fdTestType = new FormData();
+    fdTestType.top = new FormAttachment(lastControl, margin);
+    fdTestType.left = new FormAttachment(middle, 0);
+    fdTestType.right = new FormAttachment(100, 0);
+    wTestType.setLayoutData(fdTestType);
+    wTestType.setItems(testTypeDesc);
+    lastControl = wTestType;
+    
+    // The optional filename of the test result...
+    //
+    Label wlFilename = new Label(shell, SWT.RIGHT);
+    props.setLook(wlFilename);
+    wlFilename.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.Filename.Label"));
+    FormData fdlFilename = new FormData();
+    fdlFilename.top = new FormAttachment(lastControl, margin);
+    fdlFilename.left = new FormAttachment(0, 0);
+    fdlFilename.right = new FormAttachment(middle, -margin);
+    wlFilename.setLayoutData(fdlFilename);
+    wFilename = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+    props.setLook(wFilename);
+    FormData fdFilename = new FormData();
+    fdFilename.top = new FormAttachment(lastControl, margin);
+    fdFilename.left = new FormAttachment(middle, 0);
+    fdFilename.right = new FormAttachment(100, 0);
+    wFilename.setLayoutData(fdFilename);
+    lastControl = wFilename;
+
+
     // The list of tweaks to the transformation
     //
     Label wlFieldMapping = new Label(shell, SWT.NONE);
@@ -205,6 +251,8 @@ public class TransUnitTestDialog extends Dialog {
     };
     wName.addSelectionListener(selAdapter);
     wDescription.addSelectionListener(selAdapter);
+    wTestType.addSelectionListener(selAdapter);
+    wFilename.addSelectionListener(selAdapter);
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener(new ShellAdapter() {
@@ -236,6 +284,8 @@ public class TransUnitTestDialog extends Dialog {
 
     wName.setText( Const.NVL( transUnitTest.getName(), "" ) );
     wDescription.setText( Const.NVL( transUnitTest.getDescription(), "" ) );
+    wTestType.setText( Const.NVL( getTestTypeDescription(transUnitTest.getType()), "") );
+    wFilename.setText( Const.NVL( transUnitTest.getFilename(), ""));
     
     for ( int i = 0; i < transUnitTest.getTweaks().size(); i++ ) {
       TransUnitTestTweak tweak = transUnitTest.getTweaks().get( i );
@@ -260,7 +310,9 @@ public class TransUnitTestDialog extends Dialog {
 
     test.setName(wName.getText());
     test.setDescription(wDescription.getText());
-
+    test.setType(getTestTypeForDescription(wTestType.getText()));
+    test.setFilename(wFilename.getText());
+    
     test.getTweaks().clear();
     int nrFields = wTweaks.nrNonEmpty();
     for (int i=0;i<nrFields;i++) {
@@ -299,7 +351,7 @@ public class TransUnitTestDialog extends Dialog {
   /**
    * Get the TransTweak for a tweak description (from the dialog)
    * @param tweakDescription The description to look for
-   * @return the tweak or null if nothing matched
+   * @return the tweak or NONE if nothing matched
    */
   public TransTweak getTweakForDescription(String tweakDescription) {
     if (StringUtils.isEmpty(tweakDescription)) {
@@ -312,5 +364,42 @@ public class TransUnitTestDialog extends Dialog {
     return TransTweak.values()[index];
   }
   
+  public static final String getTestTypeDescription(TestType testType) {
+    int index = 0; // NONE
+    if (testType!=null) {
+      TestType[] testTypes = TestType.values();
+      for (int i=0;i<testTypes.length;i++) {
+        if (testTypes[i]==testType) {
+          index=i;
+          break;
+        }
+      }
+    }
+    
+    return testTypeDesc[index];
+  }
+
+  /**
+   * Get the TestType for a tweak description (from the dialog)
+   * @param testTypeDescription The description to look for
+   * @return the test type or NONE if nothing matched
+   */
+  public static final TestType getTestTypeForDescription(String testTypeDescription) {
+    if (StringUtils.isEmpty(testTypeDescription)) {
+      return TestType.NONE;
+    }
+    int index = Const.indexOfString(testTypeDescription, testTypeDesc);
+    if (index<0) {
+      return TestType.NONE;
+    }
+    return TestType.values()[index];
+  }
   
+  public static final String[] getTestTypeDescriptions() {
+    return testTypeDesc;
+  }
+  
+  public static final String[] getTweakDescriptions() {
+    return tweakDesc;
+  }
 }

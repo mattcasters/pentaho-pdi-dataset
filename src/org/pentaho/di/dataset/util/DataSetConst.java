@@ -14,6 +14,7 @@ import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.logging.LoggingObjectType;
 import org.pentaho.di.core.logging.SimpleLoggingObject;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.dataset.DataSet;
@@ -22,7 +23,8 @@ import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
-import org.pentaho.di.dataset.trans.RowCollection;
+import org.pentaho.di.dataset.UnitTestResult;
+import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.shared.SharedObjectInterface;
@@ -52,8 +54,8 @@ public class DataSetConst {
   public static final String SET_LIST_KEY = "DataSets";
 
   public static final String ATTR_GROUP_DATASET = "DataSet";
-  public static final String ATTR_STEP_DATASET_INPUT = "DataSetInput";
-  public static final String ATTR_STEP_DATASET_GOLDEN = "UnitTest";
+  public static final String ATTR_STEP_DATASET_INPUT = "InputDataSet";
+  public static final String ATTR_STEP_DATASET_GOLDEN = "GoldenDataSet";
   public static final String ATTR_STEP_TWEAK= "UnitTestStepTweak";
   
   public static final String VAR_RUN_UNIT_TEST = "__UnitTest__";
@@ -62,6 +64,7 @@ public class DataSetConst {
   
   public static final String AREA_DRAWN_UNIT_ICON = "DrawnUnitTestIcon";
   public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
+  public static final String UNIT_TEST_RESULTS = "UnitTestResults";
 
   public static final DataSet findDataSet( List<DataSet> list, String dataSetName ) {
     if ( Const.isEmpty( dataSetName ) ) {
@@ -185,74 +188,194 @@ public class DataSetConst {
     }
   }
   
-  public static final void validateTransResultAgainstUnitTest(Trans trans, TransUnitTest unitTest, FactoriesHierarchy hierarchy) throws KettleException {
+  /**
+   * Validate the execution results of a transformation against the golden data sets of a unit test.
+   * @param trans The transformation after execution
+   * @param unitTest The unit test
+   * @param hierarchy The factories to load unit test and data set information
+   * @param results The results list to add comments to
+   * @return The nr of errors, 0 if no errors found
+   * @throws KettleException In case there was an error loading data or metadata.
+   */
+  public static final int validateTransResultAgainstUnitTest(Trans trans, TransUnitTest unitTest, FactoriesHierarchy hierarchy, List<UnitTestResult> results) throws KettleException {
+    int nrErrors = 0;
     
     LogChannelInterface log = trans.getLogChannel();
     
     @SuppressWarnings( "unchecked" )
     Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get( DataSetConst.ROW_COLLECTION_MAP );
+    if (collectionMap==null) {
+      
+      String comment = "No step output result data found to validate against";
+      results.add(new UnitTestResult( trans.getName(), unitTest.getName(), null, null, false, comment));
+      return nrErrors;
+    }
     
     for (TransUnitTestSetLocation location : unitTest.getGoldenDataSets()) {
+      int nrLocationErrors = 0;
       RowCollection resultCollection = collectionMap.get( location.getStepname() );
-      RowCollection goldenCollection = unitTest.getGoldenRows( hierarchy, location.getStepname() );
-      
-      // TODO: Create compare method
+      if (resultCollection==null || resultCollection.getRows()==null || resultCollection.getRowMeta()==null) {
+        // error occurred upstairs, we don't have results
+        //
+        continue;
+      }
+      RowMetaInterface resultRowMeta = resultCollection.getRowMeta();
+
+      // Only retain the mapped fields for the unit test...
       //
+      RowMetaInterface goldenRowMeta = new RowMeta();
+      for (TransUnitTestFieldMapping mapping : location.getFieldMappings()) {
+         ValueMetaInterface resultValueMeta = resultRowMeta.searchValueMeta(mapping.getStepFieldName());
+         if (resultValueMeta!=null) {
+           ValueMetaInterface goldenValueMeta = resultValueMeta.clone();
+           goldenValueMeta.setName(mapping.getDataSetFieldName());
+           goldenRowMeta.addValueMeta(goldenValueMeta);
+         }
+      }
+      
+      log.logBasic("Found "+resultCollection.getRows().size()+" results for comparrison in step '"+location.getStepname()+"', fields: "+resultRowMeta.toString());
+      
+      RowCollection goldenCollection = unitTest.getGoldenRows( log, hierarchy, location, goldenRowMeta );
+      
+      log.logBasic("Found "+goldenCollection.getRows().size()+" golden rows '"+location.getStepname()+"', fields: "+goldenRowMeta.toString());
+      
       List<Object[]> resultRows = resultCollection.getRows();
       List<Object[]> goldenRows = goldenCollection.getRows();
-      
-      if ( resultRows.size() != goldenRows.size() ) {
-        throw new KettleException( "Incorrect number of rows received from step, golden data set '" + location.getDataSetName() + "' has " + goldenRows.size() + " rows in it and we received "+resultRows.size() );
-      }
-      
-      final int[] stepFieldIndices = new int[location.getFieldMappings().size()];
-      final int[] goldenIndices = new int[location.getFieldMappings().size()];
-      for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
-        TransUnitTestFieldMapping fieldMapping = location.getFieldMappings().get( i );
 
-        stepFieldIndices[i] = resultCollection.getRowMeta().indexOfValue( fieldMapping.getStepFieldName() );
-        goldenIndices[i] = goldenCollection.getRowMeta().indexOfValue( fieldMapping.getDataSetFieldName() );
+      if ( resultRows.size() != goldenRows.size() ) {
+        String comment = "Incorrect number of rows received from step, golden data set '" + location.getDataSetName() + "' has " + goldenRows.size() + " rows in it and we received "+resultRows.size();
+        results.add(new UnitTestResult(
+            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+            false, comment));
+        nrLocationErrors++;
       }
       
-      for (int rowNumber=0 ; rowNumber<resultRows.size() ; rowNumber++) {
-        Object[] resultRow = resultRows.get( rowNumber );
-        Object[] goldenRow = goldenRows.get( rowNumber );
-      
-        // Now compare the input to the golden row
-        //
+      if (nrLocationErrors==0) {
+        final int[] stepFieldIndices = new int[location.getFieldMappings().size()];
+        final int[] goldenIndices = new int[location.getFieldMappings().size()];
         for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
-          ValueMetaInterface stepValueMeta = resultCollection.getRowMeta().getValueMeta( stepFieldIndices[i] );
-          Object stepValue = resultRow[stepFieldIndices[i]];
+          TransUnitTestFieldMapping fieldMapping = location.getFieldMappings().get( i );
   
-          ValueMetaInterface goldenValueMeta = goldenCollection.getRowMeta().getValueMeta( goldenIndices[i] );
-          Object goldenValue = goldenRow[goldenIndices[i]];
-          
-          if (log.isDebug()) {
-            log.logDebug("Comparing Meta '"+stepValueMeta.toStringMeta()+"' with '"+goldenValueMeta.toStringMeta()+"'");
-            log.logDebug("Comparing Value '"+stepValue+"' with '"+goldenValue+"'");
-          }
-          
-          Object goldenValueConverted;
-          
-          // sometimes there are data conversion issues because of the the database...
+          stepFieldIndices[i] = resultCollection.getRowMeta().indexOfValue( fieldMapping.getStepFieldName() );
+          goldenIndices[i] = goldenCollection.getRowMeta().indexOfValue( fieldMapping.getDataSetFieldName() );
+        }
+        
+        for (int rowNumber=0 ; rowNumber<resultRows.size() ; rowNumber++) {
+          Object[] resultRow = resultRows.get( rowNumber );
+          Object[] goldenRow = goldenRows.get( rowNumber );
+        
+          // Now compare the input to the golden row
           //
-          if (goldenValueMeta.getType()==stepValueMeta.getType()) {
-            goldenValueConverted = goldenValue;
-          } else {
-            goldenValueConverted = stepValueMeta.convertData( goldenValueMeta, goldenValue );
-          }
-          
-          try {
-            int cmp = stepValueMeta.compare( stepValue, stepValueMeta, goldenValueConverted );
-            if ( cmp != 0 ) {
-              throw new KettleException( "Validation againt golden data failed for row number " + rowNumber
-                + ": step value [" + stepValueMeta.getString( stepValue ) + "] does not correspond to data set value [" + goldenValueMeta.getString( goldenValue ) + "]" );
+          for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
+            ValueMetaInterface stepValueMeta = resultCollection.getRowMeta().getValueMeta( stepFieldIndices[i] );
+            Object stepValue = resultRow[stepFieldIndices[i]];
+    
+            ValueMetaInterface goldenValueMeta = goldenCollection.getRowMeta().getValueMeta( goldenIndices[i] );
+            Object goldenValue = goldenRow[goldenIndices[i]];
+            
+            if (log.isDebug()) {
+              log.logDebug("Comparing Meta '"+stepValueMeta.toString()+"' with '"+goldenValueMeta.toString()+"'");
+              log.logDebug("Comparing Value '"+stepValue+"' with '"+goldenValue+"'");
             }
-          } catch ( KettleValueException e ) {
-            throw new KettleException( "Unable to compare step data against golden data set '" + location.getDataSetName() + "'", e );
+            
+            Object goldenValueConverted;
+            
+            // sometimes there are data conversion issues because of the the database...
+            //
+            if (goldenValueMeta.getType()==stepValueMeta.getType()) {
+              goldenValueConverted = goldenValue;
+            } else {
+              goldenValueConverted = stepValueMeta.convertData( goldenValueMeta, goldenValue );
+            }
+            
+            try {
+              int cmp = stepValueMeta.compare( stepValue, stepValueMeta, goldenValueConverted );
+              if ( cmp != 0 ) {
+                if (log.isDebug()) {
+                  log.logDebug("Unit test failure: '"+stepValue+"' <> '"+goldenValue+"'");
+                }
+                String comment = "Validation againt golden data failed for row number " + (rowNumber+1)
+                  + ": step value [" + stepValueMeta.getString( stepValue )
+                  + "] does not correspond to data set value [" + goldenValueMeta.getString( goldenValue ) + "]";
+                results.add(new UnitTestResult(
+                    trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+                    true, comment));
+                nrLocationErrors++;
+              }
+            } catch ( KettleValueException e ) {
+              throw new KettleException( "Unable to compare step data against golden data set '" + location.getDataSetName() + "'", e );
+            }
           }
         }
       }
+
+      if (nrLocationErrors==0) {
+        String comment = "Test passed succesfully against golden data set";
+        results.add(new UnitTestResult(
+            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+            false, comment));
+      } else {
+        nrErrors+=nrLocationErrors;
+      }
+    }
+    
+    if (nrErrors==0) {
+      String comment = "Test passed succesfully against unit test";
+      results.add(new UnitTestResult(
+          trans.getName(), unitTest.getName(), null, null,
+          false, comment));
+    
+    }
+    return nrErrors;
+  }
+  
+  public static final RowMetaInterface getStepOutputFields(LogChannelInterface log, TransMeta transMeta, StepMeta stepMeta, DataSet dataSet, TransUnitTestSetLocation inputLocation ) throws KettleException {
+    final RowMetaInterface outputRowMeta = new RowMeta();
+    RowMetaInterface addFields;
+    try {
+      addFields = transMeta.getStepFields(stepMeta);
+      log.logBasic("The natural output fields of step '"+stepMeta.getName()+"' are : " +addFields.toString() );
+    } catch(Exception e) {
+      addFields = new RowMeta();
+      log.logError("Error getting step output fields: "+e.getMessage());
+    }
+    if (addFields.isEmpty()) {
+      addFields= dataSet.getSetRowMeta(false);
+      log.logBasic("No output fields found for step '"+stepMeta.getName()+"', taking mapped fields from input data set." );
+    }
+    if (inputLocation.getFieldMappings().isEmpty()) {
+      // If we have no field mappings, just add all fields that are found...
+      //
+      log.logBasic("No mappings found, adding all fields : " );
+      outputRowMeta.addRowMeta(addFields);
+    } else {
+      // Limit the fields to those which are mapped
+      for (TransUnitTestFieldMapping mapping : inputLocation.getFieldMappings()) {
+        ValueMetaInterface setValueMeta = addFields.searchValueMeta(mapping.getDataSetFieldName());
+        if (setValueMeta!=null) {
+          outputRowMeta.addValueMeta(setValueMeta);
+        }
+      }
+    }
+
+    return outputRowMeta;
+  }
+  
+  public static final String getDirectoryFromPath(String path) {
+    int lastSlashIndex = path.lastIndexOf('/');
+    if (lastSlashIndex>=0) {
+      return path.substring(0, lastSlashIndex);
+    } else {
+      return "/";
+    }
+  }
+  
+  public static final String getNameFromPath(String path) {
+    int lastSlashIndex = path.lastIndexOf('/');
+    if (lastSlashIndex>=0) {
+      return path.substring(lastSlashIndex+1);
+    } else {
+      return path;
     }
   }
 }

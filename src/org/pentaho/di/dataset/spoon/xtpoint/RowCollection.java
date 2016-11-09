@@ -1,4 +1,4 @@
-package org.pentaho.di.dataset.trans;
+package org.pentaho.di.dataset.spoon.xtpoint;
 
 import java.util.ArrayList;
 import java.util.List;

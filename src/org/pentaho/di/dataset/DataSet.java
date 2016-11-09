@@ -7,6 +7,7 @@ import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettlePluginException;
+import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.logging.LoggingObject;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -143,54 +144,105 @@ public class DataSet {
     return field.getColumnName();
   }
 
-  public List<Object[]> getAllRows() throws KettleException {
+  /**
+   * Get the rows for this data set
+   * @param log the logging channel to which you can write.
+   * @param location The fields to obtain in the order given and the fields to convert to.
+   * @param outputRowMeta the target row metadata to convert to.
+   * @return The rows for the given location (input or golden)
+   * @throws KettleException
+   */
+  public List<Object[]> getAllRows(LogChannelInterface log, TransUnitTestSetLocation location, RowMetaInterface outputRowMeta) throws KettleException {
     try {
       DatabaseMeta databaseMeta = group.getDatabaseMeta();
-      String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), getTableName() );
-      Database database = null;
-      List<Object[]> rows = null;
-
-      try {
-        database = new Database( new LoggingObject( "DataSetDialog" ), group.getDatabaseMeta() );
-        database.connect();
-
-        String sql = "SELECT ";
-        for ( int i = 0; i < fields.size(); i++ ) {
-          DataSetField field = fields.get( i );
-          if ( i > 0 ) {
-            sql += ", ";
-          }
-          sql += databaseMeta.quoteField( field.getColumnName() );
-        }
-        sql += " FROM " + schemaTable;
-
-        rows = database.getRows( sql, 0 );
-        
-        // Now, our work is not done...
-        // We will probably have data conversation issues so let's handle this...
+      synchronized(databaseMeta) {
+        String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), getTableName() );
+        Database database = null;
+        List<Object[]> rows = null;
+        List<String> sortFields = location.getFieldOrder();
+  
+        List<String> selectColumns = new ArrayList<String>();
+  
+        // We need to grab the fields and it's order from outputRowMeta...
         //
-        RowMetaInterface dbRowMeta = database.getReturnRowMeta();
-        RowMetaInterface setRowMeta = getSetRowMeta( true );
-        for (int i=0;i<dbRowMeta.size();i++) {
-          ValueMetaInterface setValueMeta = setRowMeta.getValueMeta( i );
-          ValueMetaInterface dbValueMeta = dbRowMeta.getValueMeta( i );
-          if (dbValueMeta.getType()!=setValueMeta.getType()) {
-            // Convert the values in the result set...
+        for (ValueMetaInterface valueMeta : outputRowMeta.getValueMetaList()) {
+          // Which set field does this correspond to?
+          //
+          String setField = location.findSetFieldInMapping(valueMeta.getName());
+          
+          // Skip the field in the output if not specified
+          //
+          if (setField!=null) {
+            // Which column are we talking about?
             //
-            for (Object[] row : rows) {
-              row[i] = setValueMeta.convertData( dbValueMeta, row[i] );
+            String column = findColumnForField(setField);
+            selectColumns.add(column);
+          }
+        }
+        
+        try {
+          database = new Database( new LoggingObject( "DataSetDialog" ), group.getDatabaseMeta() );
+          database.connect();
+  
+          String sql = "SELECT ";
+          for ( int i = 0; i < selectColumns.size(); i++ ) {
+            String column = selectColumns.get( i );
+            if ( i > 0 ) {
+              sql += ", ";
+            }
+            sql += databaseMeta.quoteField( column );
+          }
+          sql += " FROM " + schemaTable;
+          
+          if (sortFields!=null && !sortFields.isEmpty()) {
+            sql+=" ORDER BY ";
+            boolean first = true;
+            for (String fieldName : sortFields) {
+              if (first) {
+                first = false;
+              } else {
+                sql+=", ";
+              }
+              String column = findColumnForField(fieldName);
+              sql+=databaseMeta.quoteField(column);
             }
           }
+  
+          if (log.isDetailed()) {
+            log.logDetailed("---------------------------------------------");
+            log.logDetailed("SQL = "+sql);
+            log.logDetailed("---------------------------------------------");
+          }
+          rows = database.getRows( sql, 0 );
+          
+          // Now, our work is not done...
+          // We will probably have data conversation issues so let's handle this...
+          //
+          RowMetaInterface dbRowMeta = database.getReturnRowMeta();
+          if (log.isDetailed()) {
+            log.logDetailed("DB RowMeta = "+dbRowMeta.toStringMeta());
+            log.logDetailed("OutputRowMeta = "+outputRowMeta.toStringMeta());
+            log.logDetailed("---------------------------------------------");
+          }
+          for (int i=0;i<dbRowMeta.size();i++) {
+            ValueMetaInterface outputValueMeta = outputRowMeta.getValueMeta( i );
+            ValueMetaInterface dbValueMeta = dbRowMeta.getValueMeta( i );
+            if (dbValueMeta.getType()!=outputValueMeta.getType()) {
+              // Convert the values in the result set...
+              //
+              for (Object[] row : rows) {
+                row[i] = outputValueMeta.convertData( dbValueMeta, row[i] );
+              }
+            }
+          }
+        } finally {
+          if ( database != null ) {
+            database.disconnect();
+          }
         }
-        
-
-      } finally {
-        if ( database != null ) {
-          database.disconnect();
-        }
+  
+        return rows;
       }
-
-      return rows;
     } catch ( Exception e ) {
       throw new KettleException( "Unable to get all rows for data set " + name, e );
     }

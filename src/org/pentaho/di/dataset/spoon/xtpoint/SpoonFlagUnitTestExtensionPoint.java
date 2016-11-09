@@ -1,4 +1,4 @@
-package org.pentaho.di.dataset.trans;
+package org.pentaho.di.dataset.spoon.xtpoint;
 
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;

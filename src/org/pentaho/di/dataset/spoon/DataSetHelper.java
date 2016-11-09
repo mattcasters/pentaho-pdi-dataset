@@ -13,8 +13,10 @@ import org.pentaho.di.core.SourceToTargetMapping;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.gui.SpoonFactory;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
@@ -25,7 +27,8 @@ import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.spoon.dialog.DataSetDialog;
 import org.pentaho.di.dataset.spoon.dialog.DataSetGroupDialog;
-import org.pentaho.di.dataset.trans.InjectDataSetIntoTransExtensionPoint;
+import org.pentaho.di.dataset.spoon.dialog.EditRowsDialog;
+import org.pentaho.di.dataset.spoon.xtpoint.InjectDataSetIntoTransExtensionPoint;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.i18n.BaseMessages;
@@ -320,12 +323,17 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       String setName = esd.open();
       if ( setName != null ) {
         DataSet dataSet = setFactory.loadElement( setName );
+        
+        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, null);
         stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, dataSet.getName() );
         
         // Now we need to map the fields from the input data set to the step...
         //
-        RowMetaInterface stepFields = transMeta.getStepFields( stepMeta );
         RowMetaInterface setFields = dataSet.getSetRowMeta( false );
+        RowMetaInterface stepFields = transMeta.getStepFields( stepMeta );
+        if (stepFields.isEmpty()) {
+          stepFields = setFields.clone();
+        }
         
         String[] stepFieldNames = stepFields.getFieldNames();
         String[] setFieldNames = setFields.getFieldNames();
@@ -336,6 +344,25 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
           return;
         }
         
+        // Ask about the sort order...
+        // Show the mapping as well as an order column
+        //
+        RowMetaInterface sortMeta = new RowMeta();
+        sortMeta.addValueMeta(new ValueMetaString(BaseMessages.getString(PKG, "DataSetHelper.SortOrder.Column.SetField")));
+        List<Object[]> sortData = new ArrayList<Object[]>();
+        for (String setFieldName : setFieldNames) {
+          sortData.add(new Object[] { setFieldName });
+        }
+        EditRowsDialog orderDialog = new EditRowsDialog(spoon.getShell(), SWT.NONE, 
+            BaseMessages.getString(PKG, "DataSetHelper.SortOrder.Title"),
+            BaseMessages.getString(PKG, "DataSetHelper.SortOrder.Message"),
+            sortMeta, sortData            
+            );
+        List<Object[]> orderMappings = orderDialog.open();
+        if (orderMappings==null) {
+          return;
+        }
+        
         // What is the unit test we are using?
         //
         String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
@@ -343,29 +370,38 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
           return;
         }
         TransUnitTest unitTest = hierarchy.getTestFactory().loadElement( testName );
-        
-        // TODO: check existence
-        //
+        if (unitTest==null) {
+          // Show a message box later
+          //
+          return;
+        }
         
         // Modify the test
         //
-        TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepMeta.getName() );
-        if (inputLocation == null) {
-          inputLocation = new TransUnitTestSetLocation();
-          unitTest.getInputDataSets().add( inputLocation );
-        }
+        
+        // Remove other crap on the step...
+        //
+        unitTest.removeInputAndGoldenDataSets(stepMeta.getName());
+        
+        TransUnitTestSetLocation inputLocation = new TransUnitTestSetLocation();
+        unitTest.getInputDataSets().add( inputLocation );
         
         inputLocation.setStepname( stepMeta.getName() );
         inputLocation.setDataSetName( dataSet.getName() );
         List<TransUnitTestFieldMapping> fieldMappings = inputLocation.getFieldMappings();
         fieldMappings.clear();
-        int sortOrder = 1;
+        
         for (SourceToTargetMapping mapping : mappings) {
-          fieldMappings.add( new TransUnitTestFieldMapping(
-              mapping.getSourceString( setFieldNames ),
-              mapping.getTargetString( stepFieldNames ), 
-              Integer.toString( sortOrder++ )) );
+          String stepFieldName = mapping.getTargetString(stepFieldNames);
+          String setFieldName = mapping.getSourceString(setFieldNames);
+          fieldMappings.add( new TransUnitTestFieldMapping(stepFieldName, setFieldName) );
         }
+        
+        List<String> setFieldOrder = new ArrayList<String>();
+        for (Object[] orderMapping : orderMappings) {
+          setFieldOrder.add(sortMeta.getString(orderMapping, 0));
+        }
+        inputLocation.setFieldOrder(setFieldOrder);
         
         // Save the unit test...
         //
@@ -405,6 +441,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       String setName = esd.open();
       if ( setName != null ) {
         DataSet dataSet = setFactory.loadElement( setName );
+        
+        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, null);
         stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, dataSet.getName() );
         
         // Now we need to map the fields from the step to golden data set fields...
@@ -421,6 +459,25 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
           return;
         }
         
+        // Ask about the sort order...
+        // Show the mapping as well as an order column
+        //
+        RowMetaInterface sortMeta = new RowMeta();
+        sortMeta.addValueMeta(new ValueMetaString(BaseMessages.getString(PKG, "DataSetHelper.SortOrder.Column.SetField")));
+        List<Object[]> sortData = new ArrayList<Object[]>();
+        for (String setFieldName : setFieldNames) {
+          sortData.add(new Object[] { setFieldName });
+        }
+        EditRowsDialog orderDialog = new EditRowsDialog(spoon.getShell(), SWT.NONE, 
+            BaseMessages.getString(PKG, "DataSetHelper.SortOrder.Title"),
+            BaseMessages.getString(PKG, "DataSetHelper.SortOrder.Message"),
+            sortMeta, sortData            
+            );
+        List<Object[]> orderMappings = orderDialog.open();
+        if (orderMappings==null) {
+          return;
+        }
+        
         // What is the unit test we are using?
         //
         String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
@@ -428,29 +485,40 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
           return;
         }
         TransUnitTest goldenTest = hierarchy.getTestFactory().loadElement( testName );
-        
-        // TODO: check existence
-        //
+        if (goldenTest==null) {
+          // Show a message box later
+          //
+          return;
+        }
         
         // Modify the test
         //
-        TransUnitTestSetLocation goldenLocation = goldenTest.findInputLocation( stepMeta.getName() );
-        if (goldenLocation == null) {
-          goldenLocation = new TransUnitTestSetLocation();
-          goldenTest.getGoldenDataSets().add( goldenLocation );
-        }
+        
+        // Remove golden locations and input locations on the step to avoid duplicates
+        //
+        goldenTest.removeInputAndGoldenDataSets(stepMeta.getName());
+        
+        TransUnitTestSetLocation goldenLocation = new TransUnitTestSetLocation();
+        goldenTest.getGoldenDataSets().add( goldenLocation );
         
         goldenLocation.setStepname( stepMeta.getName() );
         goldenLocation.setDataSetName( dataSet.getName() );
         List<TransUnitTestFieldMapping> fieldMappings = goldenLocation.getFieldMappings();
         fieldMappings.clear();
-        int sortOrder = 1;
+
         for (SourceToTargetMapping mapping : mappings) {
           fieldMappings.add( new TransUnitTestFieldMapping(
               mapping.getSourceString( stepFieldNames ),
-              mapping.getTargetString( setFieldNames ), 
-              Integer.toString( sortOrder++ )) );
+              mapping.getTargetString( setFieldNames )) );
         }
+        
+        List<String> setFieldOrder = new ArrayList<String>();
+        for (Object[] orderMapping : orderMappings) {
+          setFieldOrder.add(sortMeta.getString(orderMapping, 0));
+        }
+        goldenLocation.setFieldOrder(setFieldOrder);
+        
+        System.out.println("###### golden data sort order: "+goldenTest.getGoldenDataSets().get(0).getFieldOrder()+" ######");
         
         // Save the unit test...
         //
@@ -727,24 +795,20 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         }
 
         selectUnitTest(transMeta, unitTest);
-        
+        Spoon.getInstance().refreshGraph();
       }
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error selecting a new transformation unit test", e );
     }
   }
   
-  public void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) 
-      throws MetaStoreException, KettleException {
+  public static final void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) {
     transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, 
         DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
     
     DataSetConst.loadStepDataSetIndicators( transMeta, unitTest);
 
     transMeta.setChanged();
-    
-    Spoon.getInstance().refreshGraph();
-
   }
 
   public TransUnitTest getCurrentUnitTest(TransMeta transMeta) throws MetaStoreException, KettleException {

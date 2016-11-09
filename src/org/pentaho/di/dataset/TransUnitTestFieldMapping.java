@@ -15,17 +15,13 @@ public class TransUnitTestFieldMapping {
   @MetaStoreAttribute( key = "data_set_field" )
   private String dataSetFieldName;
 
-  @MetaStoreAttribute( key = "sort_order" )
-  private String sortOrder;
-
   public TransUnitTestFieldMapping() {
   }
 
-  public TransUnitTestFieldMapping( String stepFieldName, String dataSetFieldName, String sortOrder ) {
+  public TransUnitTestFieldMapping( String stepFieldName, String dataSetFieldName ) {
     this();
     this.stepFieldName = stepFieldName;
     this.dataSetFieldName = dataSetFieldName;
-    this.sortOrder = sortOrder;
   }
 
   public String getStepFieldName() {
@@ -43,13 +39,4 @@ public class TransUnitTestFieldMapping {
   public void setDataSetFieldName( String dataSetFieldName ) {
     this.dataSetFieldName = dataSetFieldName;
   }
-
-  public String getSortOrder() {
-    return sortOrder;
-  }
-
-  public void setSortOrder( String sortOrder ) {
-    this.sortOrder = sortOrder;
-  }
-
 }

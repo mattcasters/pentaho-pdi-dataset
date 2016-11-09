@@ -1,14 +1,13 @@
 package org.pentaho.di.dataset;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
-import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.dataset.trans.RowCollection;
+import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
@@ -47,17 +46,26 @@ public class TransUnitTest {
   @MetaStoreAttribute( key = "trans_test_tweaks" )
   protected List<TransUnitTestTweak> tweaks;
 
+  @MetaStoreAttribute( key = "test_type")
+  protected TestType type;
+  
+  @MetaStoreAttribute( key = "persist_filename")
+  protected String filename;
+  
   public TransUnitTest() {
     inputDataSets = new ArrayList<TransUnitTestSetLocation>();
     goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
     tweaks = new ArrayList<TransUnitTestTweak>();
+    type = TestType.NONE;
   }
 
   public TransUnitTest( String name, String description, 
       String transObjectId, String transRepositoryPath, String transFilename, 
       List<TransUnitTestSetLocation> inputDataSets, 
       List<TransUnitTestSetLocation> goldenDataSets,
-      List<TransUnitTestTweak> tweaks) {
+      List<TransUnitTestTweak> tweaks,
+      TestType type,
+      String filename) {
     this();
     this.name = name;
     this.description = description;
@@ -67,6 +75,8 @@ public class TransUnitTest {
     this.inputDataSets = inputDataSets;
     this.goldenDataSets = goldenDataSets;
     this.tweaks = tweaks;
+    this.type = type;
+    this.filename = filename;
   }
   
   @Override
@@ -169,29 +179,29 @@ public class TransUnitTest {
   }
   
   /**
-   * Retrieve the golden data rows, for the specified step name, from the data sets;
+   * Retrieve the golden data rows, 
+   * for the specified step name, 
+   * from the data sets, 
+   * sorted as specified by the input location,
+   * fields mapped to the step
    * 
+   * @param log the logging channel to log to
    * @param hierarchy The factories to load sets with
-   * @param stepName The step to check
+   * @param location the location where we want to check against golden rows
+   * @param outputRowMeta The step output we want to compare to.
    * @return The golden data rows 
    * 
    * @throws KettleException
    */
-  public RowCollection getGoldenRows(FactoriesHierarchy hierarchy, String stepName) throws KettleException {
+  public RowCollection getGoldenRows(LogChannelInterface log, FactoriesHierarchy hierarchy, TransUnitTestSetLocation location, RowMetaInterface outputRowMeta) throws KettleException {
+
+    String stepName = location.getStepname();
+    String goldenDataSetName = location.getDataSetName();
 
     try {      
       
       // Look in the golden data sets list for the mentioned step name
       //
-      String goldenDataSetName = null;
-      List<TransUnitTestFieldMapping> fieldMappings = null;
-      for (TransUnitTestSetLocation location : goldenDataSets) {
-        if (stepName.equalsIgnoreCase( location.getStepname() )) {
-          goldenDataSetName = location.getDataSetName();
-          fieldMappings = location.getFieldMappings();
-          break;
-        }
-      }
       if (goldenDataSetName==null) {
         throw new KettleException("Unable to find golden data set for step '"+stepName+"'");
       }
@@ -201,69 +211,13 @@ public class TransUnitTest {
         throw new KettleException("Unable to find golden data set '"+goldenDataSetName+"' for step '"+stepName+"'");
       }
       
-      // Create a sorted list of all the field mappings.
-      List<TransUnitTestFieldMapping> sortedMappings = new ArrayList<TransUnitTestFieldMapping>();
-      sortedMappings.addAll( fieldMappings );
-      Collections.sort( sortedMappings, new Comparator<TransUnitTestFieldMapping>() {
-        @Override
-        public int compare( TransUnitTestFieldMapping o1, TransUnitTestFieldMapping o2 ) {
-          if ( ( o1 == null || o1.getSortOrder() == null ) && ( o2 == null || o2.getSortOrder() == null ) ) {
-            return 0;
-          }
-          if ( ( o1 == null || o1.getSortOrder() == null ) && ( o2 != null && o2.getSortOrder() != null ) ) {
-            return -1;
-          }
-          if ( ( o1 != null && o1.getSortOrder() != null ) && ( o2 == null || o2.getSortOrder() == null ) ) {
-            return 1;
-          }
-          return o1.getSortOrder().compareTo( o2.getSortOrder() );
-        }
-      } );
-
-      // Let's see which columns indexes need to be sorted...
+      // now get all the rows from the data set, sorted and ready.
       //
-      final RowMetaInterface setFields = goldenDataSet.getSetRowMeta( false );
-
-      final List<Integer> sortIndexes = new ArrayList<Integer>();
-
-      for ( int i = 0; i < sortedMappings.size(); i++ ) {
-        TransUnitTestFieldMapping fieldMapping = sortedMappings.get( i );
-        String dataSetFieldName = fieldMapping.getDataSetFieldName();
-        int index = setFields.indexOfValue( dataSetFieldName );
-        if ( index < 0 ) {
-          throw new KettleException( "data set field '" + dataSetFieldName + "' could not be found in golden data set '" + goldenDataSet.getName() + "'" );
-        }
-        if ( !Const.isEmpty( fieldMapping.getSortOrder() ) ) {
-          sortIndexes.add( index );
-        }
-      }
-      final int[] compareIndexes = new int[sortIndexes.size()];
-      for ( int i = 0; i < compareIndexes.length; i++ ) {
-        compareIndexes[i] = sortIndexes.get( i );
-      }
-
-      // now get all the rows from the data set and sort them.
-      //
-      List<Object[]> allRows = goldenDataSet.getAllRows();
-
-      // Sort if needed...
-      //
-      if ( !sortIndexes.isEmpty() ) {
-        Collections.sort( allRows, new Comparator<Object[]>() {
-          @Override
-          public int compare( Object[] o1, Object[] o2 ) {
-            try {
-              return setFields.compare( o1, o2, compareIndexes );
-            } catch ( Exception e ) {
-              throw new RuntimeException( "Error comparing 2 rows during golden data set sort", e );
-            }
-          }
-        } );
-      }
-
+      List<Object[]> allRows = goldenDataSet.getAllRows(log, location, outputRowMeta);
+      
       // All done
       //
-      return new RowCollection(setFields, allRows);
+      return new RowCollection(outputRowMeta, allRows);
     } catch ( Exception e ) {
       throw new KettleException( "Unable to retrieve sorted golden row data set for step '"+stepName+"'", e );
     }
@@ -280,6 +234,44 @@ public class TransUnitTest {
       }
     }
     return null;
+  }
+
+  public TestType getType() {
+    return type;
+  }
+
+  public void setType(TestType type) {
+    this.type = type;
+  }
+
+  public String getFilename() {
+    return filename;
+  }
+
+  public void setFilename(String filename) {
+    this.filename = filename;
+  }
+
+  /** 
+   * Remove all input and golden data sets on the step with the provided name
+   * @param stepname the name of the step for which we need to clear out all input and golden data sets
+   */
+  public void removeInputAndGoldenDataSets(String stepname) {
+    
+    for (Iterator<TransUnitTestSetLocation> iterator = inputDataSets.iterator() ; iterator.hasNext() ; ) {
+      TransUnitTestSetLocation inputLocation = iterator.next();
+      if (inputLocation.getStepname().equalsIgnoreCase(stepname)) {
+        iterator.remove();
+      }
+    }
+    
+    for (Iterator<TransUnitTestSetLocation> iterator = goldenDataSets.iterator() ; iterator.hasNext() ; ) {
+      TransUnitTestSetLocation goldenLocation = iterator.next();
+      if (goldenLocation.getStepname().equalsIgnoreCase(stepname)) {
+        iterator.remove();
+      }
+    }
+    
   }
 
 }
