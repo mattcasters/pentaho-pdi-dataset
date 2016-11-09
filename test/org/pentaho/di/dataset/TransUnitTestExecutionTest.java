@@ -15,12 +15,13 @@ import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.util.EnvUtil;
-import org.pentaho.di.dataset.trans.ChangeTransMetaPriorToExecutionExtensionPoint;
-import org.pentaho.di.dataset.trans.InjectDataSetIntoTransExtensionPoint;
-import org.pentaho.di.dataset.trans.RowCollection;
-import org.pentaho.di.dataset.trans.ValidateTransUnitTestExtensionPoint;
+import org.pentaho.di.dataset.spoon.xtpoint.ChangeTransMetaPriorToExecutionExtensionPoint;
+import org.pentaho.di.dataset.spoon.xtpoint.InjectDataSetIntoTransExtensionPoint;
+import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
+import org.pentaho.di.dataset.spoon.xtpoint.ValidateTransUnitTestExtensionPoint;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.shared.SharedObjects;
@@ -172,25 +173,26 @@ public class TransUnitTestExecutionTest extends TestCase {
     
     List<TransUnitTestSetLocation> inputs = new ArrayList<TransUnitTestSetLocation>();
     inputs.add( new TransUnitTestSetLocation(INPUT_STEP_NAME, INPUT_SET_NAME, Arrays.asList( 
-        new TransUnitTestFieldMapping( "a", "a", "1" ),
-        new TransUnitTestFieldMapping( "b", "b", "2" ),
-        new TransUnitTestFieldMapping( "c", "c", "3" )
-    )) );
+          new TransUnitTestFieldMapping( "a", "a" ),
+          new TransUnitTestFieldMapping( "b", "b" ),
+          new TransUnitTestFieldMapping( "c", "c" )), 
+        Arrays.asList("1", "2", "3")) );
     
     List<TransUnitTestSetLocation> goldens = new ArrayList<TransUnitTestSetLocation>();
     goldens.add( new TransUnitTestSetLocation(OUTPUT_STEP_NAME, GOLDEN_SET_NAME, Arrays.asList( 
-        new TransUnitTestFieldMapping( "a", "a", "1" ),
-        new TransUnitTestFieldMapping( "b", "b", "2" ),
-        new TransUnitTestFieldMapping( "c", "c", "3" ),
-        new TransUnitTestFieldMapping( "d", "d", "4" )
-    )) );
+        new TransUnitTestFieldMapping( "a", "a" ),
+        new TransUnitTestFieldMapping( "b", "b" ),
+        new TransUnitTestFieldMapping( "c", "c" ),
+        new TransUnitTestFieldMapping( "d", "d" )), 
+        Arrays.asList("1", "2", "3")) );
     
     List<TransUnitTestTweak> tweaks = new ArrayList<TransUnitTestTweak>();
     tweaks.add( new TransUnitTestTweak(TransTweak.NONE, "step1") );
     tweaks.add( new TransUnitTestTweak(TransTweak.BYPASS_STEP, "step2") );
     tweaks.add( new TransUnitTestTweak(TransTweak.REMOVE_STEP, "step3") );
     
-    unitTest = new TransUnitTest(UNIT_TEST_NAME, UNIT_TEST_DESCRIPTION, null, null, "test-files/simple-mapping.ktr", inputs, goldens, tweaks);
+    unitTest = new TransUnitTest(UNIT_TEST_NAME, UNIT_TEST_DESCRIPTION, null, null, 
+        "test-files/simple-mapping.ktr", inputs, goldens, tweaks, TestType.UNIT_TEST, null);
   }
 
   public void testExecution() throws Exception {
@@ -255,7 +257,8 @@ public class TransUnitTestExecutionTest extends TestCase {
     int rowNumber = 0;
     for (TransUnitTestSetLocation location : unitTest.getGoldenDataSets()) {
       RowCollection resultCollection = collectionMap.get( location.getStepname() );
-      RowCollection goldenCollection = unitTest.getGoldenRows( factories, location.getStepname() );
+      RowMetaInterface stepFieldsRowMeta = transMeta.getStepFields(stepMeta);
+      RowCollection goldenCollection = unitTest.getGoldenRows( trans.getLogChannel(), factories, location, stepFieldsRowMeta );
       
       assertEquals(OUTPUT_STEP_NAME, location.getStepname());
       assertEquals(setSize, resultCollection.getRows().size());

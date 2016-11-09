@@ -35,17 +35,17 @@ public class TransUnitTestTest extends TestCase {
     inputs = new ArrayList<TransUnitTestSetLocation>();
     inputs.add( new TransUnitTestSetLocation( "input-step1", "data-set-name1", 
         Arrays.asList( 
-            new TransUnitTestFieldMapping( "fieldA", "setFieldA", "order1"),
-            new TransUnitTestFieldMapping( "fieldB", "setFieldB", "order2"),
-            new TransUnitTestFieldMapping( "fieldC", "setFieldC", "order3")            
-          )));
+            new TransUnitTestFieldMapping( "fieldA", "setFieldA"),
+            new TransUnitTestFieldMapping( "fieldB", "setFieldB"),
+            new TransUnitTestFieldMapping( "fieldC", "setFieldC")            
+          ), Arrays.asList("order1", "order2", "order3")));
     inputs.add( new TransUnitTestSetLocation( "input-step2", "data-set-name2", 
         Arrays.asList( 
-            new TransUnitTestFieldMapping( "fieldX", "setFieldX", "order1" ),
-            new TransUnitTestFieldMapping( "fieldY", "setFieldY", "order2" ),
-            new TransUnitTestFieldMapping( "fieldW", "setFieldW", "order3" ),
-            new TransUnitTestFieldMapping( "fieldZ", "setFieldZ", "order4" )           
-           )));
+            new TransUnitTestFieldMapping( "fieldX", "setFieldX"),
+            new TransUnitTestFieldMapping( "fieldY", "setFieldY"),
+            new TransUnitTestFieldMapping( "fieldW", "setFieldW"),
+            new TransUnitTestFieldMapping( "fieldZ", "setFieldZ")           
+           ), Arrays.asList("order1", "order2", "order3", "order4")));
     
     goldens = new ArrayList<TransUnitTestSetLocation>();
     
@@ -58,7 +58,9 @@ public class TransUnitTestTest extends TestCase {
         null, null, "sometrans.ktr",
         inputs,
         goldens,
-        tweaks
+        tweaks,
+        TestType.UNIT_TEST,
+        null
         );
   }
 
