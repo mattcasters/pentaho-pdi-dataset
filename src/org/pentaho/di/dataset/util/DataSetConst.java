@@ -59,7 +59,7 @@ public class DataSetConst {
   public static final String ATTR_STEP_TWEAK= "UnitTestStepTweak";
   
   public static final String VAR_RUN_UNIT_TEST = "__UnitTest__";
-  
+  public static final String VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS = "__DontShowUnitTestErrors__";
   public static final String ATTR_TRANS_SELECTED_UNIT_TEST_NAME = "SelectedUnitTest";
   
   public static final String AREA_DRAWN_UNIT_ICON = "DrawnUnitTestIcon";

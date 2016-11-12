@@ -163,6 +163,11 @@ public class ExecuteTests extends BaseStep implements StepInterface {
     if (transMeta==null) {
       return null;
     }
+    
+    // Don't show to unit tests results dialog in case of errors
+    //
+    transMeta.setVariable(DataSetConst.VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS, "Y");
+    
     // Pass some data from the parent...
     //
     transMeta.setRepository(repository);

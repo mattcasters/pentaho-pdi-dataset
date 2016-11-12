@@ -186,7 +186,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
   protected void switchUnitTest(TransUnitTest targetTest, TransMeta transMeta) {
     try {
       DataSetHelper.getInstance().detachUnitTest();
-      DataSetHelper.getInstance().selectUnitTest(transMeta, targetTest);
+      DataSetHelper.selectUnitTest(transMeta, targetTest);
     } catch (Exception exception) {
       new ErrorDialog(Spoon.getInstance().getShell(),
           BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorSwitchingUnitTest.Title"),

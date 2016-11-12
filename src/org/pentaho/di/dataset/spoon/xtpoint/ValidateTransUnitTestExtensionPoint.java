@@ -81,8 +81,10 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
       } else {
         log.logBasic( "Unit test '"+unitTest.getName()+"' failed, "+errors+" errors detected, "+results.size()+" comments to report." );
         
+        String dontShowResults = transMeta.getVariable(DataSetConst.VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS, "N");
+        
         final Spoon spoon = Spoon.getInstance();
-        if (spoon!=null) {
+        if (spoon!=null && "N".equalsIgnoreCase(dontShowResults)) {
           spoon.getShell().getDisplay().asyncExec(new Runnable() {
             @Override
             public void run() {
