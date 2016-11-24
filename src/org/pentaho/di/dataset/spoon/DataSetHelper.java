@@ -767,8 +767,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
   public void selectUnitTest() {
     
-    System.out.println("XXXXXX selectUnitTest()");
-    
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     try {
       TransGraph transGraph = spoon.getActiveTransGraph();

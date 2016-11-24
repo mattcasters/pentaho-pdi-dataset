@@ -84,8 +84,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
               public void widgetSelected(SelectionEvent event) {
                 disableUnitTest(unitTestName);
               } };
-              
-            
+                          
             Menu menu = new Menu(spoon.getShell(), SWT.POP_UP);
             MenuItem newItem = new MenuItem(menu, SWT.PUSH);
             newItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitMenu.New.Label"));

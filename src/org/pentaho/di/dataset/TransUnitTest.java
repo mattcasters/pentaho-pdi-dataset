@@ -51,12 +51,16 @@ public class TransUnitTest {
   
   @MetaStoreAttribute( key = "persist_filename")
   protected String filename;
+
+  @MetaStoreAttribute( key = "database_replacements" )
+  protected List<TransUnitTestDatabaseReplacement> databaseReplacements;
   
   public TransUnitTest() {
     inputDataSets = new ArrayList<TransUnitTestSetLocation>();
     goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
     tweaks = new ArrayList<TransUnitTestTweak>();
     type = TestType.NONE;
+    databaseReplacements = new ArrayList<TransUnitTestDatabaseReplacement>();
   }
 
   public TransUnitTest( String name, String description, 
@@ -65,7 +69,8 @@ public class TransUnitTest {
       List<TransUnitTestSetLocation> goldenDataSets,
       List<TransUnitTestTweak> tweaks,
       TestType type,
-      String filename) {
+      String filename, 
+      List<TransUnitTestDatabaseReplacement> databaseReplacements) {
     this();
     this.name = name;
     this.description = description;
@@ -77,6 +82,7 @@ public class TransUnitTest {
     this.tweaks = tweaks;
     this.type = type;
     this.filename = filename;
+    this.databaseReplacements = databaseReplacements;
   }
   
   @Override
@@ -252,6 +258,15 @@ public class TransUnitTest {
     this.filename = filename;
   }
 
+  public List<TransUnitTestDatabaseReplacement> getDatabaseReplacements() {
+    return databaseReplacements;
+  }
+
+  public void setDatabaseReplacements(List<TransUnitTestDatabaseReplacement> databaseReplacements) {
+    this.databaseReplacements = databaseReplacements;
+  }
+
+
   /** 
    * Remove all input and golden data sets on the step with the provided name
    * @param stepname the name of the step for which we need to clear out all input and golden data sets
@@ -271,7 +286,6 @@ public class TransUnitTest {
         iterator.remove();
       }
     }
-    
   }
 
 }

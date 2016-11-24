@@ -33,8 +33,7 @@
         <menu id="spoon-tools-menu-unittests" label="Transformation Unit tests">
           <menupopup id="spoon-tools-menu-unittests-popup">
             <menuitem label="Create unit test" command="dataSetHelper.createUnitTest()" />
-            <menuitem label="Select unit test" command="dataSetHelper.selectUnitTest()" />
-            <menuitem label="Detach unit test" command="dataSetHelper.detachUnitTest()" />
+            <menuitem label="Disable unit test" command="dataSetHelper.detachUnitTest()" />
           </menupopup>
         </menu>
 

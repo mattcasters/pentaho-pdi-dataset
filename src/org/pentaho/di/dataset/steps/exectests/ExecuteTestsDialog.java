@@ -18,7 +18,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.dataset.spoon.dialog.TransUnitTestDialog;
+import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
@@ -95,7 +95,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlTypeToExecute.top = new FormAttachment( lastControl, margin );
     wlTypeToExecute.setLayoutData( fdlTypeToExecute );
     wTypeToExecute = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    wTypeToExecute.setItems(TransUnitTestDialog.getTestTypeDescriptions());
+    wTypeToExecute.setItems(DataSetConst.getTestTypeDescriptions());
     props.setLook( wTypeToExecute );
     FormData fdTypeToExecute = new FormData();
     fdTypeToExecute.left = new FormAttachment( middle, 0 );
@@ -279,7 +279,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
 
   private void getData() {
     
-    wTypeToExecute.setText( TransUnitTestDialog.getTestTypeDescription(input.getTypeToExecute()));
+    wTypeToExecute.setText( DataSetConst.getTestTypeDescription(input.getTypeToExecute()));
     wTransformationNameField.setText(Const.NVL(input.getTransformationNameField(), ""));
     wUnitTestNameField.setText(Const.NVL(input.getUnitTestNameField(), ""));
     wDataSetNameField.setText(Const.NVL(input.getDataSetNameField(), ""));
@@ -306,7 +306,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
 
     input.setChanged();
     
-    input.setTypeToExecute( TransUnitTestDialog.getTestTypeForDescription(wTypeToExecute.getText()) );
+    input.setTypeToExecute( DataSetConst.getTestTypeForDescription(wTypeToExecute.getText()) );
     input.setTransformationNameField( wTransformationNameField.getText() );
     input.setUnitTestNameField( wUnitTestNameField.getText() );
     input.setDataSetNameField( wDataSetNameField.getText() );

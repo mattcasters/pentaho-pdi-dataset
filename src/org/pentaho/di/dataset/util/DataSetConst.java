@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.database.Database;
@@ -20,11 +21,15 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
+import org.pentaho.di.dataset.TestType;
+import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
+import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.UnitTestResult;
 import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
+import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.shared.SharedObjectInterface;
@@ -34,6 +39,8 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.StepMeta;
 
 public class DataSetConst {
+  private static Class<?> PKG = DataSetConst.class; // for i18n purposes, needed by Translator2!!
+
   public static String DATA_SET_GROUP_TYPE_NAME = "Data Set Group";
   public static String DATA_SET_GROUP_TYPE_DESCRIPTION = "A collection of data sets and unit tests";
 
@@ -66,6 +73,19 @@ public class DataSetConst {
   public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
   public static final String UNIT_TEST_RESULTS = "UnitTestResults";
 
+  private static final String[] tweakDesc = new String[] {
+      BaseMessages.getString(PKG, "DataSetConst.Tweak.NONE.Desc"),
+      BaseMessages.getString(PKG, "DataSetConst.Tweak.BYPASS_STEP.Desc"),
+      BaseMessages.getString(PKG, "DataSetConst.Tweak.REMOVE_STEP.Desc"),      
+      };
+
+  private static final String[] testTypeDesc = new String[] {
+      BaseMessages.getString(PKG, "DataSetConst.TestType.NONE.Desc"),
+      BaseMessages.getString(PKG, "DataSetConst.TestType.CONCEPTUAL.Desc"),
+      BaseMessages.getString(PKG, "DataSetConst.TestType.DEVELOPMENT.Desc"),
+      BaseMessages.getString(PKG, "DataSetConst.TestType.UNIT_TEST.Desc"),
+      };
+  
   public static final DataSet findDataSet( List<DataSet> list, String dataSetName ) {
     if ( Const.isEmpty( dataSetName ) ) {
       return null;
@@ -162,6 +182,7 @@ public class DataSetConst {
       if (attributes!=null) {
         attributes.remove( DataSetConst.ATTR_STEP_DATASET_INPUT );
         attributes.remove( DataSetConst.ATTR_STEP_DATASET_GOLDEN);
+        attributes.remove( DataSetConst.ATTR_STEP_TWEAK);
       }
     }
   }  
@@ -185,6 +206,16 @@ public class DataSetConst {
       if (stepMeta!=null) {
         stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, location.getDataSetName());
       }
+    }
+    
+    // Load the tweak indicators?
+    //
+    List<TransUnitTestTweak> tweaks = test.getTweaks();
+    for (TransUnitTestTweak tweak : tweaks) {
+      StepMeta stepMeta = transMeta.findStep(tweak.getStepName());
+      if (stepMeta!=null && tweak.getTweak()!=null) {
+        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK, tweak.getTweak().name());
+      } 
     }
   }
   
@@ -377,5 +408,60 @@ public class DataSetConst {
     } else {
       return path;
     }
+  }
+  
+  /**
+   * Get the TransTweak for a tweak description (from the dialog)
+   * @param tweakDescription The description to look for
+   * @return the tweak or NONE if nothing matched
+   */
+  public TransTweak getTweakForDescription(String tweakDescription) {
+    if (StringUtils.isEmpty(tweakDescription)) {
+      return TransTweak.NONE;
+    }
+    int index = Const.indexOfString(tweakDescription, tweakDesc);
+    if (index<0) {
+      return TransTweak.NONE;
+    }
+    return TransTweak.values()[index];
+  }
+  
+  public static final String getTestTypeDescription(TestType testType) {
+    int index = 0; // NONE
+    if (testType!=null) {
+      TestType[] testTypes = TestType.values();
+      for (int i=0;i<testTypes.length;i++) {
+        if (testTypes[i]==testType) {
+          index=i;
+          break;
+        }
+      }
+    }
+    
+    return testTypeDesc[index];
+  }
+
+  /**
+   * Get the TestType for a tweak description (from the dialog)
+   * @param testTypeDescription The description to look for
+   * @return the test type or NONE if nothing matched
+   */
+  public static final TestType getTestTypeForDescription(String testTypeDescription) {
+    if (StringUtils.isEmpty(testTypeDescription)) {
+      return TestType.NONE;
+    }
+    int index = Const.indexOfString(testTypeDescription, testTypeDesc);
+    if (index<0) {
+      return TestType.NONE;
+    }
+    return TestType.values()[index];
+  }
+  
+  public static final String[] getTestTypeDescriptions() {
+    return testTypeDesc;
+  }
+  
+  public static final String[] getTweakDescriptions() {
+    return tweakDesc;
   }
 }

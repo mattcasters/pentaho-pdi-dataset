@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -20,6 +21,7 @@ import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestDatabaseReplacement;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -56,22 +58,31 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     }
     String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
     
+    // Do we have something to work with?
+    // Unit test disabled?  Github issue #5
+    //
+    if (StringUtils.isEmpty( unitTestName )) {
+      if (log.isDetailed()) {
+        log.logDetailed("Unit test disabled.");
+      }
+      return;
+    }
+    
     TransUnitTest unitTest = null;
     FactoriesHierarchy factoriesHierarchy = null;
+    
     
     // The next factory hierarchy initialization is very expensive. 
     // See how we can cache this or move it upstairs somewhere.
     //
-    if (!Const.isEmpty( unitTestName )) {
-      List<DatabaseMeta> databases = DataSetConst.getAvailableDatabases( transMeta.getRepository(), transMeta.getSharedObjects() );
-      
-      try {
-        factoriesHierarchy = new FactoriesHierarchy( transMeta.getMetaStore(), databases );
-        unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
-      } catch(MetaStoreException e) {
-        throw new KettleException("Unable to load unit test '"+unitTestName+"'", e);
-      }
+    List<DatabaseMeta> databases = DataSetConst.getAvailableDatabases( transMeta.getRepository(), transMeta.getSharedObjects() );
+    try {
+      factoriesHierarchy = new FactoriesHierarchy( transMeta.getMetaStore(), databases );
+      unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
+    } catch(MetaStoreException e) {
+      throw new KettleException("Unable to load unit test '"+unitTestName+"'", e);
     }
+  
     
     if (unitTest==null) {
       throw new KettleException("Unit test '"+unitTestName+"' was not found or could not be loaded");
@@ -93,6 +104,27 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     copyTransMeta.setRepository( transMeta.getRepository() );
     copyTransMeta.setMetaStore( transMeta.getMetaStore() );
     copyTransMeta.setSharedObjects( transMeta.getSharedObjects() );
+    
+    // Replace certain connections with another
+    //
+    for (TransUnitTestDatabaseReplacement dbReplacement : unitTest.getDatabaseReplacements()) {
+      String sourceDatabaseName = transMeta.environmentSubstitute(dbReplacement.getOriginalDatabaseName());
+      String replacementDatabaseName = transMeta.environmentSubstitute(dbReplacement.getReplacementDatabaseName());
+      
+      DatabaseMeta sourceDatabaseMeta = copyTransMeta.findDatabase(sourceDatabaseName);
+      DatabaseMeta replacementDatabaseMeta = copyTransMeta.findDatabase(replacementDatabaseName);
+      if (sourceDatabaseMeta==null) {
+        throw new KettleException("Unable to find source database connection '"+sourceDatabaseName+"', can not be replaced");
+      }
+      if (replacementDatabaseMeta==null) {
+        throw new KettleException("Unable to find replacement database connection '"+replacementDatabaseName+"', can not be used to replace");
+      }
+      
+      if (log.isDetailed()) {
+        log.logDetailed("Replaced database connection '"+sourceDatabaseName+"' with connection '"+replacementDatabaseName+"'");
+      }
+      sourceDatabaseMeta.replaceMeta(replacementDatabaseMeta);
+    }
     
     // Replace all steps with an Input Data Set marker with an Injector
     // Replace all steps with a Golden Data Set marker with a Dummy

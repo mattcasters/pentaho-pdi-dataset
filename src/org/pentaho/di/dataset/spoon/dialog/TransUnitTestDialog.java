@@ -2,7 +2,6 @@ package org.pentaho.di.dataset.spoon.dialog;
 
 import java.util.Arrays;
 
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -25,10 +24,9 @@ import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.variables.Variables;
-import org.pentaho.di.dataset.TestType;
-import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
-import org.pentaho.di.dataset.TransUnitTestTweak;
+import org.pentaho.di.dataset.TransUnitTestDatabaseReplacement;
+import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.ui.core.PropsUI;
@@ -46,19 +44,6 @@ import org.pentaho.metastore.util.PentahoDefaults;
 public class TransUnitTestDialog extends Dialog {
   private static Class<?> PKG = TransUnitTestDialog.class; // for i18n purposes, needed by Translator2!!
 
-  private static final String[] tweakDesc = new String[] {
-      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.NONE.Desc"),
-      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.BYPASS_STEP.Desc"),
-      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.REMOVE_STEP.Desc"),      
-      };
-
-  private static final String[] testTypeDesc = new String[] {
-      BaseMessages.getString(PKG, "TransUnitTestDialog.TestType.NONE.Desc"),
-      BaseMessages.getString(PKG, "TransUnitTestDialog.TestType.CONCEPTUAL.Desc"),
-      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.DEVELOPMENT.Desc"),
-      BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.UNIT_TEST.Desc"),
-      };
-
   private TransUnitTest transUnitTest;
   protected TransMeta transMeta;
 
@@ -69,7 +54,7 @@ public class TransUnitTestDialog extends Dialog {
   private CCombo wTestType;
   private TextVar wFilename;
 
-  private TableView wTweaks;
+  private TableView wDbReplacements;
 
   private Button wOK;
   private Button wCancel;
@@ -166,7 +151,7 @@ public class TransUnitTestDialog extends Dialog {
     fdTestType.left = new FormAttachment(middle, 0);
     fdTestType.right = new FormAttachment(100, 0);
     wTestType.setLayoutData(fdTestType);
-    wTestType.setItems(testTypeDesc);
+    wTestType.setItems(DataSetConst.getTestTypeDescriptions());
     lastControl = wTestType;
     
     // The optional filename of the test result...
@@ -189,10 +174,10 @@ public class TransUnitTestDialog extends Dialog {
     lastControl = wFilename;
 
 
-    // The list of tweaks to the transformation
+    // The list of database replacements in the unit test transformation
     //
     Label wlFieldMapping = new Label(shell, SWT.NONE);
-    wlFieldMapping.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.Tweaks.Label"));
+    wlFieldMapping.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.DbReplacements.Label"));
     props.setLook(wlFieldMapping);
     FormData fdlUpIns = new FormData();
     fdlUpIns.left = new FormAttachment(0, 0);
@@ -211,26 +196,28 @@ public class TransUnitTestDialog extends Dialog {
     Button[] buttons = new Button[] { wOK, wCancel };
     BaseStepDialog.positionBottomButtons(shell, buttons, margin, null);
 
-    // the transformation tweaks
+    // the database replacements
     //
-    String[] stepNames = transMeta.getStepNames();
-    Arrays.sort(stepNames);
+    String[] dbNames = transMeta.getDatabaseNames();
+    Arrays.sort(dbNames);
     ColumnInfo[] columns = new ColumnInfo[] {
-        new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.ColumnInfo.Tweak"),
-            ColumnInfo.COLUMN_TYPE_CCOMBO, tweakDesc, false),
-        new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.Tweak.ColumnInfo.Step"),
-            ColumnInfo.COLUMN_TYPE_CCOMBO, stepNames, false), };
-
-    wTweaks = new TableView(new Variables(), shell,
+        new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.DbReplacement.ColumnInfo.OriginalDb"),
+            ColumnInfo.COLUMN_TYPE_CCOMBO, dbNames, false),
+        new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.DbReplacement.ColumnInfo.ReplacementDb"),
+            ColumnInfo.COLUMN_TYPE_CCOMBO, dbNames, false), };
+    columns[0].setUsingVariables(true);
+    columns[1].setUsingVariables(true);
+    
+    wDbReplacements = new TableView(new Variables(), shell,
         SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL, columns,
         transUnitTest.getTweaks().size(), null, props);
 
-    FormData fdFieldMapping = new FormData();
-    fdFieldMapping.left = new FormAttachment(0, 0);
-    fdFieldMapping.top = new FormAttachment(lastControl, margin);
-    fdFieldMapping.right = new FormAttachment(100, 0);
-    fdFieldMapping.bottom = new FormAttachment(wOK, -2 * margin);
-    wTweaks.setLayoutData(fdFieldMapping);
+    FormData fdDbReplacements = new FormData();
+    fdDbReplacements.left = new FormAttachment(0, 0);
+    fdDbReplacements.top = new FormAttachment(lastControl, margin);
+    fdDbReplacements.right = new FormAttachment(100, 0);
+    fdDbReplacements.bottom = new FormAttachment(wOK, -2 * margin);
+    wDbReplacements.setLayoutData(fdDbReplacements);
 
     // Add listeners
     wOK.addListener(SWT.Selection, new Listener() {
@@ -284,15 +271,17 @@ public class TransUnitTestDialog extends Dialog {
 
     wName.setText( Const.NVL( transUnitTest.getName(), "" ) );
     wDescription.setText( Const.NVL( transUnitTest.getDescription(), "" ) );
-    wTestType.setText( Const.NVL( getTestTypeDescription(transUnitTest.getType()), "") );
+    wTestType.setText( Const.NVL( DataSetConst.getTestTypeDescription(transUnitTest.getType()), "") );
     wFilename.setText( Const.NVL( transUnitTest.getFilename(), ""));
     
-    for ( int i = 0; i < transUnitTest.getTweaks().size(); i++ ) {
-      TransUnitTestTweak tweak = transUnitTest.getTweaks().get( i );
+    for ( int i = 0; i < transUnitTest.getDatabaseReplacements().size(); i++ ) {
+      TransUnitTestDatabaseReplacement dbReplacement = transUnitTest.getDatabaseReplacements().get( i );
       int colnr = 1;
-      wTweaks.setText( Const.NVL( getTweakDescription(tweak.getTweak()), "" ), colnr++, i );
-      wTweaks.setText( Const.NVL( tweak.getStepName(), "" ), colnr++, i );
+      wDbReplacements.setText( Const.NVL( dbReplacement.getOriginalDatabaseName(), ""), colnr++, i );
+      wDbReplacements.setText( Const.NVL( dbReplacement.getReplacementDatabaseName(), "" ), colnr++, i );
     }
+    wDbReplacements.removeEmptyRows();
+    wDbReplacements.setRowNums();
 
     wName.setFocus();
   }
@@ -310,17 +299,17 @@ public class TransUnitTestDialog extends Dialog {
 
     test.setName(wName.getText());
     test.setDescription(wDescription.getText());
-    test.setType(getTestTypeForDescription(wTestType.getText()));
+    test.setType(DataSetConst.getTestTypeForDescription(wTestType.getText()));
     test.setFilename(wFilename.getText());
     
-    test.getTweaks().clear();
-    int nrFields = wTweaks.nrNonEmpty();
+    test.getDatabaseReplacements().clear();
+    int nrFields = wDbReplacements.nrNonEmpty();
     for (int i=0;i<nrFields;i++) {
-      TableItem item = wTweaks.getNonEmpty( i );
-      String tweakDesc = item.getText(1);
-      TransTweak tweak = getTweakForDescription(tweakDesc);
-      String stepName = item.getText(2);
-      test.getTweaks().add(new TransUnitTestTweak(tweak, stepName));
+      TableItem item = wDbReplacements.getNonEmpty( i );
+      String sourceDb = item.getText(1);
+      String replaceDb = item.getText(2);
+      TransUnitTestDatabaseReplacement dbReplacement = new TransUnitTestDatabaseReplacement(sourceDb, replaceDb);
+      test.getDatabaseReplacements().add(dbReplacement);
     }    
   }
 
@@ -333,73 +322,5 @@ public class TransUnitTestDialog extends Dialog {
 
   }
 
-  public String getTweakDescription(TransTweak tweak) {
-    int index = 0; // NONE
-    if (tweak!=null) {
-      TransTweak[] tweaks = TransTweak.values();
-      for (int i=0;i<tweaks.length;i++) {
-        if (tweaks[i]==tweak) {
-          index=i;
-          break;
-        }
-      }
-    }
-    
-    return tweakDesc[index];
-  }
-
-  /**
-   * Get the TransTweak for a tweak description (from the dialog)
-   * @param tweakDescription The description to look for
-   * @return the tweak or NONE if nothing matched
-   */
-  public TransTweak getTweakForDescription(String tweakDescription) {
-    if (StringUtils.isEmpty(tweakDescription)) {
-      return TransTweak.NONE;
-    }
-    int index = Const.indexOfString(tweakDescription, tweakDesc);
-    if (index<0) {
-      return TransTweak.NONE;
-    }
-    return TransTweak.values()[index];
-  }
-  
-  public static final String getTestTypeDescription(TestType testType) {
-    int index = 0; // NONE
-    if (testType!=null) {
-      TestType[] testTypes = TestType.values();
-      for (int i=0;i<testTypes.length;i++) {
-        if (testTypes[i]==testType) {
-          index=i;
-          break;
-        }
-      }
-    }
-    
-    return testTypeDesc[index];
-  }
-
-  /**
-   * Get the TestType for a tweak description (from the dialog)
-   * @param testTypeDescription The description to look for
-   * @return the test type or NONE if nothing matched
-   */
-  public static final TestType getTestTypeForDescription(String testTypeDescription) {
-    if (StringUtils.isEmpty(testTypeDescription)) {
-      return TestType.NONE;
-    }
-    int index = Const.indexOfString(testTypeDescription, testTypeDesc);
-    if (index<0) {
-      return TestType.NONE;
-    }
-    return TestType.values()[index];
-  }
-  
-  public static final String[] getTestTypeDescriptions() {
-    return testTypeDesc;
-  }
-  
-  public static final String[] getTweakDescriptions() {
-    return tweakDesc;
-  }
+ 
 }
