@@ -1,3 +1,25 @@
+/*! ******************************************************************************
+ *
+ * Pentaho Data Integration
+ *
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ *
+ *******************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************/
+
 package org.pentaho.di.dataset.spoon;
 
 import java.util.ArrayList;
@@ -279,21 +301,26 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   }
 
   private void editDataSet( Spoon spoon, DataSet dataSet, List<DataSetGroup> groups, MetaStoreFactory<DataSet> setFactory, String setName ) throws MetaStoreException {
-    DataSetDialog setDialog = new DataSetDialog( spoon.getShell(), dataSet, groups );
-    while ( setDialog.open() ) {
-      String message = validateDataSet( dataSet, setName, setFactory.getElementNames() );
-
-      // Save the data set...
-      //
-      if ( message == null ) {
-        setFactory.saveElement( dataSet );
-        break;
-      } else {
-        MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
-        box.setText( "Error" );
-        box.setMessage( message );
-        box.open();
+    
+    try {
+      DataSetDialog setDialog = new DataSetDialog( spoon.getShell(), setFactory.getMetaStore(), dataSet, groups, getAvailableDatabases(spoon.getRepository()) );
+      while ( setDialog.open() ) {
+        String message = validateDataSet( dataSet, setName, setFactory.getElementNames() );
+  
+        // Save the data set...
+        //
+        if ( message == null ) {
+          setFactory.saveElement( dataSet );
+          break;
+        } else {
+          MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
+          box.setText( "Error" );
+          box.setMessage( message );
+          box.open();
+        }
       }
+    } catch(Exception e) {
+      new ErrorDialog(spoon.getShell(), "Error", "Unable to edit data set", e);
     }
 
   }

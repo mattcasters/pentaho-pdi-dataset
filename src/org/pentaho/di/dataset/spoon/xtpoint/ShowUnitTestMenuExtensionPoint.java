@@ -1,3 +1,25 @@
+/*! ******************************************************************************
+ *
+ * Pentaho Data Integration
+ *
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ *
+ *******************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************/
+
 package org.pentaho.di.dataset.spoon.xtpoint;
 
 import java.util.ArrayList;
@@ -84,6 +106,16 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
               public void widgetSelected(SelectionEvent event) {
                 disableUnitTest(unitTestName);
               } };
+            SelectionListener lsDataSetNew = new SelectionAdapter() { 
+              @Override
+              public void widgetSelected(SelectionEvent event) {
+                DataSetHelper.getInstance().addDataSet();
+              } };
+            SelectionListener lsDataSetEdit = new SelectionAdapter() { 
+              @Override
+              public void widgetSelected(SelectionEvent event) {
+                DataSetHelper.getInstance().editDataSet();
+              } };
                           
             Menu menu = new Menu(spoon.getShell(), SWT.POP_UP);
             MenuItem newItem = new MenuItem(menu, SWT.PUSH);
@@ -121,6 +153,25 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
                 }
               });
             }
+
+            new MenuItem(menu, SWT.SEPARATOR);
+            
+            MenuItem dataSetItem = new MenuItem(menu, SWT.CASCADE);
+            dataSetItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.DataSet.Label"));
+            Menu dataSetMenu = new Menu(menu);
+            dataSetItem.setMenu(dataSetMenu);
+            
+            // New data set
+            MenuItem newDataSetItem = new MenuItem(dataSetMenu, SWT.PUSH);
+            newDataSetItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.NewDataSet.Label"));
+            newDataSetItem.addSelectionListener(lsDataSetNew);
+            
+            // edit data set
+            MenuItem editDataSetItem = new MenuItem(dataSetMenu, SWT.PUSH);
+            editDataSetItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.EditDataSet.Label"));
+            editDataSetItem.addSelectionListener(lsDataSetEdit);
+            
+            
             
             canvas.setMenu(menu);
             Point location = canvas.toDisplay(tge.getEvent().x, tge.getEvent().y);

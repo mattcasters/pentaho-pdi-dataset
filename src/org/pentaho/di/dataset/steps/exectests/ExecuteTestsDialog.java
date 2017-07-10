@@ -1,3 +1,25 @@
+/*! ******************************************************************************
+ *
+ * Pentaho Data Integration
+ *
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ *
+ *******************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************/
+
 package org.pentaho.di.dataset.steps.exectests;
 
 import org.eclipse.swt.SWT;
@@ -23,6 +45,7 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInterface {
@@ -31,12 +54,12 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
   private ExecuteTestsMeta input;
   
   private CCombo wTypeToExecute;
-  private Text wTransformationNameField;
-  private Text wUnitTestNameField;
-  private Text wDataSetNameField;
-  private Text wStepNameField;
-  private Text wErrorField;
-  private Text wCommentField;
+  private TextVar wTransformationNameField;
+  private TextVar wUnitTestNameField;
+  private TextVar wDataSetNameField;
+  private TextVar wStepNameField;
+  private TextVar wErrorField;
+  private TextVar wCommentField;
   
   public ExecuteTestsDialog(Shell parent, Object baseStepMeta, TransMeta transMeta, String stepname) {
     super(parent, (BaseStepMeta)baseStepMeta, transMeta, stepname);
@@ -114,7 +137,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlTransformationNameField.right = new FormAttachment( middle, -margin );
     fdlTransformationNameField.top = new FormAttachment( lastControl, margin );
     wlTransformationNameField.setLayoutData( fdlTransformationNameField );
-    wTransformationNameField = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wTransformationNameField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wTransformationNameField );
     FormData fdTransformationNameField = new FormData();
     fdTransformationNameField.left = new FormAttachment( middle, 0 );
@@ -133,7 +156,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlUnitTestNameField.right = new FormAttachment( middle, -margin );
     fdlUnitTestNameField.top = new FormAttachment( lastControl, margin );
     wlUnitTestNameField.setLayoutData( fdlUnitTestNameField );
-    wUnitTestNameField = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wUnitTestNameField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wUnitTestNameField );
     FormData fdUnitTestNameField = new FormData();
     fdUnitTestNameField.left = new FormAttachment( middle, 0 );
@@ -152,7 +175,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlDataSetNameField.right = new FormAttachment( middle, -margin );
     fdlDataSetNameField.top = new FormAttachment( lastControl, margin );
     wlDataSetNameField.setLayoutData( fdlDataSetNameField );
-    wDataSetNameField = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wDataSetNameField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wDataSetNameField );
     FormData fdDataSetNameField = new FormData();
     fdDataSetNameField.left = new FormAttachment( middle, 0 );
@@ -171,7 +194,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlStepNameField.right = new FormAttachment( middle, -margin );
     fdlStepNameField.top = new FormAttachment( lastControl, margin );
     wlStepNameField.setLayoutData( fdlStepNameField );
-    wStepNameField = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wStepNameField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wStepNameField );
     FormData fdStepNameField = new FormData();
     fdStepNameField.left = new FormAttachment( middle, 0 );
@@ -190,7 +213,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlErrorField.right = new FormAttachment( middle, -margin );
     fdlErrorField.top = new FormAttachment( lastControl, margin );
     wlErrorField.setLayoutData( fdlErrorField );
-    wErrorField = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wErrorField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wErrorField );
     FormData fdErrorField = new FormData();
     fdErrorField.left = new FormAttachment( middle, 0 );
@@ -209,7 +232,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlCommentField.right = new FormAttachment( middle, -margin );
     fdlCommentField.top = new FormAttachment( lastControl, margin );
     wlCommentField.setLayoutData( fdlCommentField );
-    wCommentField = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wCommentField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wCommentField );
     FormData fdCommentField = new FormData();
     fdCommentField.left = new FormAttachment( middle, 0 );

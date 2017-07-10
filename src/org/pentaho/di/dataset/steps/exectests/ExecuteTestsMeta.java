@@ -1,3 +1,25 @@
+/*! ******************************************************************************
+ *
+ * Pentaho Data Integration
+ *
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ *
+ *******************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************/
+
 package org.pentaho.di.dataset.steps.exectests;
 
 import java.util.List;
@@ -58,12 +80,12 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
       VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
     RowMetaInterface rowMeta = UnitTestResult.getRowMeta();
     int index=0;
-    rowMeta.getValueMeta(index++).setName(transformationNameField);
-    rowMeta.getValueMeta(index++).setName(unitTestNameField);
-    rowMeta.getValueMeta(index++).setName(dataSetNameField);
-    rowMeta.getValueMeta(index++).setName(stepNameField);
-    rowMeta.getValueMeta(index++).setName(errorField);
-    rowMeta.getValueMeta(index++).setName(commentField);
+    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(transformationNameField));
+    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(unitTestNameField));
+    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(dataSetNameField));
+    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(stepNameField));
+    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(errorField));
+    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(commentField));
     
     inputRowMeta.addRowMeta( rowMeta );    
   }

@@ -1,7 +1,30 @@
+/*! ******************************************************************************
+ *
+ * Pentaho Data Integration
+ *
+ * Copyright (C) 2002-2017 by Pentaho : http://www.pentaho.com
+ *
+ *******************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************/
+
 package org.pentaho.di.dataset.spoon.dialog;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.swt.SWT;
@@ -39,6 +62,7 @@ import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
+import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.PropsUI;
@@ -52,6 +76,10 @@ import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.di.ui.trans.step.TableItemInsertListener;
+import org.pentaho.metastore.api.IMetaStore;
+import org.pentaho.metastore.api.exceptions.MetaStoreException;
+import org.pentaho.metastore.persist.MetaStoreFactory;
+import org.pentaho.metastore.util.PentahoDefaults;
 
 public class DataSetDialog extends Dialog {
   private static Class<?> PKG = DataSetDialog.class; // for i18n purposes, needed by Translator2!!
@@ -74,6 +102,8 @@ public class DataSetDialog extends Dialog {
   private Button wEditData;
   private Button wViewData;
   private Button wCancel;
+  
+  private Button wNewGroup;
 
   private PropsUI props;
 
@@ -82,10 +112,18 @@ public class DataSetDialog extends Dialog {
 
   private boolean ok;
 
-  public DataSetDialog( Shell parent, DataSet dataSet, List<DataSetGroup> groups ) {
+  private IMetaStore metaStore;
+
+  private Button wEditGroup;
+
+  private List<DatabaseMeta> databases;
+
+  public DataSetDialog( Shell parent, IMetaStore metaStore, DataSet dataSet, List<DataSetGroup> groups, List<DatabaseMeta> databases ) {
     super( parent, SWT.NONE );
+    this.metaStore = metaStore;
     this.dataSet = dataSet;
     this.groups = groups;
+    this.databases = databases;
     props = PropsUI.getInstance();
     ok = false;
   }
@@ -173,12 +211,41 @@ public class DataSetDialog extends Dialog {
     fdlDatabase.left = new FormAttachment( 0, 0 );
     fdlDatabase.right = new FormAttachment( middle, -margin );
     wlGroup.setLayoutData( fdlDatabase );
+
+    wNewGroup = new Button( shell, SWT.PUSH);
+    props.setLook( wNewGroup );
+    wNewGroup.setText( BaseMessages.getString( PKG, "DataSetDialog.NewGroup.Label" ) );
+    FormData fdlNewGroup = new FormData();
+    fdlNewGroup.top = new FormAttachment( lastControl, margin );
+    fdlNewGroup.right = new FormAttachment( 100, -margin );
+    wNewGroup.setLayoutData( fdlNewGroup );
+    wNewGroup.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent arg0) {
+        addDataSetGroup();
+      }
+    });
+    
+    wEditGroup = new Button( shell, SWT.PUSH);
+    props.setLook( wEditGroup );
+    wEditGroup.setText( BaseMessages.getString( PKG, "DataSetDialog.EditGroup.Label" ) );
+    FormData fdlEditGroup = new FormData();
+    fdlEditGroup.top = new FormAttachment( lastControl, margin );
+    fdlEditGroup.right = new FormAttachment( wNewGroup, -margin );
+    wEditGroup.setLayoutData( fdlEditGroup );
+    wEditGroup.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent arg0) {
+        editDataSetGroup();
+      }
+    });
+
     wDataSetGroup = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wDataSetGroup );
     FormData fdDatabase = new FormData();
     fdDatabase.top = new FormAttachment( lastControl, margin );
     fdDatabase.left = new FormAttachment( middle, 0 );
-    fdDatabase.right = new FormAttachment( 100, 0 );
+    fdDatabase.right = new FormAttachment( wEditGroup, -margin );
     wDataSetGroup.setLayoutData( fdDatabase );
     lastControl = wDataSetGroup;
 
@@ -310,6 +377,39 @@ public class DataSetDialog extends Dialog {
     return ok;
   }
 
+  protected void addDataSetGroup() {
+    
+    try {
+      DataSetHelper.getInstance().addDataSetGroup();
+      refreshGroups(metaStore);
+    } catch(Exception e) {
+      new ErrorDialog(shell, "Error", "Error creating new data set group", e);
+    }
+  }
+  
+  protected void editDataSetGroup() {
+    
+    try {
+      DataSetHelper.getInstance().editDataSetGroup();
+      refreshGroups(metaStore);   
+    } catch(Exception e) {
+      new ErrorDialog(shell, "Error", "Error editing data set group", e);
+    }
+  }
+
+  private void refreshGroups(IMetaStore metaStore) throws MetaStoreException {
+    
+    MetaStoreFactory<DataSetGroup> factory = new MetaStoreFactory<DataSetGroup>(DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE);
+    factory.addNameList( DataSetConst.DATABASE_LIST_KEY, databases );
+    
+    groups = factory.getElements();
+    
+    List<String> names = factory.getElementNames();
+    Collections.sort(names);
+    wDataSetGroup.setItems(names.toArray(new String[names.size()]));      
+
+  }
+  
   /**
    * Look at the metadata specified here and create the table accordingly...
    */
@@ -649,6 +749,14 @@ public class DataSetDialog extends Dialog {
     ok = true;
     dispose();
 
+  }
+
+  public IMetaStore getMetaStore() {
+    return metaStore;
+  }
+
+  public void setMetaStore(IMetaStore metaStore) {
+    this.metaStore = metaStore;
   }
 
 }
