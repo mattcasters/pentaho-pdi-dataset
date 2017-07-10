@@ -47,7 +47,6 @@ public class ExecuteTestsMetaTest {
  public void testRoundTrip() throws KettleException {
   
    List<String> attributes = Arrays.asList( 
-       "typeToExecute",
        "transformationNameField",
        "unitTestNameField",
        "dataSetNameField",
