@@ -55,13 +55,13 @@ import org.w3c.dom.Node;
     )
 public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface {
 
-  private static final String TAG_TYPE_TO_EXECUTE = "type_to_execute";
-  private static final String TAG_TRANSFORMATION_NAME_FIELD = "trans_name_field";
-  private static final String TAG_UNIT_TEST_NAME_FIELD = "unit_test_name_field";
-  private static final String TAG_DATASET_NAME_FIELD = "data_set_name_field";
-  private static final String TAG_STEP_NAME_FIELD = "step_name_field";
-  private static final String TAG_ERROR_FIELD = "error_field";
-  private static final String TAG_COMMENT_FIELD = "comment_field";
+  public static final String TAG_TYPE_TO_EXECUTE = "type_to_execute";
+  public static final String TAG_TRANSFORMATION_NAME_FIELD = "trans_name_field";
+  public static final String TAG_UNIT_TEST_NAME_FIELD = "unit_test_name_field";
+  public static final String TAG_DATASET_NAME_FIELD = "data_set_name_field";
+  public static final String TAG_STEP_NAME_FIELD = "step_name_field";
+  public static final String TAG_ERROR_FIELD = "error_field";
+  public static final String TAG_COMMENT_FIELD = "comment_field";
   
   private TestType typeToExecute;
   private String transformationNameField;

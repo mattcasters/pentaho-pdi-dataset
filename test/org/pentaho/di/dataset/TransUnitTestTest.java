@@ -60,7 +60,7 @@ public class TransUnitTestTest extends TestCase {
         goldens,
         tweaks,
         TestType.UNIT_TEST,
-        null
+        null, new ArrayList<TransUnitTestDatabaseReplacement>()
         );
   }
 
