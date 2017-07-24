@@ -207,6 +207,31 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       new ErrorDialog( spoon.getShell(), "Error", "Error creating a new data set group", e );
     }
   }
+  
+  public void removeDataSetGroup() {
+
+    Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
+
+    IMetaStore metaStore = spoon.getMetaStore();
+    MetaStoreFactory<DataSetGroup> groupFactory = new MetaStoreFactory<DataSetGroup>( DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE );
+    
+    try {
+
+      List<String> groupNames = groupFactory.getElementNames();
+      Collections.sort( groupNames );
+      EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), groupNames.toArray( new String[groupNames.size()] ), "Select the group", "Select the group to edit..." );
+      String groupName = esd.open();
+      if ( groupName != null ) {
+        
+        // TODO: Find the unit tests for this group, if there are any, we can't remove the group
+        //
+        groupFactory.deleteElement(groupName);
+      }
+    } catch ( Exception e ) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error retrieving the list of data set groups or deleting a group", e );
+    }
+  }
+
 
   private String validateDataSetGroup( DataSetGroup dataSetGroup, String previousName, List<String> groupNames ) {
 
@@ -338,6 +363,10 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     }
     IMetaStore metaStore = spoon.getMetaStore();
 
+    if (checkTestPresent(spoon, transMeta)) {
+      return;
+    }
+    
     try {
       
       List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
@@ -443,6 +472,27 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     }
   }
   
+  private boolean checkTestPresent(Spoon spoon, TransMeta transMeta) {
+    
+    spoon.getLog().logBasic("Check test present...");
+    
+    String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    spoon.getLog().logBasic("Check test present : "+testName);
+    if (!Const.isEmpty( testName )) {
+      return false;
+    }
+    
+    // there is no test defined of selected in the transformation.
+    // Show a warning
+    //
+    MessageBox box = new MessageBox(spoon.getShell(), SWT.OK | SWT.ICON_INFORMATION );
+    box.setMessage("Please create a test-case first by left clicking on the test icon.");
+    box.setText("First create a test-case");
+    box.open();
+    
+    return true;
+  }
+
   /**
    * We set an golden data set on the selected unit test
    */
