@@ -40,6 +40,7 @@ import org.pentaho.di.core.logging.SimpleLoggingObject;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
@@ -268,9 +269,16 @@ public class DataSetConst {
       int nrLocationErrors = 0;
       RowCollection resultCollection = collectionMap.get( location.getStepname() );
       if (resultCollection==null || resultCollection.getRows()==null || resultCollection.getRowMeta()==null) {
-        // error occurred upstairs, we don't have results
+        // error occurred somewhere, we don't have results, provide dummy values to avoid exceptions, flag error
         //
-        continue;
+        resultCollection = new RowCollection();
+        resultCollection.setRowMeta(new RowMeta());
+        resultCollection.setRows(new ArrayList<Object[]>());    
+        
+        String comment = "WARNING: no test results found for step '" + location.getStepname() + "' : check disabled hops, input and so on.";
+        results.add(new UnitTestResult(
+            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+            false, comment));
       }
       RowMetaInterface resultRowMeta = resultCollection.getRowMeta();
 
@@ -279,11 +287,16 @@ public class DataSetConst {
       RowMetaInterface goldenRowMeta = new RowMeta();
       for (TransUnitTestFieldMapping mapping : location.getFieldMappings()) {
          ValueMetaInterface resultValueMeta = resultRowMeta.searchValueMeta(mapping.getStepFieldName());
+         ValueMetaInterface goldenValueMeta;
          if (resultValueMeta!=null) {
-           ValueMetaInterface goldenValueMeta = resultValueMeta.clone();
-           goldenValueMeta.setName(mapping.getDataSetFieldName());
-           goldenRowMeta.addValueMeta(goldenValueMeta);
+           goldenValueMeta = resultValueMeta.clone();
+         } else {
+           // case where we have no results.
+           //
+           goldenValueMeta = new ValueMetaString(mapping.getStepFieldName());
          }
+         goldenValueMeta.setName(mapping.getDataSetFieldName());
+         goldenRowMeta.addValueMeta(goldenValueMeta);
       }
       
       log.logBasic("Found "+resultCollection.getRows().size()+" results for comparrison in step '"+location.getStepname()+"', fields: "+resultRowMeta.toString());
@@ -299,7 +312,7 @@ public class DataSetConst {
         String comment = "Incorrect number of rows received from step, golden data set '" + location.getDataSetName() + "' has " + goldenRows.size() + " rows in it and we received "+resultRows.size();
         results.add(new UnitTestResult(
             trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
-            false, comment));
+            true, comment));
         nrLocationErrors++;
       }
       

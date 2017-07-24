@@ -477,7 +477,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     spoon.getLog().logBasic("Check test present...");
     
     String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
-    spoon.getLog().logBasic("Check test present : "+testName);
     if (!Const.isEmpty( testName )) {
       return false;
     }
