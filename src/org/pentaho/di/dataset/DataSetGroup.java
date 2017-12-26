@@ -90,6 +90,7 @@ public class DataSetGroup {
   }
 
   public DatabaseMeta getDatabaseMeta() {
+    databaseMeta.initializeVariablesFrom(databaseMeta);
     return databaseMeta;
   }
 
