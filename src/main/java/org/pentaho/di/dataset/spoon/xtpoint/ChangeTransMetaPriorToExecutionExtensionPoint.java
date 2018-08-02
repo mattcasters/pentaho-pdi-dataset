@@ -284,7 +284,7 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     // OK, this step needs to be replaced by an Injector step...
     // Which fields do we need to use?
     //
-    final RowMetaInterface stepFields = DataSetConst.getStepOutputFields(log, transMeta, stepMeta, dataSet, inputLocation);
+    final RowMetaInterface stepFields = DataSetConst.getStepOutputFields(log, dataSet, inputLocation);
     
     if (log.isDetailed()) {
       log.logDetailed("Input Data Set '"+inputSetName+"' Injector fields : '"+stepFields.toString());

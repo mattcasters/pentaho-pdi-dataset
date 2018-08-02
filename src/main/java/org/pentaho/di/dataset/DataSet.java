@@ -22,9 +22,6 @@
 
 package org.pentaho.di.dataset;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -38,6 +35,9 @@ import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @MetaStoreElementType(
   name = "Kettle Data Set",
@@ -83,7 +83,7 @@ public class DataSet {
     DataSet cmp = (DataSet) obj;
     return name.equals( cmp );
   }
-  
+
   @Override
   public int hashCode() {
     return name.hashCode();
@@ -131,6 +131,7 @@ public class DataSet {
 
   /**
    * Get standard Kettle row metadata from the defined data set fields
+   *
    * @param columnName true if you want the field names to be called after the columns, false if you prefer the field names in the result.
    * @return The row metadata
    * @throws KettlePluginException
@@ -166,46 +167,60 @@ public class DataSet {
     return field.getColumnName();
   }
 
+  public int indexOfField( String fieldName ) {
+    for ( int i = 0; i < fields.size(); i++ ) {
+      DataSetField field = fields.get(i);
+      if ( field.getFieldName().equalsIgnoreCase( fieldName ) ) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   /**
-   * Get the rows for this data set
-   * @param log the logging channel to which you can write.
-   * @param location The fields to obtain in the order given and the fields to convert to.
-   * @param outputRowMeta the target row metadata to convert to.
-   * @return The rows for the given location (input or golden)
+   * Get the rows for this data set in the format of the data set.
+   *
+   * @param log      the logging channel to which you can write.
+   * @param location The fields to obtain in the order given
+   * @return The rows for the given location
    * @throws KettleException
    */
-  public List<Object[]> getAllRows(LogChannelInterface log, TransUnitTestSetLocation location, RowMetaInterface outputRowMeta) throws KettleException {
+  public List<Object[]> getAllRows( LogChannelInterface log, TransUnitTestSetLocation location ) throws KettleException {
     try {
       DatabaseMeta databaseMeta = group.getDatabaseMeta();
-      synchronized(databaseMeta) {
+      synchronized ( databaseMeta ) {
         String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), getTableName() );
         Database database = null;
         List<Object[]> rows = null;
         List<String> sortFields = location.getFieldOrder();
-  
+
         List<String> selectColumns = new ArrayList<String>();
-  
-        // We need to grab the fields and it's order from outputRowMeta...
+
+        // Which columns do we need for the location (input or golden)
         //
-        for (ValueMetaInterface valueMeta : outputRowMeta.getValueMetaList()) {
-          // Which set field does this correspond to?
+        for ( DataSetField field : fields ) {
+
+          // Pick this data set field from the fields list.
           //
-          String setField = location.findSetFieldInMapping(valueMeta.getName());
-          
-          // Skip the field in the output if not specified
-          //
-          if (setField!=null) {
-            // Which column are we talking about?
-            //
-            String column = findColumnForField(setField);
-            selectColumns.add(column);
-          }
+          String column = field.getColumnName();
+          selectColumns.add( column );
         }
-        
+
+        // Which columns are we sorting on (if any)
+        //
+        List<String> sortColumns = new ArrayList<String>();
+        for ( String sortField : sortFields ) {
+          String sortColumn = findColumnForField( sortField );
+          if ( sortColumn == null ) {
+            throw new KettleException( "Unable to find sort column with field name '" + sortField + "' (from mapping) in data set '" + getName() + "'" );
+          }
+          sortColumns.add( sortColumn );
+        }
+
         try {
           database = new Database( new LoggingObject( "DataSetDialog" ), group.getDatabaseMeta() );
           database.connect();
-  
+
           String sql = "SELECT ";
           for ( int i = 0; i < selectColumns.size(); i++ ) {
             String column = selectColumns.get( i );
@@ -215,45 +230,51 @@ public class DataSet {
             sql += databaseMeta.quoteField( column );
           }
           sql += " FROM " + schemaTable;
-          
-          if (sortFields!=null && !sortFields.isEmpty()) {
-            sql+=" ORDER BY ";
+
+          if ( sortColumns != null && !sortColumns.isEmpty() ) {
+            sql += " ORDER BY ";
             boolean first = true;
-            for (String fieldName : sortFields) {
-              if (first) {
+            for ( String sortColumn : sortColumns ) {
+              if ( first ) {
                 first = false;
               } else {
-                sql+=", ";
+                sql += ", ";
               }
-              String column = findColumnForField(fieldName);
-              sql+=databaseMeta.quoteField(column);
+              sql += databaseMeta.quoteField( sortColumn );
             }
           }
-  
-          if (log.isDetailed()) {
-            log.logDetailed("---------------------------------------------");
-            log.logDetailed("SQL = "+sql);
-            log.logDetailed("---------------------------------------------");
+
+          if ( log.isDetailed() ) {
+            log.logDetailed( "---------------------------------------------" );
+            log.logDetailed( "SQL = " + sql );
+            log.logDetailed( "---------------------------------------------" );
           }
           rows = database.getRows( sql, 0 );
-          
+
           // Now, our work is not done...
           // We will probably have data conversation issues so let's handle this...
           //
           RowMetaInterface dbRowMeta = database.getReturnRowMeta();
-          if (log.isDetailed()) {
-            log.logDetailed("DB RowMeta = "+dbRowMeta.toStringMeta());
-            log.logDetailed("OutputRowMeta = "+outputRowMeta.toStringMeta());
-            log.logDetailed("---------------------------------------------");
+          if ( log.isDetailed() ) {
+            log.logDetailed( "DB RowMeta = " + dbRowMeta.toStringMeta() );
+            log.logDetailed( "---------------------------------------------" );
           }
-          for (int i=0;i<dbRowMeta.size();i++) {
-            ValueMetaInterface outputValueMeta = outputRowMeta.getValueMeta( i );
+
+          // Correct data types if needed
+          //
+          for ( int i = 0; i < dbRowMeta.size(); i++ ) {
+            // In case the data in the table is a different data type for some reasons, bring it back up to spec.
+            // The spec is given in getSetRowMeta()
+            //
+            DataSetField field = fields.get(i);
+            ValueMetaInterface dataSetValueMeta = ValueMetaFactory.createValueMeta( field.getFieldName(), field.getType(), field.getLength(), field.getPrecision() );
+
             ValueMetaInterface dbValueMeta = dbRowMeta.getValueMeta( i );
-            if (dbValueMeta.getType()!=outputValueMeta.getType()) {
+            if ( dbValueMeta.getType() != dataSetValueMeta.getType() ) {
               // Convert the values in the result set...
               //
-              for (Object[] row : rows) {
-                row[i] = outputValueMeta.convertData( dbValueMeta, row[i] );
+              for ( Object[] row : rows ) {
+                row[ i ] = dataSetValueMeta.convertData( dbValueMeta, row[ i ] );
               }
             }
           }
@@ -262,7 +283,7 @@ public class DataSet {
             database.disconnect();
           }
         }
-  
+
         return rows;
       }
     } catch ( Exception e ) {

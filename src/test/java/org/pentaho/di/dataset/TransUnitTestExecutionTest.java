@@ -15,6 +15,8 @@ import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
+import org.pentaho.di.core.logging.LogChannelInterface;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.util.EnvUtil;
@@ -176,7 +178,7 @@ public class TransUnitTestExecutionTest extends TestCase {
           new TransUnitTestFieldMapping( "a", "a" ),
           new TransUnitTestFieldMapping( "b", "b" ),
           new TransUnitTestFieldMapping( "c", "c" )), 
-        Arrays.asList("1", "2", "3")) );
+        Arrays.asList("a", "b", "c")) );
     
     List<TransUnitTestSetLocation> goldens = new ArrayList<TransUnitTestSetLocation>();
     goldens.add( new TransUnitTestSetLocation(OUTPUT_STEP_NAME, GOLDEN_SET_NAME, Arrays.asList( 
@@ -184,7 +186,7 @@ public class TransUnitTestExecutionTest extends TestCase {
         new TransUnitTestFieldMapping( "b", "b" ),
         new TransUnitTestFieldMapping( "c", "c" ),
         new TransUnitTestFieldMapping( "d", "d" )), 
-        Arrays.asList("1", "2", "3")) );
+        Arrays.asList("a", "b", "c")) );
     
     List<TransUnitTestTweak> tweaks = new ArrayList<TransUnitTestTweak>();
     tweaks.add( new TransUnitTestTweak(TransTweak.NONE, "step1") );
@@ -192,7 +194,7 @@ public class TransUnitTestExecutionTest extends TestCase {
     tweaks.add( new TransUnitTestTweak(TransTweak.REMOVE_STEP, "step3") );
     
     unitTest = new TransUnitTest(UNIT_TEST_NAME, UNIT_TEST_DESCRIPTION, null, null, 
-        "test-files/simple-mapping.ktr", inputs, goldens, tweaks, TestType.UNIT_TEST, null, new ArrayList<TransUnitTestDatabaseReplacement>());
+        "src/test/resources/simple-mapping.ktr", inputs, goldens, tweaks, TestType.UNIT_TEST, null, new ArrayList<TransUnitTestDatabaseReplacement>());
   }
 
   public void testExecution() throws Exception {
@@ -258,16 +260,17 @@ public class TransUnitTestExecutionTest extends TestCase {
     for (TransUnitTestSetLocation location : unitTest.getGoldenDataSets()) {
       RowCollection resultCollection = collectionMap.get( location.getStepname() );
       RowMetaInterface stepFieldsRowMeta = transMeta.getStepFields(stepMeta);
-      RowCollection goldenCollection = unitTest.getGoldenRows( trans.getLogChannel(), factories, location, stepFieldsRowMeta );
-      
+
+      DataSet goldenDataSet = unitTest.getGoldenDataSet( trans.getLogChannel(), factories, location);
+      assertNotNull( "Golden data set not found!", goldenDataSet );
+
+      List<Object[]> goldenRows = goldenDataSet.getAllRows( trans.getLogChannel(), location );
+      RowMetaInterface goldenRowMeta = goldenDataSet.getSetRowMeta( false );
+
       assertEquals(OUTPUT_STEP_NAME, location.getStepname());
-      assertEquals(setSize, resultCollection.getRows().size());
-      
-      // TODO: Create compare method
-      //
+
       List<Object[]> resultRows = resultCollection.getRows();
-      List<Object[]> goldenRows = goldenCollection.getRows();
-      
+
       if ( resultRows.size() != goldenRows.size() ) {
         throw new KettleException( "Incorrect number of rows received from step, golden data set '" + goldenDataSet.getName() + "' has " + goldenRows.size() + " rows in it and we received "+resultRows.size() );
       }
@@ -278,7 +281,13 @@ public class TransUnitTestExecutionTest extends TestCase {
         TransUnitTestFieldMapping fieldMapping = location.getFieldMappings().get( i );
 
         stepFieldIndices[i] = resultCollection.getRowMeta().indexOfValue( fieldMapping.getStepFieldName() );
-        goldenIndices[i] = goldenCollection.getRowMeta().indexOfValue( fieldMapping.getDataSetFieldName() );
+        if (stepFieldIndices[i]<0) {
+          throw new KettleException( "Unable to find field name '"+fieldMapping.getStepFieldName()+"' in step results rows output: "+Arrays.toString(resultCollection.getRowMeta().getFieldNames()) );
+        }
+        goldenIndices[i] = goldenRowMeta.indexOfValue( fieldMapping.getDataSetFieldName() );
+        if (goldenIndices[i]<0) {
+          throw new KettleException( "Unable to find data set field name '"+fieldMapping.getDataSetFieldName()+"' in golden data set rows : "+Arrays.toString(goldenRowMeta.getFieldNames()) );
+        }
       }
       
       Object[] resultRow = resultRows.get( rowNumber );
@@ -291,7 +300,7 @@ public class TransUnitTestExecutionTest extends TestCase {
         ValueMetaInterface stepValueMeta = resultCollection.getRowMeta().getValueMeta( stepFieldIndices[i] );
         Object stepValue = resultRow[stepFieldIndices[i]];
 
-        ValueMetaInterface goldenValueMeta = goldenCollection.getRowMeta().getValueMeta( goldenIndices[i] );
+        ValueMetaInterface goldenValueMeta = goldenRowMeta.getValueMeta( goldenIndices[i] );
         Object goldenValue = goldenRow[goldenIndices[i]];
         try {
           int cmp = stepValueMeta.compare( stepValue, goldenValueMeta, goldenValue );

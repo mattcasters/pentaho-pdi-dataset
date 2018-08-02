@@ -518,8 +518,10 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       String setName = esd.open();
       if ( setName != null ) {
         DataSet dataSet = setFactory.loadElement( setName );
-        
+
+        // Clear possible input data set name
         stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, null);
+        // Set golden data set name
         stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, dataSet.getName() );
         
         // Now we need to map the fields from the step to golden data set fields...
@@ -877,9 +879,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     }
   }
   
-  public static final void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) {
-    transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, 
-        DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
+  public static final void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) throws KettleException {
+    transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
     
     DataSetConst.loadStepDataSetIndicators( transMeta, unitTest);
 

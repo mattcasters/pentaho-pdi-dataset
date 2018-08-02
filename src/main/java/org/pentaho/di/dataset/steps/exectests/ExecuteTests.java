@@ -163,49 +163,49 @@ public class ExecuteTests extends BaseStep implements StepInterface {
   }
 
   private TransMeta loadTestTransformation(TransUnitTest test) throws KettleException {
-    TransMeta transMeta = null;
+    TransMeta unitTestTransMeta = null;
     String filename = getTrans().environmentSubstitute(test.getTransFilename());
     if (StringUtils.isNotEmpty(filename)) {
-      transMeta = new TransMeta(filename, repository, true, getTrans());
+      unitTestTransMeta = new TransMeta(filename, repository, true, getTrans());
     } else {
       if (repository==null) {
         return null;
       }
       if (StringUtils.isNotEmpty(test.getTransObjectId())) {
-        transMeta = repository.loadTransformation(new StringObjectId(test.getTransObjectId()), null); // null=last version
+        unitTestTransMeta = repository.loadTransformation(new StringObjectId(test.getTransObjectId()), null); // null=last version
       } else {
         if (StringUtils.isNotEmpty(test.getTransRepositoryPath())) {
           String directoryName = DataSetConst.getDirectoryFromPath(test.getTransRepositoryPath());
           String transName = DataSetConst.getNameFromPath(test.getTransRepositoryPath());
           RepositoryDirectoryInterface directory = repository.findDirectory(directoryName);
-          transMeta = repository.loadTransformation(transName, directory, null, true, null);
+          unitTestTransMeta = repository.loadTransformation(transName, directory, null, true, null);
         }
       }
     }
-    if (transMeta==null) {
+    if (unitTestTransMeta==null) {
       return null;
     }
     
     // Don't show to unit tests results dialog in case of errors
     //
-    transMeta.setVariable(DataSetConst.VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS, "Y");
+    unitTestTransMeta.setVariable(DataSetConst.VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS, "Y");
     
     // Pass some data from the parent...
     //
-    transMeta.setRepository(repository);
-    transMeta.setMetaStore(metaStore);
-    transMeta.copyVariablesFrom(getTrans());
-    transMeta.copyParametersFrom(getTrans());
+    unitTestTransMeta.setRepository(repository);
+    unitTestTransMeta.setMetaStore(metaStore);
+    unitTestTransMeta.copyVariablesFrom(getTrans());
+    unitTestTransMeta.copyParametersFrom(getTrans());
 
     // clear and load attributes for unit test...
     //
-    DataSetHelper.selectUnitTest(transMeta, test);
+    DataSetHelper.selectUnitTest(unitTestTransMeta, test);
     
     // Make sure to run the unit test: gather data to compare after execution.
     //
-    transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
+    unitTestTransMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
     
-    return transMeta;
+    return unitTestTransMeta;
   }
   
 

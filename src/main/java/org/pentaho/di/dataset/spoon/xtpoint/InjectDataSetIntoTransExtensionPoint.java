@@ -22,6 +22,7 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +39,14 @@ import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowDataUtil;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -270,7 +274,6 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
     final Database database = new Database( trans, group.getDatabaseMeta() );
     final LogChannelInterface log = trans.getLogChannel();
     
-    final RowMetaInterface injectRowMeta = DataSetConst.getStepOutputFields(log, transMeta, stepMeta, dataSet, inputLocation);    
     final RowProducer rowProducer = trans.addRowProducer( stepMeta.getName(), 0 );
 
     // Look for the step into which we'll inject rows...
@@ -285,9 +288,32 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
     if ( combi != null ) {
 
-      log.logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: "+injectRowMeta.toStringMeta() );
-      final List<Object[]> rows = dataSet.getAllRows(log, inputLocation, injectRowMeta);
-      
+      final List<Object[]> dataSetRows = dataSet.getAllRows(log, inputLocation);
+      RowMetaInterface dataSetRowMeta = dataSet.getSetRowMeta( false );
+
+      // The rows to inject are always driven by the dataset, NOT the step it replaces (!) for simplicity
+      //
+      RowMetaInterface injectRowMeta = new RowMeta();
+
+      // Figure out which fields to pass
+      // Only inject those mentioned in the field mappings...
+      //
+      int[] fieldIndexes = new int[inputLocation.getFieldMappings().size()];
+      for (int i=0;i<inputLocation.getFieldMappings().size();i++) {
+        TransUnitTestFieldMapping fieldMapping = inputLocation.getFieldMappings().get(i);
+        fieldIndexes[i] = dataSetRowMeta.indexOfValue( fieldMapping.getDataSetFieldName() );
+        if (fieldIndexes[i]<0) {
+          throw new KettleException( "Unable to find mapped field '"+fieldMapping.getDataSetFieldName()+"' in data set '"+dataSet.getName()+"'" );
+        }
+        ValueMetaInterface injectValueMeta = dataSetRowMeta.getValueMeta( fieldIndexes[ i ] ).clone();
+        // Rename to the step output names though...
+        //
+        injectValueMeta.setName( fieldMapping.getStepFieldName() );
+        injectRowMeta.addValueMeta( injectValueMeta );
+      }
+
+      log.logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: "+ Arrays.toString(injectRowMeta.getFieldNames()) );
+
       // Pass rows
       try {
         Runnable runnable = new Runnable() {
@@ -295,9 +321,13 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
           public void run() {
             try {
               
-              for( Object[] row : rows ) {
-                // pass the row with the external names
+              for( Object[] dataSetRow : dataSetRows ) {
+                // pass the row with the external names, in the right order and with the selected columns from the data set
                 //
+                Object[] row = RowDataUtil.allocateRowData( injectRowMeta.size() );
+                for (int i=0;i<fieldIndexes.length;i++) {
+                  row[i] = dataSetRow[fieldIndexes[i]];
+                }
                 rowProducer.putRow( injectRowMeta, row );                
               }
               rowProducer.finished();

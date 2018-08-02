@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannelInterface;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -76,7 +77,7 @@ public class TransUnitTest {
 
   @MetaStoreAttribute( key = "database_replacements" )
   protected List<TransUnitTestDatabaseReplacement> databaseReplacements;
-  
+
   public TransUnitTest() {
     inputDataSets = new ArrayList<TransUnitTestSetLocation>();
     goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
@@ -207,27 +208,21 @@ public class TransUnitTest {
   }
   
   /**
-   * Retrieve the golden data rows, 
-   * for the specified step name, 
-   * from the data sets, 
-   * sorted as specified by the input location,
-   * fields mapped to the step
-   * 
+   * Retrieve the golden data set for the specified location
+   *
    * @param log the logging channel to log to
    * @param hierarchy The factories to load sets with
    * @param location the location where we want to check against golden rows
-   * @param outputRowMeta The step output we want to compare to.
-   * @return The golden data rows 
+   * @return The golden data set
    * 
    * @throws KettleException
    */
-  public RowCollection getGoldenRows(LogChannelInterface log, FactoriesHierarchy hierarchy, TransUnitTestSetLocation location, RowMetaInterface outputRowMeta) throws KettleException {
+  public DataSet getGoldenDataSet(LogChannelInterface log, FactoriesHierarchy hierarchy, TransUnitTestSetLocation location) throws KettleException {
 
     String stepName = location.getStepname();
     String goldenDataSetName = location.getDataSetName();
 
-    try {      
-      
+    try {
       // Look in the golden data sets list for the mentioned step name
       //
       if (goldenDataSetName==null) {
@@ -238,16 +233,11 @@ public class TransUnitTest {
       if (goldenDataSet==null) {
         throw new KettleException("Unable to find golden data set '"+goldenDataSetName+"' for step '"+stepName+"'");
       }
-      
-      // now get all the rows from the data set, sorted and ready.
-      //
-      List<Object[]> allRows = goldenDataSet.getAllRows(log, location, outputRowMeta);
-      
-      // All done
-      //
-      return new RowCollection(outputRowMeta, allRows);
+
+      return goldenDataSet;
+
     } catch ( Exception e ) {
-      throw new KettleException( "Unable to retrieve sorted golden row data set for step '"+stepName+"'", e );
+      throw new KettleException( "Unable to retrieve sorted golden row data set '"+stepName+"'", e );
     }
   }
 
