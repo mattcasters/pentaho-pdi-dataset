@@ -28,18 +28,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.SourceToTargetMapping;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.gui.SpoonFactory;
+import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.util.StringUtil;
+import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
@@ -51,7 +55,9 @@ import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.spoon.dialog.DataSetDialog;
 import org.pentaho.di.dataset.spoon.dialog.DataSetGroupDialog;
 import org.pentaho.di.dataset.spoon.dialog.EditRowsDialog;
+import org.pentaho.di.dataset.spoon.dialog.TransUnitTestDialog;
 import org.pentaho.di.dataset.spoon.xtpoint.InjectDataSetIntoTransExtensionPoint;
+import org.pentaho.di.dataset.spoon.xtpoint.WriteToDataSetExtensionPoint;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.i18n.BaseMessages;
@@ -66,8 +72,11 @@ import org.pentaho.di.ui.core.dialog.EnterMappingDialog;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
 import org.pentaho.di.ui.core.dialog.EnterStringDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
+import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
+import org.pentaho.di.ui.core.dialog.SelectRowDialog;
 import org.pentaho.di.ui.spoon.ISpoonMenuController;
 import org.pentaho.di.ui.spoon.Spoon;
+import org.pentaho.di.ui.spoon.dialog.EnterPreviewRowsDialog;
 import org.pentaho.di.ui.spoon.trans.TransGraph;
 import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
@@ -475,8 +484,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   
   private boolean checkTestPresent(Spoon spoon, TransMeta transMeta) {
     
-    spoon.getLog().logBasic("Check test present...");
-    
     String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
     if (!StringUtil.isEmpty( testName )) {
       return false;
@@ -505,6 +512,10 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       return;
     }
     IMetaStore metaStore = spoon.getMetaStore();
+
+    if (checkTestPresent(spoon, transMeta)) {
+      return;
+    }
 
     try {
       
@@ -751,10 +762,13 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       // So we need to leave the source to target mapping list somewhere so it can be picked up later.
       // For now we'll leave it where we need it.
       //
-      InjectDataSetIntoTransExtensionPoint.stepsMap.put( transMeta.getName(), stepMeta );
-      InjectDataSetIntoTransExtensionPoint.mappingsMap.put( transMeta.getName(), mapping );
-      InjectDataSetIntoTransExtensionPoint.setsMap.put( transMeta.getName(), dataSet );
+      WriteToDataSetExtensionPoint.stepsMap.put( transMeta.getName(), stepMeta );
+      WriteToDataSetExtensionPoint.mappingsMap.put( transMeta.getName(), mapping );
+      WriteToDataSetExtensionPoint.setsMap.put( transMeta.getName(), dataSet );
 
+      // Signal to the transformation xp plugin to inject data into some data set
+      //
+      transMeta.setVariable( DataSetConst.VAR_WRITE_TO_DATASET, "Y" );
       spoon.runFile();
 
     } catch ( Exception e ) {
@@ -765,51 +779,39 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
   public void createUnitTest() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
-    Repository repository = spoon.getRepository();
+    TransGraph transGraph = spoon.getActiveTransGraph();
+    if ( transGraph == null ) {
+      return;
+    }
+    TransMeta transMeta = transGraph.getTransMeta();
+
+    createUnitTest( spoon, transMeta );
+  }
+
+  public void createUnitTest(Spoon spoon, TransMeta transMeta) {
     try {
-      TransGraph transGraph = spoon.getActiveTransGraph();
       IMetaStore metaStore = spoon.getMetaStore();
-      if ( transGraph == null ) {
-        return;
-      }
-      TransMeta transMeta = transGraph.getTransMeta();
-      
-      EnterStringDialog stringDialog = new EnterStringDialog( spoon.getShell(), "", "Enter unit test name", "Unit test name: " );
-      String testName = stringDialog.open();
-      if (testName==null) {
-        return;
-      }
-      
-      MetaStoreFactory<TransUnitTest> testFactory = new MetaStoreFactory<TransUnitTest>( TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
-      if (testFactory.loadElement( testName )!=null) {
-        MessageBox box = new MessageBox( spoon.getShell(), SWT.YES | SWT.NO  );
-        box.setText( "A test with that name exists" );
-        box.setMessage( "A test with that name already exists.  Would you like to use and edit this test in this transformation?" );
-        int answer = box.open();
-        if ((answer&SWT.YES)!=0) {
-          transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
-          transGraph.redraw();
+      TransUnitTest unitTest = new TransUnitTest();
+      unitTest.setName( transMeta.getName()+" Test" );
+      unitTest.setTransFilename( transMeta.getFilename() );
+      if (spoon.getRepository()!=null) {
+        unitTest.setTransObjectId( transMeta.getObjectId() == null ? null : transMeta.getObjectId().getId() );
+        String path = transMeta.getRepositoryDirectory().getPath();
+        if (!path.endsWith( "/" )) {
+          path+="/";
         }
-        return;
-      }
-      
-      TransUnitTest test = new TransUnitTest();
-      test.setName( testName );
-      
-      if ( repository != null ) {
-        test.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + RepositoryDirectory.DIRECTORY_SEPARATOR + transMeta.getName() );
-        if ( repository.getRepositoryMeta().getRepositoryCapabilities().supportsReferences() ) {
-          test.setTransObjectId( transMeta.getObjectId().toString() );
-        } else {
-          test.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + "/" + transMeta.getName() );
-        }
-      } else {
-        test.setTransFilename( transMeta.getFilename() );
+        path+=transMeta.getName();
+        unitTest.setTransRepositoryPath( path );
       }
 
-      testFactory.saveElement( test );
-      transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, testName );
-      
+      MetaStoreFactory<TransUnitTest> testFactory = new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
+
+      TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), transMeta, metaStore, unitTest);
+      if (dialog.open()) {
+        testFactory.saveElement(unitTest);
+        transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
+      }
+
       // Don't carry on old indicators...
       //
       DataSetConst.clearStepDataSetIndicators( transMeta );
@@ -820,7 +822,29 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       new ErrorDialog( spoon.getShell(), "Error", "Error creating a new transformation unit test", e );
     }
   }
-  
+
+  public void editUnitTest(Spoon spoon, TransMeta transMeta, String unitTestName) {
+
+    IMetaStore metaStore = spoon.getMetaStore();
+    try {
+      MetaStoreFactory<TransUnitTest> setFactory = new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
+      TransUnitTest unitTest = setFactory.loadElement(unitTestName);
+      if (unitTest==null) {
+        throw new KettleException(BaseMessages.getString(PKG, "DataSetHelper.ErrorEditingUnitTest.Message", unitTestName));
+      }
+      TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), transMeta, metaStore, unitTest);
+      if (dialog.open()) {
+        setFactory.saveElement(unitTest);
+      }
+    } catch(Exception exception) {
+      new ErrorDialog(Spoon.getInstance().getShell(),
+        BaseMessages.getString(PKG, "DataSetHelper.ErrorEditingUnitTest.Title"),
+        BaseMessages.getString(PKG, "DataSetHelper.ErrorEditingUnitTest.Message", unitTestName),
+        exception);
+    }
+  }
+
+
   public void detachUnitTest() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     try {
@@ -957,6 +981,127 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   }
   public void tweakBypassStepInUnitTest(boolean enable) {
     tweakUnitTestStep(TransTweak.BYPASS_STEP, enable);
+  }
+
+  /**
+   * List all unit tests which are defined
+   * And allow the user to select one
+   */
+  public RowMetaAndData selectUnitTestFromAllTests() {
+    Spoon spoon = Spoon.getInstance();
+
+    RowMetaInterface rowMeta = new RowMeta();
+    rowMeta.addValueMeta( new ValueMetaString("Unit test") );
+    rowMeta.addValueMeta( new ValueMetaString("Description") );
+    rowMeta.addValueMeta( new ValueMetaString("Filename") );
+
+    List<RowMetaAndData> rows = new ArrayList<>();
+
+    try {
+      MetaStoreFactory<TransUnitTest> testFactory = new MetaStoreFactory<>( TransUnitTest.class, spoon.getMetaStore(), PentahoDefaults.NAMESPACE );
+      List<String> testNames = testFactory.getElementNames();
+      for ( String testName : testNames) {
+        TransUnitTest unitTest = testFactory.loadElement( testName );
+        Object[] row = RowDataUtil.allocateRowData( rowMeta.size() );
+        row[0] = testName;
+        row[1] = unitTest.getDescription();
+        row[2] = unitTest.getTransFilename();
+
+        rows.add(new RowMetaAndData(rowMeta, row));
+      }
+
+      // Now show a selection dialog...
+      //
+      SelectRowDialog dialog = new SelectRowDialog( spoon.getShell(),  new Variables(), SWT.DIALOG_TRIM | SWT.MAX | SWT.RESIZE, rows);
+      RowMetaAndData selection = dialog.open();
+      if (selection!=null) {
+        return selection;
+      }
+      return null;
+    } catch(Exception e) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error listing/deleting unit test(s)", e );
+      return null;
+    }
+  }
+
+
+  /**
+   * List all unit tests which are defined
+   * And allow the user to select one to delete
+   */
+  public void deleteUnitTest() {
+    try {
+
+      RowMetaAndData selection = selectUnitTestFromAllTests();
+      if ( selection != null ) {
+        String unitTestName = selection.getString( 0, null );
+
+        if ( StringUtils.isNotEmpty( unitTestName ) ) {
+          deleteUnitTest( unitTestName );
+        }
+      }
+    } catch(Exception e) {
+      new ErrorDialog( Spoon.getInstance().getShell(), "Error", "Error deleting unit test", e );
+    }
+  }
+
+  public void deleteUnitTest(String unitTestName) {
+    MessageBox box = new MessageBox(Spoon.getInstance().getShell(), SWT.YES | SWT.NO);
+    box.setText(BaseMessages.getString(PKG, "DataSetHelper.YouSureToDelete.Title"));
+    box.setMessage(BaseMessages.getString(PKG, "DataSetHelper.YouSureToDelete.Message", unitTestName));
+    int answer = box.open();
+    if ((answer&SWT.YES)!=0) {
+      try {
+        MetaStoreFactory<TransUnitTest> factory = new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, Spoon.getInstance().getMetaStore(), PentahoDefaults.NAMESPACE);
+        factory.deleteElement(unitTestName);
+        DataSetHelper.getInstance().detachUnitTest();
+      } catch(Exception exception) {
+        new ErrorDialog(Spoon.getInstance().getShell(),
+          BaseMessages.getString(PKG, "DataSetHelper.ErrorDeletingUnitTest.Title"),
+          BaseMessages.getString(PKG, "DataSetHelper.ErrorDeletingUnitTest.Message", unitTestName),
+          exception);
+
+      }
+    }
+  }
+
+  public void openUnitTestTransformation() {
+    try {
+      Spoon spoon = Spoon.getInstance();
+      RowMetaAndData selection = selectUnitTestFromAllTests();
+      if ( selection != null ) {
+        String filename = selection.getString( 2, null );
+        if ( StringUtils.isNotEmpty( filename) ) {
+          spoon.openFile( filename, false );
+
+          TransMeta transMeta = spoon.getActiveTransformation();
+          // Now select the unit test...
+          String unitTestName = selection.getString( 0, null );
+          MetaStoreFactory<TransUnitTest> testFactory = new MetaStoreFactory<>( TransUnitTest.class, spoon.getMetaStore(), PentahoDefaults.NAMESPACE );
+          TransUnitTest targetTest = testFactory.loadElement( unitTestName );
+          if (transMeta!=null && targetTest!=null) {
+            switchUnitTest( targetTest, transMeta );
+          }
+        } else {
+          throw new KettleException( "No filename found: repositories not supported yet for this feature" );
+        }
+      }
+    } catch(Exception e) {
+      new ErrorDialog( Spoon.getInstance().getShell(), "Error", "Error opening unit test transformation", e );
+    }
+  }
+
+  public void switchUnitTest(TransUnitTest targetTest, TransMeta transMeta) {
+    try {
+      DataSetHelper.getInstance().detachUnitTest();
+      DataSetHelper.selectUnitTest(transMeta, targetTest);
+    } catch (Exception exception) {
+      new ErrorDialog(Spoon.getInstance().getShell(),
+        BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorSwitchingUnitTest.Title"),
+        BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorSwitchingUnitTest.Message", targetTest.getName()),
+        exception);
+    }
+    Spoon.getInstance().refreshGraph();
   }
 
 }

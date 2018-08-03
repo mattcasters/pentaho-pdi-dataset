@@ -69,21 +69,6 @@ import org.pentaho.di.trans.step.StepMeta;
 public class DataSetConst {
   private static Class<?> PKG = DataSetConst.class; // for i18n purposes, needed by Translator2!!
 
-  public static String DATA_SET_GROUP_TYPE_NAME = "Data Set Group";
-  public static String DATA_SET_GROUP_TYPE_DESCRIPTION = "A collection of data sets and unit tests";
-
-  public static String DATA_SET_GROUP_DESCRIPTION = "description";
-  public static String DATA_SET_GROUP_DATABASE_NAME = "connection";
-
-  public static String DATA_SET_TYPE_NAME = "Data Set";
-  public static String DATA_SET_TYPE_DESCRIPTION = "A data set";
-
-  public static String DATA_SET_DESCRIPTION = "description";
-  public static String DATA_SET_SCHEMA_NAME = "schema";
-  public static String DATA_SET_TABLE_NAME = "table";
-  public static String DATA_SET_ROWMETA_XML = "rowmeta-xml";
-  public static String DATA_SET_GROUP_NAME = "group";
-
   public static final String DATABASE_LIST_KEY = "Databases";
   public static final String GROUP_LIST_KEY = "DataSetGroups";
   public static final String SET_LIST_KEY = "DataSets";
@@ -92,8 +77,10 @@ public class DataSetConst {
   public static final String ATTR_STEP_DATASET_INPUT = "InputDataSet";
   public static final String ATTR_STEP_DATASET_GOLDEN = "GoldenDataSet";
   public static final String ATTR_STEP_TWEAK= "UnitTestStepTweak";
-  
+  public static final String ATTR_STEP_TARGET_DATASET = "TargetDataSet";
+
   public static final String VAR_RUN_UNIT_TEST = "__UnitTest__";
+  public static final String VAR_WRITE_TO_DATASET = "__WriteDataSet__";
   public static final String VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS = "__DontShowUnitTestErrors__";
   public static final String ATTR_TRANS_SELECTED_UNIT_TEST_NAME = "SelectedUnitTest";
   

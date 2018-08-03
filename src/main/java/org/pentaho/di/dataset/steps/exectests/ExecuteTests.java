@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -101,61 +102,79 @@ public class ExecuteTests extends BaseStep implements StepInterface {
       //
       // 1. Load the transformation meta data, set unit test attributes...
       //
-      TransMeta testTransMeta = loadTestTransformation(test);
-      
-      // 2. Create the transformation executor...
-      //
-      if (log.isDetailed()) {
-        log.logDetailed("Executing transformation '"+testTransMeta.getName()+"' for unit test '"+test.getName()+"'");
-      }
-      Trans testTrans = new Trans(testTransMeta, this);
-      
-      // 3. Pass execution details...
-      //
-      testTrans.setLogLevel(getTrans().getLogLevel());
-      testTrans.setRepository(getTrans().getRepository());
-      testTrans.setMetaStore(getTrans().getMetaStore());
-      
-      // 4. Execute
-      //
-      testTrans.execute(getTrans().getArguments());
-      testTrans.waitUntilFinished();
-      
-      // 5. Validate results...
-      //
-      Result transResult = testTrans.getResult();
-      if (transResult.getNrErrors()!=0) {
-        // The transformation had a failure, report this too.
+      TransMeta testTransMeta = null;
+
+      try {
+        testTransMeta = loadTestTransformation( test );
+
+        // 2. Create the transformation executor...
         //
-        Object[] row = RowDataUtil.allocateRowData(data.outputRowMeta.size());
+        if ( log.isDetailed() ) {
+          log.logDetailed( "Executing transformation '" + testTransMeta.getName() + "' for unit test '" + test.getName() + "'" );
+        }
+        Trans testTrans = new Trans( testTransMeta, this );
+
+        // 3. Pass execution details...
+        //
+        testTrans.setLogLevel( getTrans().getLogLevel() );
+        testTrans.setRepository( getTrans().getRepository() );
+        testTrans.setMetaStore( getTrans().getMetaStore() );
+
+        // 4. Execute
+        //
+        testTrans.execute( getTrans().getArguments() );
+        testTrans.waitUntilFinished();
+
+        // 5. Validate results...
+        //
+        Result transResult = testTrans.getResult();
+        if ( transResult.getNrErrors() != 0 ) {
+          // The transformation had a failure, report this too.
+          //
+          Object[] row = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+          int index = 0;
+          row[ index++ ] = testTransMeta.getName();
+          row[ index++ ] = null;
+          row[ index++ ] = null;
+          row[ index++ ] = null;
+          row[ index++ ] = Boolean.valueOf( true );
+          row[ index++ ] = transResult.getLogText();
+
+          putRow( data.outputRowMeta, row );
+        }
+
+        List<UnitTestResult> testResults = new ArrayList<UnitTestResult>();
+        DataSetConst.validateTransResultAgainstUnitTest( testTrans, test, data.hierarchy, testResults );
+
+        for ( UnitTestResult testResult : testResults ) {
+          Object[] row = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+          int index = 0;
+          row[ index++ ] = testResult.getTransformationName();
+          row[ index++ ] = testResult.getUnitTestName();
+          row[ index++ ] = testResult.getDataSetName();
+          row[ index++ ] = testResult.getStepName();
+          row[ index++ ] = Boolean.valueOf( testResult.isError() );
+          row[ index++ ] = testResult.getComment();
+
+          putRow( data.outputRowMeta, row );
+        }
+
+        return true;
+      } catch(KettleException e) {
+        // Some configuration or setup error...
+        //
+        Object[] row = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
         int index = 0;
-        row[index++] = testTransMeta.getName();
-        row[index++] = null;
-        row[index++] = null;
-        row[index++] = null;
-        row[index++] = Boolean.valueOf(true);
-        row[index++] = transResult.getLogText();
-        
-        putRow(data.outputRowMeta, row);
+        row[ index++ ] = testTransMeta == null ? null : testTransMeta.getName();
+        row[ index++ ] = test.getName();
+        row[ index++ ] = null;
+        row[ index++ ] = null;
+        row[ index++ ] = Boolean.valueOf( true ); // ERROR!
+        row[ index++ ] = e.getMessage()+" : "+Const.getStackTracker(e);
+
+        putRow( data.outputRowMeta, row );
+        return true;
       }
-      
-      List<UnitTestResult> testResults = new ArrayList<UnitTestResult>();
-      DataSetConst.validateTransResultAgainstUnitTest(testTrans, test, data.hierarchy, testResults);
-      
-      for (UnitTestResult testResult : testResults) {
-        Object[] row = RowDataUtil.allocateRowData(data.outputRowMeta.size());
-        int index = 0;
-        row[index++] = testResult.getTransformationName();
-        row[index++] = testResult.getUnitTestName();
-        row[index++] = testResult.getDataSetName();
-        row[index++] = testResult.getStepName();
-        row[index++] = Boolean.valueOf(testResult.isError());
-        row[index++] = testResult.getComment();
-        
-        putRow(data.outputRowMeta, row);
-      }
-      
-      return true;
     } else {
       setOutputDone();
       return false;
@@ -168,22 +187,25 @@ public class ExecuteTests extends BaseStep implements StepInterface {
     if (StringUtils.isNotEmpty(filename)) {
       unitTestTransMeta = new TransMeta(filename, repository, true, getTrans());
     } else {
-      if (repository==null) {
-        return null;
-      }
       if (StringUtils.isNotEmpty(test.getTransObjectId())) {
-        unitTestTransMeta = repository.loadTransformation(new StringObjectId(test.getTransObjectId()), null); // null=last version
-      } else {
-        if (StringUtils.isNotEmpty(test.getTransRepositoryPath())) {
-          String directoryName = DataSetConst.getDirectoryFromPath(test.getTransRepositoryPath());
-          String transName = DataSetConst.getNameFromPath(test.getTransRepositoryPath());
-          RepositoryDirectoryInterface directory = repository.findDirectory(directoryName);
-          unitTestTransMeta = repository.loadTransformation(transName, directory, null, true, null);
+        if (repository==null) {
+          throw new KettleException( "No repository available to load transformation from '"+test.getTransRepositoryPath()+"'" );
+        } else {
+          unitTestTransMeta = repository.loadTransformation( new StringObjectId( test.getTransObjectId() ), null ); // null=last version
+        }
+      } else if ( StringUtils.isNotEmpty( test.getTransRepositoryPath() ) ) {
+        if (repository==null) {
+          throw new KettleException( "No repository available to load transformation from '"+test.getTransRepositoryPath()+"'" );
+        } else {
+          String directoryName = DataSetConst.getDirectoryFromPath( test.getTransRepositoryPath() );
+          String transName = DataSetConst.getNameFromPath( test.getTransRepositoryPath() );
+          RepositoryDirectoryInterface directory = repository.findDirectory( directoryName );
+          unitTestTransMeta = repository.loadTransformation( transName, directory, null, true, null );
         }
       }
     }
     if (unitTestTransMeta==null) {
-      return null;
+      throw new KettleException( "Unable to find a valid file or repository reference for transformation in unit test '"+test.getName()+"'" );
     }
     
     // Don't show to unit tests results dialog in case of errors

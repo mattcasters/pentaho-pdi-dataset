@@ -35,6 +35,8 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.MessageBox;
@@ -86,74 +88,67 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
           Canvas canvas = findCanvas(tge.getTransGraph());
           if (canvas!=null) {
             
-            SelectionListener lsNew = new SelectionAdapter() { 
-              @Override
-              public void widgetSelected(SelectionEvent event) {
-                newUnitTest();
-              } };
-            SelectionListener lsEdit = new SelectionAdapter() { 
-              @Override
-              public void widgetSelected(SelectionEvent event) {
-                editUnitTest(unitTestName, transMeta);
-              } };
-            SelectionListener lsDelete = new SelectionAdapter() { 
-              @Override
-              public void widgetSelected(SelectionEvent event) {
-                deleteUnitTest(unitTestName);
-              } };
-            SelectionListener lsDisable = new SelectionAdapter() { 
-              @Override
-              public void widgetSelected(SelectionEvent event) {
-                disableUnitTest(unitTestName);
-              } };
-            SelectionListener lsDataSetNew = new SelectionAdapter() { 
-              @Override
-              public void widgetSelected(SelectionEvent event) {
-                DataSetHelper.getInstance().addDataSet();
-              } };
-            SelectionListener lsDataSetEdit = new SelectionAdapter() { 
-              @Override
-              public void widgetSelected(SelectionEvent event) {
-                DataSetHelper.getInstance().editDataSet();
-              } };
-                          
+            Listener lsNew = event -> newUnitTest(transMeta);
+            Listener lsEdit = event -> editUnitTest(unitTestName, transMeta);
+            Listener lsDelete = event -> deleteUnitTest(unitTestName);
+            Listener lsDisable = event -> disableUnitTest(unitTestName);
+            Listener lsDataSetNew = event -> DataSetHelper.getInstance().addDataSet();
+            Listener lsDataSetEdit = event -> DataSetHelper.getInstance().editDataSet();
+            Listener lsGroupNew = event -> DataSetHelper.getInstance().addDataSetGroup();
+            Listener lsGroupEdit = event -> DataSetHelper.getInstance().editDataSetGroup();
+            Listener lsOpenTrans = event -> DataSetHelper.getInstance().openUnitTestTransformation();
+            Listener lsDelTest = event -> DataSetHelper.getInstance().deleteUnitTest();
+
             Menu menu = new Menu(spoon.getShell(), SWT.POP_UP);
             MenuItem newItem = new MenuItem(menu, SWT.PUSH);
             newItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitMenu.New.Label"));
-            newItem.addSelectionListener(lsNew);
+            newItem.addListener(SWT.Selection, lsNew);
             
             MenuItem editItem = new MenuItem(menu, SWT.PUSH);
             editItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Edit.Label"));
-            editItem.addSelectionListener(lsEdit);
-            editItem.setEnabled(StringUtils.isNotBlank(unitTestName));
+            editItem.addListener(SWT.Selection, lsEdit);
+            editItem.setEnabled(StringUtils.isNotEmpty(unitTestName));
             
             MenuItem deleteItem = new MenuItem(menu, SWT.PUSH);
             deleteItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Delete.Label"));
-            deleteItem.addSelectionListener(lsDelete);
-            deleteItem.setEnabled(StringUtils.isNotBlank(unitTestName));
+            deleteItem.addListener(SWT.Selection, lsDelete);
+            deleteItem.setEnabled(StringUtils.isNotEmpty(unitTestName));
             
             MenuItem disableItem = new MenuItem(menu, SWT.PUSH);
             disableItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Disable.Label"));
-            disableItem.addSelectionListener(lsDisable);
-            disableItem.setEnabled(StringUtils.isNotBlank(unitTestName));
+            disableItem.addListener(SWT.Selection, lsDisable);
+            disableItem.setEnabled(StringUtils.isNotEmpty(unitTestName));
             
             MenuItem switchItem = new MenuItem(menu, SWT.CASCADE);
             switchItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Switch.Label"));
-            
+
             Menu switchMenu = new Menu(menu);
             switchItem.setMenu(switchMenu);
-            List<TransUnitTest> tests = findUnitTests(tge.getTransGraph().getTransMeta(), spoon.getMetaStore());
-            for (final TransUnitTest test : tests) {
-              MenuItem testItem = new MenuItem(switchMenu, SWT.PUSH);
-              testItem.setText(test.getName());
-              testItem.addSelectionListener(new SelectionAdapter() {
-                @Override
-                public void widgetSelected(SelectionEvent event) {
-                  switchUnitTest(test, transMeta);
-                }
-              });
+            List<TransUnitTest> tests = findUnitTests( tge.getTransGraph().getTransMeta(), spoon.getMetaStore() );
+            for ( final TransUnitTest test : tests ) {
+              MenuItem testItem = new MenuItem( switchMenu, SWT.PUSH );
+              testItem.setText( test.getName() );
+              testItem.addListener( SWT.Selection, event -> switchUnitTest( test, transMeta ) );
             }
+            switchItem.setEnabled( !tests.isEmpty() );
 
+            new MenuItem(menu, SWT.SEPARATOR);
+
+            MenuItem groupItem = new MenuItem(menu, SWT.CASCADE);
+            groupItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.Groups.Label"));
+            Menu groupMenu = new Menu(menu);
+            groupItem.setMenu(groupMenu);
+
+            // New group
+            MenuItem newGroupItem = new MenuItem(groupMenu, SWT.PUSH);
+            newGroupItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.NewGroup.Label"));
+            newGroupItem.addListener(SWT.Selection, lsGroupNew);
+
+            // edit group
+            MenuItem editGroupItem = new MenuItem(groupMenu, SWT.PUSH);
+            editGroupItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.EditGroup.Label"));
+            editGroupItem.addListener(SWT.Selection, lsGroupEdit);
+            
             new MenuItem(menu, SWT.SEPARATOR);
             
             MenuItem dataSetItem = new MenuItem(menu, SWT.CASCADE);
@@ -164,15 +159,32 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
             // New data set
             MenuItem newDataSetItem = new MenuItem(dataSetMenu, SWT.PUSH);
             newDataSetItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.NewDataSet.Label"));
-            newDataSetItem.addSelectionListener(lsDataSetNew);
+            newDataSetItem.addListener(SWT.Selection, lsDataSetNew);
             
             // edit data set
             MenuItem editDataSetItem = new MenuItem(dataSetMenu, SWT.PUSH);
             editDataSetItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.EditDataSet.Label"));
-            editDataSetItem.addSelectionListener(lsDataSetEdit);
-            
-            
-            
+            editDataSetItem.addListener(SWT.Selection, lsDataSetEdit);
+
+            new MenuItem(menu, SWT.SEPARATOR);
+
+            MenuItem testItem = new MenuItem(menu, SWT.CASCADE);
+            testItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.UnitTest.Label"));
+            Menu testMenu = new Menu(menu);
+            testItem.setMenu(testMenu);
+
+            // Open transformation and test
+            MenuItem openTransItem = new MenuItem(testMenu, SWT.PUSH);
+            openTransItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.OpenTrans.Label"));
+            openTransItem.addListener(SWT.Selection, lsOpenTrans);
+
+            new MenuItem(testMenu, SWT.SEPARATOR);
+
+            // delete set
+            MenuItem delTestItem = new MenuItem(testMenu, SWT.PUSH);
+            delTestItem.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.DeleteTest.Label"));
+            delTestItem.addListener(SWT.Selection, lsDelTest);
+
             canvas.setMenu(menu);
             Point location = canvas.toDisplay(tge.getEvent().x, tge.getEvent().y);
             menu.setLocation(location);
@@ -184,49 +196,18 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
     }
   }
 
-  protected void newUnitTest() {
-    DataSetHelper.getInstance().createUnitTest();
+  protected void newUnitTest(TransMeta transMeta) {
+    Spoon spoon = Spoon.getInstance();
+    DataSetHelper.getInstance().createUnitTest( spoon, transMeta );
   }
   
   protected void editUnitTest(String unitTestName, TransMeta transMeta) {
-    try {
-      Spoon spoon = Spoon.getInstance();
-      MetaStoreFactory<TransUnitTest> setFactory = new MetaStoreFactory<TransUnitTest>(
-          TransUnitTest.class, spoon.getMetaStore(), PentahoDefaults.NAMESPACE);
-      TransUnitTest unitTest = setFactory.loadElement(unitTestName);
-      if (unitTest==null) {
-        throw new KettleException(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorEditingUnitTest.Message", unitTestName));
-      }
-      TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), transMeta, spoon.getMetaStore(), unitTest);
-      if (dialog.open()) {
-        setFactory.saveElement(unitTest);
-      }
-    } catch(Exception exception) {
-      new ErrorDialog(Spoon.getInstance().getShell(), 
-          BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorEditingUnitTest.Title"),
-          BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorEditingUnitTest.Message", unitTestName), 
-          exception);
-    }
+    Spoon spoon = Spoon.getInstance();
+    DataSetHelper.getInstance().editUnitTest(spoon, transMeta, unitTestName);
   }
   
-  protected void deleteUnitTest(String unitTestName) {
-    MessageBox box = new MessageBox(Spoon.getInstance().getShell(), SWT.YES | SWT.NO);
-    box.setText(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.YouSureToDelete.Title"));
-    box.setMessage(BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.YouSureToDelete.Message", unitTestName));
-    int answer = box.open();
-    if ((answer&SWT.YES)!=0) {
-      try {
-        MetaStoreFactory<TransUnitTest> factory = new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, Spoon.getInstance().getMetaStore(), PentahoDefaults.NAMESPACE);
-        factory.deleteElement(unitTestName);
-        DataSetHelper.getInstance().detachUnitTest();
-      } catch(Exception exception) {
-        new ErrorDialog(Spoon.getInstance().getShell(), 
-            BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorDeletingUnitTest.Title"),
-            BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorDeletingUnitTest.Message", unitTestName), 
-            exception);
-
-      }
-    }
+  public void deleteUnitTest(String unitTestName) {
+    DataSetHelper.getInstance().deleteUnitTest(unitTestName);
   }
   
   protected void disableUnitTest(String unitTestName) {
@@ -234,20 +215,10 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
   }
   
   protected void switchUnitTest(TransUnitTest targetTest, TransMeta transMeta) {
-    try {
-      DataSetHelper.getInstance().detachUnitTest();
-      DataSetHelper.selectUnitTest(transMeta, targetTest);
-    } catch (Exception exception) {
-      new ErrorDialog(Spoon.getInstance().getShell(),
-          BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorSwitchingUnitTest.Title"),
-          BaseMessages.getString(PKG, "ShowUnitTestMenuExtensionPoint.ErrorSwitchingUnitTest.Message", targetTest.getName()),
-          exception);
-    }
-    Spoon.getInstance().refreshGraph();
+    DataSetHelper.getInstance().switchUnitTest( targetTest, transMeta );
   }
 
   private List<TransUnitTest> findUnitTests(TransMeta transMeta, DelegatingMetaStore metaStore) {
-    
     MetaStoreFactory<TransUnitTest> factory = new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
     List<TransUnitTest> tests = new ArrayList<TransUnitTest>();
     
@@ -290,7 +261,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
 
   /** Find the canvas of TransGraph.  For some reason it's not exposed.
    * 
-   * @param transGraph
+   * @param composite
    * @return Canvas of null if it can't be found.
    */
   private Canvas findCanvas(Composite composite) {
