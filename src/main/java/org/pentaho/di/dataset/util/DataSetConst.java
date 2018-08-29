@@ -198,6 +198,7 @@ public class DataSetConst {
     for (StepMeta stepMeta : transMeta.getSteps()) {
       Map<String, String> attributes = stepMeta.getAttributesMap().remove( DataSetConst.ATTR_GROUP_DATASET );
     }
+    transMeta.setChanged();
   }  
 
   

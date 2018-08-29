@@ -46,6 +46,7 @@ import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestDatabaseReplacement;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
+import org.pentaho.di.dataset.VariableValue;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.trans.Trans;
@@ -148,7 +149,29 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
       }
       sourceDatabaseMeta.replaceMeta(replacementDatabaseMeta);
     }
-    
+
+    // Set parameters and variables...
+    //
+    String[] parameters = copyTransMeta.listParameters();
+    List<VariableValue> variableValues = unitTest.getVariableValues();
+    for (VariableValue variableValue : variableValues) {
+      String key = trans.environmentSubstitute( variableValue.getKey() );
+      String value = trans.environmentSubstitute( variableValue.getValue() );
+
+      if (StringUtils.isEmpty(key)) {
+        continue;
+      }
+      if (Const.indexOfString( key, parameters )<0) {
+        // set the variable in the transformation metadata...
+        //
+        copyTransMeta.setVariable( key, value );
+      } else {
+        // Set the parameter value...
+        //
+        copyTransMeta.setParameterValue( key, value );
+      }
+    }
+
     // Replace all steps with an Input Data Set marker with an Injector
     // Replace all steps with a Golden Data Set marker with a Dummy
     // Apply the tweaks to the steps:

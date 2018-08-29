@@ -78,12 +78,16 @@ public class TransUnitTest {
   @MetaStoreAttribute( key = "database_replacements" )
   protected List<TransUnitTestDatabaseReplacement> databaseReplacements;
 
+  @MetaStoreAttribute
+  protected List<VariableValue> variableValues;
+
   public TransUnitTest() {
     inputDataSets = new ArrayList<TransUnitTestSetLocation>();
     goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
     tweaks = new ArrayList<TransUnitTestTweak>();
     type = TestType.NONE;
     databaseReplacements = new ArrayList<TransUnitTestDatabaseReplacement>();
+    variableValues = new ArrayList<>();
   }
 
   public TransUnitTest( String name, String description, 
@@ -278,20 +282,35 @@ public class TransUnitTest {
     this.databaseReplacements = databaseReplacements;
   }
 
+  /**
+   * Gets variableValues
+   *
+   * @return value of variableValues
+   */
+  public List<VariableValue> getVariableValues() {
+    return variableValues;
+  }
 
-  /** 
+  /**
+   * @param variableValues The variableValues to set
+   */
+  public void setVariableValues( List<VariableValue> variableValues ) {
+    this.variableValues = variableValues;
+  }
+
+  /**
    * Remove all input and golden data sets on the step with the provided name
    * @param stepname the name of the step for which we need to clear out all input and golden data sets
    */
   public void removeInputAndGoldenDataSets(String stepname) {
-    
+
     for (Iterator<TransUnitTestSetLocation> iterator = inputDataSets.iterator() ; iterator.hasNext() ; ) {
       TransUnitTestSetLocation inputLocation = iterator.next();
       if (inputLocation.getStepname().equalsIgnoreCase(stepname)) {
         iterator.remove();
       }
     }
-    
+
     for (Iterator<TransUnitTestSetLocation> iterator = goldenDataSets.iterator() ; iterator.hasNext() ; ) {
       TransUnitTestSetLocation goldenLocation = iterator.next();
       if (goldenLocation.getStepname().equalsIgnoreCase(stepname)) {
@@ -299,5 +318,4 @@ public class TransUnitTest {
       }
     }
   }
-
 }

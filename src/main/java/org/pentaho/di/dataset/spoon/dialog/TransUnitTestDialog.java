@@ -24,6 +24,7 @@ package org.pentaho.di.dataset.spoon.dialog;
 
 import java.util.Arrays;
 
+import org.apache.commons.validator.Var;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -48,6 +49,7 @@ import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestDatabaseReplacement;
+import org.pentaho.di.dataset.VariableValue;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
@@ -62,6 +64,7 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.metastore.util.PentahoDefaults;
+import org.snmp4j.smi.Variable;
 
 public class TransUnitTestDialog extends Dialog {
   private static Class<?> PKG = TransUnitTestDialog.class; // for i18n purposes, needed by Translator2!!
@@ -77,6 +80,8 @@ public class TransUnitTestDialog extends Dialog {
   private TextVar wFilename;
 
   private TableView wDbReplacements;
+  private TableView wVariableValues;
+
 
   private Button wOK;
   private Button wCancel;
@@ -238,8 +243,36 @@ public class TransUnitTestDialog extends Dialog {
     fdDbReplacements.left = new FormAttachment(0, 0);
     fdDbReplacements.top = new FormAttachment(lastControl, margin);
     fdDbReplacements.right = new FormAttachment(100, 0);
-    fdDbReplacements.bottom = new FormAttachment(wOK, -2 * margin);
+    fdDbReplacements.bottom = new FormAttachment(lastControl, 150);
     wDbReplacements.setLayoutData(fdDbReplacements);
+    lastControl = wDbReplacements;
+
+    Label wlVariableValues = new Label(shell, SWT.NONE);
+    wlVariableValues.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.VariableValues.Label"));
+    props.setLook(wlVariableValues);
+    FormData fdlVariableValues = new FormData();
+    fdlVariableValues.left = new FormAttachment(0, 0);
+    fdlVariableValues.top = new FormAttachment(lastControl, margin);
+    wlVariableValues.setLayoutData(fdlVariableValues);
+    lastControl = wlVariableValues;
+
+    ColumnInfo[] varValColumns = new ColumnInfo[] {
+      new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.VariableValues.ColumnInfo.VariableName"), ColumnInfo.COLUMN_TYPE_TEXT, false),
+      new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.VariableValues.ColumnInfo.VariableValue"), ColumnInfo.COLUMN_TYPE_TEXT, false),
+    };
+    varValColumns[0].setUsingVariables(true);
+    varValColumns[1].setUsingVariables(true);
+
+    wVariableValues = new TableView(new Variables(), shell,
+      SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL, varValColumns,
+      transUnitTest.getVariableValues().size(), null, props);
+
+    FormData fdVariableValues = new FormData();
+    fdVariableValues.left = new FormAttachment(0, 0);
+    fdVariableValues.top = new FormAttachment(lastControl, margin);
+    fdVariableValues.right = new FormAttachment(100, 0);
+    fdVariableValues.bottom = new FormAttachment(wOK, -2 * margin);
+    wVariableValues.setLayoutData(fdVariableValues);
 
     // Add listeners
     wOK.addListener(SWT.Selection, new Listener() {
@@ -298,10 +331,16 @@ public class TransUnitTestDialog extends Dialog {
     
     for ( int i = 0; i < transUnitTest.getDatabaseReplacements().size(); i++ ) {
       TransUnitTestDatabaseReplacement dbReplacement = transUnitTest.getDatabaseReplacements().get( i );
-      int colnr = 1;
-      wDbReplacements.setText( Const.NVL( dbReplacement.getOriginalDatabaseName(), ""), colnr++, i );
-      wDbReplacements.setText( Const.NVL( dbReplacement.getReplacementDatabaseName(), "" ), colnr++, i );
+      wDbReplacements.setText( Const.NVL( dbReplacement.getOriginalDatabaseName(), ""), 1, i );
+      wDbReplacements.setText( Const.NVL( dbReplacement.getReplacementDatabaseName(), "" ), 2, i );
     }
+
+    for (int i = 0 ; i < transUnitTest.getVariableValues().size() ; i++) {
+      VariableValue variableValue = transUnitTest.getVariableValues().get( i );
+      wVariableValues.setText(Const.NVL(variableValue.getKey(), ""), 1, i);
+      wVariableValues.setText(Const.NVL(variableValue.getValue(), ""), 2, i);
+    }
+
     wDbReplacements.removeEmptyRows();
     wDbReplacements.setRowNums();
 
@@ -314,7 +353,7 @@ public class TransUnitTestDialog extends Dialog {
   }
 
   /**
-   * @param set
+   * @param test
    *          The trans unit test to load the dialog information into
    */
   public void getInfo(TransUnitTest test) {
@@ -332,7 +371,16 @@ public class TransUnitTestDialog extends Dialog {
       String replaceDb = item.getText(2);
       TransUnitTestDatabaseReplacement dbReplacement = new TransUnitTestDatabaseReplacement(sourceDb, replaceDb);
       test.getDatabaseReplacements().add(dbReplacement);
-    }    
+    }
+    test.getVariableValues().clear();
+    int nrVars = wVariableValues.nrNonEmpty();
+    for (int i=0;i<nrVars;i++) {
+      TableItem item = wVariableValues.getNonEmpty( i );
+      String key = item.getText(1);
+      String value = item.getText(2);
+      VariableValue variableValue = new VariableValue(key, value);
+      test.getVariableValues().add(variableValue);
+    }
   }
 
   public void ok() {
