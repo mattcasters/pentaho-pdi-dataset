@@ -92,7 +92,7 @@ public class TransUnitTest {
     type = TestType.NONE;
     databaseReplacements = new ArrayList<TransUnitTestDatabaseReplacement>();
     variableValues = new ArrayList<>();
-    basePath = DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH;
+    basePath = null;
   }
 
   public TransUnitTest( String name, String description, 
