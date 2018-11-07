@@ -32,7 +32,11 @@ import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EFont;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.util.StringUtil;
+import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestSetLocation;
+import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
+import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPainterExtension;
 import org.pentaho.di.trans.step.StepMeta;
 
@@ -50,13 +54,21 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
 
     TransPainterExtension ext = (TransPainterExtension) object;
     StepMeta stepMeta = ext.stepMeta;
-    String dataSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN );
-    if ( !StringUtil.isEmpty( dataSetName ) ) {
-      drawGoldenSetMarker( ext, stepMeta, dataSetName );
+    TransMeta transMeta = ext.transMeta;
+    TransUnitTest unitTest = DataSetHelper.getInstance().getActiveTests().get( transMeta );
+    if (unitTest!=null) {
+      drawGoldenSetMarker( ext, stepMeta, unitTest );
     }
   }
 
-  protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, String testName ) {
+  protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest ) {
+
+    TransUnitTestSetLocation location = unitTest.findGoldenLocation( stepMeta.getName() );
+    if (location==null) {
+      return;
+    }
+    String dataSetName = Const.NVL(location.getDataSetName(), "");
+
     // Now we're here, draw a marker and indicate the name of the unit test
     //
     GCInterface gc = ext.gc;
@@ -68,7 +80,7 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
     gc.setForeground( EColor.CRYSTAL );
     gc.setBackground( EColor.LIGHTGRAY );
     gc.setFont( EFont.GRAPH );
-    Point textExtent = gc.textExtent( testName );
+    Point textExtent = gc.textExtent( dataSetName );
     textExtent.x += 6; // add a tiny bit of a margin
     textExtent.y += 6;
 
@@ -87,7 +99,7 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
 
     gc.fillPolygon( arrow );
     gc.drawPolygon( arrow );
-    gc.drawText( testName, point.x + arrowSize + 3, point.y + 3 );
+    gc.drawText( dataSetName, point.x + arrowSize + 3, point.y + 3 );
   }
 
 }

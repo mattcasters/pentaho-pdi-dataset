@@ -28,6 +28,8 @@ import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.util.StringUtil;
+import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.trans.TransMeta;
 
@@ -44,14 +46,20 @@ public class SpoonFlagUnitTestExtensionPoint implements ExtensionPointInterface 
     }
     
     TransMeta transMeta = (TransMeta) object;
-    
-    String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+
+    TransUnitTest unitTest = DataSetHelper.getCurrentUnitTest( transMeta );
+    if (unitTest==null) {
+      return;
+    }
+
+    String unitTestName = unitTest.getName();
     
     if (!StringUtil.isEmpty( unitTestName )) {
       // We're running in Spoon and there's a unit test selected : test it
       //
       System.out.println( "==== Running unit test on this transformation ====" );
       transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
+      transMeta.setVariable( DataSetConst.VAR_UNIT_TEST_NAME, unitTestName );
     }
   }
 

@@ -22,9 +22,6 @@
 
 package org.pentaho.di.dataset.spoon.dialog;
 
-import java.util.Arrays;
-
-import org.apache.commons.validator.Var;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -64,7 +61,8 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.metastore.util.PentahoDefaults;
-import org.snmp4j.smi.Variable;
+
+import java.util.Arrays;
 
 public class TransUnitTestDialog extends Dialog {
   private static Class<?> PKG = TransUnitTestDialog.class; // for i18n purposes, needed by Translator2!!
@@ -78,6 +76,7 @@ public class TransUnitTestDialog extends Dialog {
   private Text wDescription;
   private CCombo wTestType;
   private TextVar wFilename;
+  private TextVar wBasePath;
 
   private TableView wDbReplacements;
   private TableView wVariableValues;
@@ -95,23 +94,23 @@ public class TransUnitTestDialog extends Dialog {
 
   protected IMetaStore metaStore;
   MetaStoreFactory<TransUnitTest> setFactory;
-  
-  public TransUnitTestDialog(Shell parent, TransMeta transMeta, IMetaStore metaStore, TransUnitTest transUnitTest) throws KettleException, MetaStoreException {
-    super(parent, SWT.NONE);
+
+  public TransUnitTestDialog( Shell parent, TransMeta transMeta, IMetaStore metaStore, TransUnitTest transUnitTest ) throws KettleException, MetaStoreException {
+    super( parent, SWT.NONE );
     this.transMeta = transMeta;
     this.metaStore = metaStore;
     this.transUnitTest = transUnitTest;
     props = PropsUI.getInstance();
     ok = false;
 
-    setFactory = new MetaStoreFactory<TransUnitTest>(TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE);
+    setFactory = new MetaStoreFactory<TransUnitTest>( TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE );
   }
 
   public boolean open() {
     Shell parent = getParent();
-    shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN);
-    props.setLook(shell);
-    shell.setImage(GUIResource.getInstance().getImageTable());
+    shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN );
+    props.setLook( shell );
+    shell.setImage( GUIResource.getInstance().getImageTable() );
 
     middle = props.getMiddlePct();
     margin = Const.MARGIN;
@@ -120,197 +119,216 @@ public class TransUnitTestDialog extends Dialog {
     formLayout.marginWidth = Const.FORM_MARGIN;
     formLayout.marginHeight = Const.FORM_MARGIN;
 
-    shell.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.Shell.Title"));
-    shell.setLayout(formLayout);
+    shell.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.Shell.Title" ) );
+    shell.setLayout( formLayout );
 
     // The name of the unit test...
     //
-    Label wlName = new Label(shell, SWT.RIGHT);
-    props.setLook(wlName);
-    wlName.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.Name.Label"));
+    Label wlName = new Label( shell, SWT.RIGHT );
+    props.setLook( wlName );
+    wlName.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.Name.Label" ) );
     FormData fdlName = new FormData();
-    fdlName.top = new FormAttachment(0, 0);
-    fdlName.left = new FormAttachment(0, 0);
-    fdlName.right = new FormAttachment(middle, -margin);
-    wlName.setLayoutData(fdlName);
-    wName = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-    props.setLook(wName);
+    fdlName.top = new FormAttachment( 0, 0 );
+    fdlName.left = new FormAttachment( 0, 0 );
+    fdlName.right = new FormAttachment( middle, -margin );
+    wlName.setLayoutData( fdlName );
+    wName = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wName );
     FormData fdName = new FormData();
-    fdName.top = new FormAttachment(0, 0);
-    fdName.left = new FormAttachment(middle, 0);
-    fdName.right = new FormAttachment(100, 0);
-    wName.setLayoutData(fdName);
+    fdName.top = new FormAttachment( 0, 0 );
+    fdName.left = new FormAttachment( middle, 0 );
+    fdName.right = new FormAttachment( 100, 0 );
+    wName.setLayoutData( fdName );
     Control lastControl = wName;
 
     // The description of the test...
     //
-    Label wlDescription = new Label(shell, SWT.RIGHT);
-    props.setLook(wlDescription);
-    wlDescription.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.Description.Label"));
+    Label wlDescription = new Label( shell, SWT.RIGHT );
+    props.setLook( wlDescription );
+    wlDescription.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.Description.Label" ) );
     FormData fdlDescription = new FormData();
-    fdlDescription.top = new FormAttachment(lastControl, margin);
-    fdlDescription.left = new FormAttachment(0, 0);
-    fdlDescription.right = new FormAttachment(middle, -margin);
-    wlDescription.setLayoutData(fdlDescription);
-    wDescription = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-    props.setLook(wDescription);
+    fdlDescription.top = new FormAttachment( lastControl, margin );
+    fdlDescription.left = new FormAttachment( 0, 0 );
+    fdlDescription.right = new FormAttachment( middle, -margin );
+    wlDescription.setLayoutData( fdlDescription );
+    wDescription = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wDescription );
     FormData fdDescription = new FormData();
-    fdDescription.top = new FormAttachment(lastControl, margin);
-    fdDescription.left = new FormAttachment(middle, 0);
-    fdDescription.right = new FormAttachment(100, 0);
-    wDescription.setLayoutData(fdDescription);
+    fdDescription.top = new FormAttachment( lastControl, margin );
+    fdDescription.left = new FormAttachment( middle, 0 );
+    fdDescription.right = new FormAttachment( 100, 0 );
+    wDescription.setLayoutData( fdDescription );
     lastControl = wDescription;
 
     // The type of test...
     //
-    Label wlTestType = new Label(shell, SWT.RIGHT);
-    props.setLook(wlTestType);
-    wlTestType.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.TestType.Label"));
+    Label wlTestType = new Label( shell, SWT.RIGHT );
+    props.setLook( wlTestType );
+    wlTestType.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.TestType.Label" ) );
     FormData fdlTestType = new FormData();
-    fdlTestType.top = new FormAttachment(lastControl, margin);
-    fdlTestType.left = new FormAttachment(0, 0);
-    fdlTestType.right = new FormAttachment(middle, -margin);
-    wlTestType.setLayoutData(fdlTestType);
-    wTestType = new CCombo(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-    props.setLook(wTestType);
+    fdlTestType.top = new FormAttachment( lastControl, margin );
+    fdlTestType.left = new FormAttachment( 0, 0 );
+    fdlTestType.right = new FormAttachment( middle, -margin );
+    wlTestType.setLayoutData( fdlTestType );
+    wTestType = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wTestType );
     FormData fdTestType = new FormData();
-    fdTestType.top = new FormAttachment(lastControl, margin);
-    fdTestType.left = new FormAttachment(middle, 0);
-    fdTestType.right = new FormAttachment(100, 0);
-    wTestType.setLayoutData(fdTestType);
-    wTestType.setItems(DataSetConst.getTestTypeDescriptions());
+    fdTestType.top = new FormAttachment( lastControl, margin );
+    fdTestType.left = new FormAttachment( middle, 0 );
+    fdTestType.right = new FormAttachment( 100, 0 );
+    wTestType.setLayoutData( fdTestType );
+    wTestType.setItems( DataSetConst.getTestTypeDescriptions() );
     lastControl = wTestType;
-    
+
     // The optional filename of the test result...
     //
-    Label wlFilename = new Label(shell, SWT.RIGHT);
-    props.setLook(wlFilename);
-    wlFilename.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.Filename.Label"));
+    Label wlFilename = new Label( shell, SWT.RIGHT );
+    props.setLook( wlFilename );
+    wlFilename.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.Filename.Label" ) );
     FormData fdlFilename = new FormData();
-    fdlFilename.top = new FormAttachment(lastControl, margin);
-    fdlFilename.left = new FormAttachment(0, 0);
-    fdlFilename.right = new FormAttachment(middle, -margin);
-    wlFilename.setLayoutData(fdlFilename);
-    wFilename = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-    props.setLook(wFilename);
+    fdlFilename.top = new FormAttachment( lastControl, margin );
+    fdlFilename.left = new FormAttachment( 0, 0 );
+    fdlFilename.right = new FormAttachment( middle, -margin );
+    wlFilename.setLayoutData( fdlFilename );
+    wFilename = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wFilename );
     FormData fdFilename = new FormData();
-    fdFilename.top = new FormAttachment(lastControl, margin);
-    fdFilename.left = new FormAttachment(middle, 0);
-    fdFilename.right = new FormAttachment(100, 0);
-    wFilename.setLayoutData(fdFilename);
+    fdFilename.top = new FormAttachment( lastControl, margin );
+    fdFilename.left = new FormAttachment( middle, 0 );
+    fdFilename.right = new FormAttachment( 100, 0 );
+    wFilename.setLayoutData( fdFilename );
     lastControl = wFilename;
 
+    // The base path for relative test path resolution
+    //
+    Label wlBasePath = new Label( shell, SWT.RIGHT );
+    props.setLook( wlBasePath );
+    wlBasePath.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.BasePath.Label" ) );
+    FormData fdlBasePath = new FormData();
+    fdlBasePath.top = new FormAttachment( lastControl, margin );
+    fdlBasePath.left = new FormAttachment( 0, 0 );
+    fdlBasePath.right = new FormAttachment( middle, -margin );
+    wlBasePath.setLayoutData( fdlBasePath );
+    wBasePath = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wBasePath );
+    FormData fdBasePath = new FormData();
+    fdBasePath.top = new FormAttachment( lastControl, margin );
+    fdBasePath.left = new FormAttachment( middle, 0 );
+    fdBasePath.right = new FormAttachment( 100, 0 );
+    wBasePath.setLayoutData( fdBasePath );
+    lastControl = wBasePath;
 
     // The list of database replacements in the unit test transformation
     //
-    Label wlFieldMapping = new Label(shell, SWT.NONE);
-    wlFieldMapping.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.DbReplacements.Label"));
-    props.setLook(wlFieldMapping);
+    Label wlFieldMapping = new Label( shell, SWT.NONE );
+    wlFieldMapping.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.DbReplacements.Label" ) );
+    props.setLook( wlFieldMapping );
     FormData fdlUpIns = new FormData();
-    fdlUpIns.left = new FormAttachment(0, 0);
-    fdlUpIns.top = new FormAttachment(lastControl, margin);
-    wlFieldMapping.setLayoutData(fdlUpIns);
+    fdlUpIns.left = new FormAttachment( 0, 0 );
+    fdlUpIns.top = new FormAttachment( lastControl, margin );
+    wlFieldMapping.setLayoutData( fdlUpIns );
     lastControl = wlFieldMapping;
 
     // Buttons at the bottom...
     //
-    wOK = new Button(shell, SWT.PUSH);
-    wOK.setText(BaseMessages.getString(PKG, "System.Button.OK"));
+    wOK = new Button( shell, SWT.PUSH );
+    wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
 
-    wCancel = new Button(shell, SWT.PUSH);
-    wCancel.setText(BaseMessages.getString(PKG, "System.Button.Cancel"));
+    wCancel = new Button( shell, SWT.PUSH );
+    wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
 
     Button[] buttons = new Button[] { wOK, wCancel };
-    BaseStepDialog.positionBottomButtons(shell, buttons, margin, null);
+    BaseStepDialog.positionBottomButtons( shell, buttons, margin, null );
 
     // the database replacements
     //
     String[] dbNames = transMeta.getDatabaseNames();
-    Arrays.sort(dbNames);
+    Arrays.sort( dbNames );
     ColumnInfo[] columns = new ColumnInfo[] {
-        new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.DbReplacement.ColumnInfo.OriginalDb"),
-            ColumnInfo.COLUMN_TYPE_CCOMBO, dbNames, false),
-        new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.DbReplacement.ColumnInfo.ReplacementDb"),
-            ColumnInfo.COLUMN_TYPE_CCOMBO, dbNames, false), };
-    columns[0].setUsingVariables(true);
-    columns[1].setUsingVariables(true);
-    
-    wDbReplacements = new TableView(new Variables(), shell,
-        SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL, columns,
-        transUnitTest.getTweaks().size(), null, props);
+      new ColumnInfo( BaseMessages.getString( PKG, "TransUnitTestDialog.DbReplacement.ColumnInfo.OriginalDb" ),
+        ColumnInfo.COLUMN_TYPE_CCOMBO, dbNames, false ),
+      new ColumnInfo( BaseMessages.getString( PKG, "TransUnitTestDialog.DbReplacement.ColumnInfo.ReplacementDb" ),
+        ColumnInfo.COLUMN_TYPE_CCOMBO, dbNames, false ), };
+    columns[ 0 ].setUsingVariables( true );
+    columns[ 1 ].setUsingVariables( true );
+
+    wDbReplacements = new TableView( new Variables(), shell,
+      SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL, columns,
+      transUnitTest.getTweaks().size(), null, props );
 
     FormData fdDbReplacements = new FormData();
-    fdDbReplacements.left = new FormAttachment(0, 0);
-    fdDbReplacements.top = new FormAttachment(lastControl, margin);
-    fdDbReplacements.right = new FormAttachment(100, 0);
-    fdDbReplacements.bottom = new FormAttachment(lastControl, 150);
-    wDbReplacements.setLayoutData(fdDbReplacements);
+    fdDbReplacements.left = new FormAttachment( 0, 0 );
+    fdDbReplacements.top = new FormAttachment( lastControl, margin );
+    fdDbReplacements.right = new FormAttachment( 100, 0 );
+    fdDbReplacements.bottom = new FormAttachment( lastControl, 250 );
+    wDbReplacements.setLayoutData( fdDbReplacements );
     lastControl = wDbReplacements;
 
-    Label wlVariableValues = new Label(shell, SWT.NONE);
-    wlVariableValues.setText(BaseMessages.getString(PKG, "TransUnitTestDialog.VariableValues.Label"));
-    props.setLook(wlVariableValues);
+    Label wlVariableValues = new Label( shell, SWT.NONE );
+    wlVariableValues.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.VariableValues.Label" ) );
+    props.setLook( wlVariableValues );
     FormData fdlVariableValues = new FormData();
-    fdlVariableValues.left = new FormAttachment(0, 0);
-    fdlVariableValues.top = new FormAttachment(lastControl, margin);
-    wlVariableValues.setLayoutData(fdlVariableValues);
+    fdlVariableValues.left = new FormAttachment( 0, 0 );
+    fdlVariableValues.top = new FormAttachment( lastControl, margin );
+    wlVariableValues.setLayoutData( fdlVariableValues );
     lastControl = wlVariableValues;
 
     ColumnInfo[] varValColumns = new ColumnInfo[] {
-      new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.VariableValues.ColumnInfo.VariableName"), ColumnInfo.COLUMN_TYPE_TEXT, false),
-      new ColumnInfo(BaseMessages.getString(PKG, "TransUnitTestDialog.VariableValues.ColumnInfo.VariableValue"), ColumnInfo.COLUMN_TYPE_TEXT, false),
+      new ColumnInfo( BaseMessages.getString( PKG, "TransUnitTestDialog.VariableValues.ColumnInfo.VariableName" ), ColumnInfo.COLUMN_TYPE_TEXT, false ),
+      new ColumnInfo( BaseMessages.getString( PKG, "TransUnitTestDialog.VariableValues.ColumnInfo.VariableValue" ), ColumnInfo.COLUMN_TYPE_TEXT, false ),
     };
-    varValColumns[0].setUsingVariables(true);
-    varValColumns[1].setUsingVariables(true);
+    varValColumns[ 0 ].setUsingVariables( true );
+    varValColumns[ 1 ].setUsingVariables( true );
 
-    wVariableValues = new TableView(new Variables(), shell,
+    wVariableValues = new TableView( new Variables(), shell,
       SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL, varValColumns,
-      transUnitTest.getVariableValues().size(), null, props);
+      transUnitTest.getVariableValues().size(), null, props );
 
     FormData fdVariableValues = new FormData();
-    fdVariableValues.left = new FormAttachment(0, 0);
-    fdVariableValues.top = new FormAttachment(lastControl, margin);
-    fdVariableValues.right = new FormAttachment(100, 0);
-    fdVariableValues.bottom = new FormAttachment(wOK, -2 * margin);
-    wVariableValues.setLayoutData(fdVariableValues);
+    fdVariableValues.left = new FormAttachment( 0, 0 );
+    fdVariableValues.top = new FormAttachment( lastControl, margin );
+    fdVariableValues.right = new FormAttachment( 100, 0 );
+    fdVariableValues.bottom = new FormAttachment( wOK, -2 * margin );
+    wVariableValues.setLayoutData( fdVariableValues );
 
     // Add listeners
-    wOK.addListener(SWT.Selection, new Listener() {
-      public void handleEvent(Event e) {
+    wOK.addListener( SWT.Selection, new Listener() {
+      public void handleEvent( Event e ) {
         ok();
       }
-    });
-    wCancel.addListener(SWT.Selection, new Listener() {
-      public void handleEvent(Event e) {
+    } );
+    wCancel.addListener( SWT.Selection, new Listener() {
+      public void handleEvent( Event e ) {
         cancel();
       }
-    });
+    } );
 
     SelectionAdapter selAdapter = new SelectionAdapter() {
-      public void widgetDefaultSelected(SelectionEvent e) {
+      public void widgetDefaultSelected( SelectionEvent e ) {
         ok();
       }
     };
-    wName.addSelectionListener(selAdapter);
-    wDescription.addSelectionListener(selAdapter);
-    wTestType.addSelectionListener(selAdapter);
-    wFilename.addSelectionListener(selAdapter);
+    wName.addSelectionListener( selAdapter );
+    wDescription.addSelectionListener( selAdapter );
+    wTestType.addSelectionListener( selAdapter );
+    wFilename.addSelectionListener( selAdapter );
+    wBasePath.addSelectionListener( selAdapter );
 
     // Detect X or ALT-F4 or something that kills this window...
-    shell.addShellListener(new ShellAdapter() {
-      public void shellClosed(ShellEvent e) {
+    shell.addShellListener( new ShellAdapter() {
+      public void shellClosed( ShellEvent e ) {
         cancel();
       }
-    });
+    } );
 
     getData();
 
-    BaseStepDialog.setSize(shell);
+    BaseStepDialog.setSize( shell );
 
     shell.open();
     Display display = parent.getDisplay();
-    while (!shell.isDisposed()) {
-      if (!display.readAndDispatch()) {
+    while ( !shell.isDisposed() ) {
+      if ( !display.readAndDispatch() ) {
         display.sleep();
       }
     }
@@ -318,7 +336,7 @@ public class TransUnitTestDialog extends Dialog {
   }
 
   public void dispose() {
-    props.setScreen(new WindowProperty(shell));
+    props.setScreen( new WindowProperty( shell ) );
     shell.dispose();
   }
 
@@ -326,19 +344,20 @@ public class TransUnitTestDialog extends Dialog {
 
     wName.setText( Const.NVL( transUnitTest.getName(), "" ) );
     wDescription.setText( Const.NVL( transUnitTest.getDescription(), "" ) );
-    wTestType.setText( Const.NVL( DataSetConst.getTestTypeDescription(transUnitTest.getType()), "") );
-    wFilename.setText( Const.NVL( transUnitTest.getFilename(), ""));
-    
+    wTestType.setText( Const.NVL( DataSetConst.getTestTypeDescription( transUnitTest.getType() ), "" ) );
+    wFilename.setText( Const.NVL( transUnitTest.getFilename(), "" ) );
+    wBasePath.setText( Const.NVL( transUnitTest.getBasePath(), "" ) );
+
     for ( int i = 0; i < transUnitTest.getDatabaseReplacements().size(); i++ ) {
       TransUnitTestDatabaseReplacement dbReplacement = transUnitTest.getDatabaseReplacements().get( i );
-      wDbReplacements.setText( Const.NVL( dbReplacement.getOriginalDatabaseName(), ""), 1, i );
+      wDbReplacements.setText( Const.NVL( dbReplacement.getOriginalDatabaseName(), "" ), 1, i );
       wDbReplacements.setText( Const.NVL( dbReplacement.getReplacementDatabaseName(), "" ), 2, i );
     }
 
-    for (int i = 0 ; i < transUnitTest.getVariableValues().size() ; i++) {
+    for ( int i = 0; i < transUnitTest.getVariableValues().size(); i++ ) {
       VariableValue variableValue = transUnitTest.getVariableValues().get( i );
-      wVariableValues.setText(Const.NVL(variableValue.getKey(), ""), 1, i);
-      wVariableValues.setText(Const.NVL(variableValue.getValue(), ""), 2, i);
+      wVariableValues.setText( Const.NVL( variableValue.getKey(), "" ), 1, i );
+      wVariableValues.setText( Const.NVL( variableValue.getValue(), "" ), 2, i );
     }
 
     wDbReplacements.removeEmptyRows();
@@ -353,44 +372,44 @@ public class TransUnitTestDialog extends Dialog {
   }
 
   /**
-   * @param test
-   *          The trans unit test to load the dialog information into
+   * @param test The trans unit test to load the dialog information into
    */
-  public void getInfo(TransUnitTest test) {
+  public void getInfo( TransUnitTest test ) {
 
-    test.setName(wName.getText());
-    test.setDescription(wDescription.getText());
-    test.setType(DataSetConst.getTestTypeForDescription(wTestType.getText()));
-    test.setFilename(wFilename.getText());
-    
+    test.setName( wName.getText() );
+    test.setDescription( wDescription.getText() );
+    test.setType( DataSetConst.getTestTypeForDescription( wTestType.getText() ) );
+    test.setFilename( wFilename.getText() );
+    test.setBasePath( wBasePath.getText() );
+
     test.getDatabaseReplacements().clear();
     int nrFields = wDbReplacements.nrNonEmpty();
-    for (int i=0;i<nrFields;i++) {
+    for ( int i = 0; i < nrFields; i++ ) {
       TableItem item = wDbReplacements.getNonEmpty( i );
-      String sourceDb = item.getText(1);
-      String replaceDb = item.getText(2);
-      TransUnitTestDatabaseReplacement dbReplacement = new TransUnitTestDatabaseReplacement(sourceDb, replaceDb);
-      test.getDatabaseReplacements().add(dbReplacement);
+      String sourceDb = item.getText( 1 );
+      String replaceDb = item.getText( 2 );
+      TransUnitTestDatabaseReplacement dbReplacement = new TransUnitTestDatabaseReplacement( sourceDb, replaceDb );
+      test.getDatabaseReplacements().add( dbReplacement );
     }
     test.getVariableValues().clear();
     int nrVars = wVariableValues.nrNonEmpty();
-    for (int i=0;i<nrVars;i++) {
+    for ( int i = 0; i < nrVars; i++ ) {
       TableItem item = wVariableValues.getNonEmpty( i );
-      String key = item.getText(1);
-      String value = item.getText(2);
-      VariableValue variableValue = new VariableValue(key, value);
-      test.getVariableValues().add(variableValue);
+      String key = item.getText( 1 );
+      String value = item.getText( 2 );
+      VariableValue variableValue = new VariableValue( key, value );
+      test.getVariableValues().add( variableValue );
     }
   }
 
   public void ok() {
 
-    getInfo(transUnitTest);
+    getInfo( transUnitTest );
 
     ok = true;
     dispose();
 
   }
 
- 
+
 }

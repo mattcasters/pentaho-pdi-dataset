@@ -73,20 +73,20 @@ public class DataSetConst {
   public static final String GROUP_LIST_KEY = "DataSetGroups";
   public static final String SET_LIST_KEY = "DataSets";
 
-  public static final String ATTR_GROUP_DATASET = "DataSet";
-  public static final String ATTR_STEP_DATASET_INPUT = "InputDataSet";
-  public static final String ATTR_STEP_DATASET_GOLDEN = "GoldenDataSet";
-  public static final String ATTR_STEP_TWEAK= "UnitTestStepTweak";
-  public static final String ATTR_STEP_TARGET_DATASET = "TargetDataSet";
+  // Variables during execution to indicate the selected test to run
+  //
+  public static final String VAR_RUN_UNIT_TEST = "__UnitTest_Run__";
+  public static final String VAR_UNIT_TEST_NAME = "__UnitTest_Name__";
+  public static final String VAR_WRITE_TO_DATASET = "__UnitTest_WriteDataSet__";
+  public static final String VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS = "__UnitTest_DontShowUnitTestErrors__";
 
-  public static final String VAR_RUN_UNIT_TEST = "__UnitTest__";
-  public static final String VAR_WRITE_TO_DATASET = "__WriteDataSet__";
-  public static final String VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS = "__DontShowUnitTestErrors__";
-  public static final String ATTR_TRANS_SELECTED_UNIT_TEST_NAME = "SelectedUnitTest";
-  
-  public static final String AREA_DRAWN_UNIT_ICON = "DrawnUnitTestIcon";
+  public static final String AREA_DRAWN_UNIT_TEST_ICON = "Drawn_UnitTestIcon";
+  public static final String AREA_DRAWN_UNIT_TEST_NAME = "Drawn_UnitTestName";
+
   public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
   public static final String UNIT_TEST_RESULTS = "UnitTestResults";
+
+  public static final String VARIABLE_UNIT_TESTS_BASE_PATH = "UNIT_TESTS_BASE_PATH";
 
   private static final String[] tweakDesc = new String[] {
       BaseMessages.getString(PKG, "DataSetConst.Tweak.NONE.Desc"),
@@ -193,75 +193,7 @@ public class DataSetConst {
 
     return dataSet;
   }
-  
-  public static final void clearStepDataSetIndicators(TransMeta transMeta) {
-    for (StepMeta stepMeta : transMeta.getSteps()) {
-      Map<String, String> attributes = stepMeta.getAttributesMap().remove( DataSetConst.ATTR_GROUP_DATASET );
-    }
-    transMeta.setChanged();
-  }  
 
-  
-  public static final void loadStepDataSetIndicators(TransMeta transMeta, TransUnitTest test) throws KettleException {
-    
-    // First clear 'm all
-    //
-    clearStepDataSetIndicators( transMeta );
-
-    // Set links to the input data sets (for the extension point)
-    //
-    List<String> inputNotFound = new ArrayList<>();
-    for (TransUnitTestSetLocation location : test.getInputDataSets()) {
-      StepMeta stepMeta = transMeta.findStep( location.getStepname() );
-      if (stepMeta!=null) {
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, location.getDataSetName());
-      } else {
-        inputNotFound.add(location.getStepname());
-      }
-    }
-    // Remove the input locations that were not found...
-    // It's fine to have metadata from removed steps in the test but not during execution
-    //
-    for (String stepName : inputNotFound) {
-      TransUnitTestSetLocation location = test.findInputLocation( stepName );
-      if (location!=null) {
-        test.getInputDataSets().remove(location);
-      }
-    }
-
-
-    // Set links to the golden data sets (for the extension point)
-    //
-    List<String> goldenNotFound = new ArrayList<>();
-    for (TransUnitTestSetLocation location : test.getGoldenDataSets()) {
-      StepMeta stepMeta = transMeta.findStep( location.getStepname() );
-      if (stepMeta!=null) {
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, location.getDataSetName());
-      } else {
-        goldenNotFound.add(location.getStepname());
-      }
-    }
-    // Remove the golden locations that were not found...
-    // It's fine to have metadata from removed steps in the test but not during execution
-    //
-    for (String stepName : goldenNotFound) {
-      TransUnitTestSetLocation location = test.findGoldenLocation( stepName );
-      if (location!=null) {
-        test.getGoldenDataSets().remove(location);
-      }
-    }
-
-    // Load the tweak indicators?
-    //
-    List<TransUnitTestTweak> tweaks = test.getTweaks();
-    for (TransUnitTestTweak tweak : tweaks) {
-      StepMeta stepMeta = transMeta.findStep(tweak.getStepName());
-      if (stepMeta!=null && tweak.getTweak()!=null) {
-        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK, tweak.getTweak().name());
-      } 
-    }
-  }
-  
   /**
    * Validate the execution results of a transformation against the golden data sets of a unit test.
    * @param trans The transformation after execution

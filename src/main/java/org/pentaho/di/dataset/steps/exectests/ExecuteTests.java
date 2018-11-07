@@ -26,11 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.UnitTestResult;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
@@ -183,8 +186,33 @@ public class ExecuteTests extends BaseStep implements StepInterface {
 
   private TransMeta loadTestTransformation(TransUnitTest test) throws KettleException {
     TransMeta unitTestTransMeta = null;
+    // Environment substitution is not yet supported in the UI
+    //
     String filename = getTrans().environmentSubstitute(test.getTransFilename());
     if (StringUtils.isNotEmpty(filename)) {
+
+      // Do we need a relative path resolution?
+      //
+      String basePathString = environmentSubstitute(test.getBasePath());
+      if (StringUtils.isEmpty( basePathString )) {
+        // Check global variable
+        //
+        basePathString = getVariable( DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH );
+      }
+
+      if (StringUtils.isNotEmpty( basePathString )) {
+
+        FileObject basePath = KettleVFS.getFileObject( basePathString );
+
+        // Try to resolve the relative path stored in the test...
+        //
+        try {
+          filename = basePath.resolveFile( filename ).toString();
+        } catch(Exception e) {
+          throw new KettleException( "Unable to resolve relative path of "+filename+" against base path "+basePathString, e );
+        }
+      }
+
       unitTestTransMeta = new TransMeta(filename, repository, true, getTrans());
     } else {
       if (StringUtils.isNotEmpty(test.getTransObjectId())) {

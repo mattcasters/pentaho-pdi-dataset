@@ -222,14 +222,7 @@ public class TransUnitTestExecutionTest extends TestCase {
     // Enable unit test validation
     //
     transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
-    
-    // Pass indicators for the transformation (might be existing stuff the user is working on)
-    //
-    DataSetConst.loadStepDataSetIndicators( transMeta, unitTest );
-    
-    // This will cause the transformation to be a unit test...
-    //
-    transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
+    transMeta.setVariable( DataSetConst.VAR_UNIT_TEST_NAME, unitTest.getName() );
 
     // pass our metastore reference
     //
@@ -238,7 +231,6 @@ public class TransUnitTestExecutionTest extends TestCase {
     // Create an in-memory data-set group and data sets to test with...
     //
     StepMeta stepMeta = transMeta.findStep( INPUT_STEP_NAME );
-    stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, inputDataSet.getName() );
 
     Trans trans = new Trans( transMeta );
     trans.setPreview( true ); // data set only works in preview right now

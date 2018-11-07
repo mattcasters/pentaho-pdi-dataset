@@ -28,18 +28,13 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.MessageBox;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
@@ -47,7 +42,6 @@ import org.pentaho.di.core.gui.AreaOwner;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
-import org.pentaho.di.dataset.spoon.dialog.TransUnitTestDialog;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
@@ -74,6 +68,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
     
     TransGraphExtension tge = (TransGraphExtension) object;
     final TransMeta transMeta = tge.getTransGraph().getTransMeta();
+    final TransUnitTest unitTest = DataSetHelper.getCurrentUnitTest( transMeta );
     Spoon spoon = Spoon.getInstance();
     MouseEvent e = tge.getEvent();
     
@@ -82,8 +77,8 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
       if ( areaOwner != null && areaOwner.getAreaType() != null ) {
         // Check if this is the flask...
         //
-        if (DataSetConst.AREA_DRAWN_UNIT_ICON.equals(areaOwner.getParent())) {
-          final String unitTestName = (String) areaOwner.getOwner(); 
+        if (DataSetConst.AREA_DRAWN_UNIT_TEST_ICON.equals(areaOwner.getParent())) {
+          final String unitTestName = unitTest!=null ? unitTest.getName() : null;
           
           Canvas canvas = findCanvas(tge.getTransGraph());
           if (canvas!=null) {

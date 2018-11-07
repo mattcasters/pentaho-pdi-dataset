@@ -31,6 +31,7 @@ import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
+import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
@@ -75,6 +76,9 @@ public class TransUnitTest {
   @MetaStoreAttribute( key = "persist_filename")
   protected String filename;
 
+  @MetaStoreAttribute
+  protected String basePath;
+
   @MetaStoreAttribute( key = "database_replacements" )
   protected List<TransUnitTestDatabaseReplacement> databaseReplacements;
 
@@ -88,6 +92,7 @@ public class TransUnitTest {
     type = TestType.NONE;
     databaseReplacements = new ArrayList<TransUnitTestDatabaseReplacement>();
     variableValues = new ArrayList<>();
+    basePath = DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH;
   }
 
   public TransUnitTest( String name, String description, 
@@ -127,72 +132,8 @@ public class TransUnitTest {
   public int hashCode() {
     return name.hashCode();
   }
-  
 
-  public String getName() {
-    return name;
-  }
 
-  public void setName( String name ) {
-    this.name = name;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription( String description ) {
-    this.description = description;
-  }
-
-  public List<TransUnitTestSetLocation> getInputDataSets() {
-    return inputDataSets;
-  }
-
-  public void setInputDataSets( List<TransUnitTestSetLocation> inputDataSets ) {
-    this.inputDataSets = inputDataSets;
-  }
-
-  public String getTransObjectId() {
-    return transObjectId;
-  }
-
-  public void setTransObjectId( String transObjectId ) {
-    this.transObjectId = transObjectId;
-  }
-
-  public String getTransRepositoryPath() {
-    return transRepositoryPath;
-  }
-
-  public void setTransRepositoryPath( String transRepositoryPath ) {
-    this.transRepositoryPath = transRepositoryPath;
-  }
-
-  public String getTransFilename() {
-    return transFilename;
-  }
-
-  public void setTransFilename( String transFilename ) {
-    this.transFilename = transFilename;
-  }
-
-  public List<TransUnitTestSetLocation> getGoldenDataSets() {
-    return goldenDataSets;
-  }
-
-  public void setGoldenDataSets( List<TransUnitTestSetLocation> goldenDataSets ) {
-    this.goldenDataSets = goldenDataSets;
-  }
-
-  public List<TransUnitTestTweak> getTweaks() {
-    return tweaks;
-  }
-
-  public void setTweaks(List<TransUnitTestTweak> tweaks) {
-    this.tweaks = tweaks;
-  }
-  
   public TransUnitTestSetLocation findGoldenLocation(String stepName) {
     for (TransUnitTestSetLocation location : goldenDataSets) {
       if (stepName.equalsIgnoreCase( location.getStepname() )) {
@@ -201,7 +142,7 @@ public class TransUnitTest {
     }
     return null;
   }
-  
+
   public TransUnitTestSetLocation findInputLocation(String stepName) {
     for (TransUnitTestSetLocation location : inputDataSets) {
       if (stepName.equalsIgnoreCase( location.getStepname() )) {
@@ -210,7 +151,7 @@ public class TransUnitTest {
     }
     return null;
   }
-  
+
   /**
    * Retrieve the golden data set for the specified location
    *
@@ -218,7 +159,7 @@ public class TransUnitTest {
    * @param hierarchy The factories to load sets with
    * @param location the location where we want to check against golden rows
    * @return The golden data set
-   * 
+   *
    * @throws KettleException
    */
   public DataSet getGoldenDataSet(LogChannelInterface log, FactoriesHierarchy hierarchy, TransUnitTestSetLocation location) throws KettleException {
@@ -232,7 +173,7 @@ public class TransUnitTest {
       if (goldenDataSetName==null) {
         throw new KettleException("Unable to find golden data set for step '"+stepName+"'");
       }
-      
+
       DataSet goldenDataSet = hierarchy.getSetFactory().loadElement( goldenDataSetName );
       if (goldenDataSet==null) {
         throw new KettleException("Unable to find golden data set '"+goldenDataSetName+"' for step '"+stepName+"'");
@@ -245,7 +186,7 @@ public class TransUnitTest {
     }
   }
 
-  /** Find the first tweak for a certain step 
+  /** Find the first tweak for a certain step
    * @param stepname the name of the step on which a tweak is put
    * @return the first tweak for a certain step or null if nothing was found
    */
@@ -256,46 +197,6 @@ public class TransUnitTest {
       }
     }
     return null;
-  }
-
-  public TestType getType() {
-    return type;
-  }
-
-  public void setType(TestType type) {
-    this.type = type;
-  }
-
-  public String getFilename() {
-    return filename;
-  }
-
-  public void setFilename(String filename) {
-    this.filename = filename;
-  }
-
-  public List<TransUnitTestDatabaseReplacement> getDatabaseReplacements() {
-    return databaseReplacements;
-  }
-
-  public void setDatabaseReplacements(List<TransUnitTestDatabaseReplacement> databaseReplacements) {
-    this.databaseReplacements = databaseReplacements;
-  }
-
-  /**
-   * Gets variableValues
-   *
-   * @return value of variableValues
-   */
-  public List<VariableValue> getVariableValues() {
-    return variableValues;
-  }
-
-  /**
-   * @param variableValues The variableValues to set
-   */
-  public void setVariableValues( List<VariableValue> variableValues ) {
-    this.variableValues = variableValues;
   }
 
   /**
@@ -317,5 +218,213 @@ public class TransUnitTest {
         iterator.remove();
       }
     }
+  }
+
+  /**
+   * Gets name
+   *
+   * @return value of name
+   */
+  public String getName() {
+    return name;
+  }
+
+  /**
+   * @param name The name to set
+   */
+  public void setName( String name ) {
+    this.name = name;
+  }
+
+  /**
+   * Gets description
+   *
+   * @return value of description
+   */
+  public String getDescription() {
+    return description;
+  }
+
+  /**
+   * @param description The description to set
+   */
+  public void setDescription( String description ) {
+    this.description = description;
+  }
+
+  /**
+   * Gets transObjectId
+   *
+   * @return value of transObjectId
+   */
+  public String getTransObjectId() {
+    return transObjectId;
+  }
+
+  /**
+   * @param transObjectId The transObjectId to set
+   */
+  public void setTransObjectId( String transObjectId ) {
+    this.transObjectId = transObjectId;
+  }
+
+  /**
+   * Gets transRepositoryPath
+   *
+   * @return value of transRepositoryPath
+   */
+  public String getTransRepositoryPath() {
+    return transRepositoryPath;
+  }
+
+  /**
+   * @param transRepositoryPath The transRepositoryPath to set
+   */
+  public void setTransRepositoryPath( String transRepositoryPath ) {
+    this.transRepositoryPath = transRepositoryPath;
+  }
+
+  /**
+   * Gets transFilename
+   *
+   * @return value of transFilename
+   */
+  public String getTransFilename() {
+    return transFilename;
+  }
+
+  /**
+   * @param transFilename The transFilename to set
+   */
+  public void setTransFilename( String transFilename ) {
+    this.transFilename = transFilename;
+  }
+
+  /**
+   * Gets inputDataSets
+   *
+   * @return value of inputDataSets
+   */
+  public List<TransUnitTestSetLocation> getInputDataSets() {
+    return inputDataSets;
+  }
+
+  /**
+   * @param inputDataSets The inputDataSets to set
+   */
+  public void setInputDataSets( List<TransUnitTestSetLocation> inputDataSets ) {
+    this.inputDataSets = inputDataSets;
+  }
+
+  /**
+   * Gets goldenDataSets
+   *
+   * @return value of goldenDataSets
+   */
+  public List<TransUnitTestSetLocation> getGoldenDataSets() {
+    return goldenDataSets;
+  }
+
+  /**
+   * @param goldenDataSets The goldenDataSets to set
+   */
+  public void setGoldenDataSets( List<TransUnitTestSetLocation> goldenDataSets ) {
+    this.goldenDataSets = goldenDataSets;
+  }
+
+  /**
+   * Gets tweaks
+   *
+   * @return value of tweaks
+   */
+  public List<TransUnitTestTweak> getTweaks() {
+    return tweaks;
+  }
+
+  /**
+   * @param tweaks The tweaks to set
+   */
+  public void setTweaks( List<TransUnitTestTweak> tweaks ) {
+    this.tweaks = tweaks;
+  }
+
+  /**
+   * Gets type
+   *
+   * @return value of type
+   */
+  public TestType getType() {
+    return type;
+  }
+
+  /**
+   * @param type The type to set
+   */
+  public void setType( TestType type ) {
+    this.type = type;
+  }
+
+  /**
+   * Gets filename
+   *
+   * @return value of filename
+   */
+  public String getFilename() {
+    return filename;
+  }
+
+  /**
+   * @param filename The filename to set
+   */
+  public void setFilename( String filename ) {
+    this.filename = filename;
+  }
+
+  /**
+   * Gets basePath
+   *
+   * @return value of basePath
+   */
+  public String getBasePath() {
+    return basePath;
+  }
+
+  /**
+   * @param basePath The basePath to set
+   */
+  public void setBasePath( String basePath ) {
+    this.basePath = basePath;
+  }
+
+  /**
+   * Gets databaseReplacements
+   *
+   * @return value of databaseReplacements
+   */
+  public List<TransUnitTestDatabaseReplacement> getDatabaseReplacements() {
+    return databaseReplacements;
+  }
+
+  /**
+   * @param databaseReplacements The databaseReplacements to set
+   */
+  public void setDatabaseReplacements( List<TransUnitTestDatabaseReplacement> databaseReplacements ) {
+    this.databaseReplacements = databaseReplacements;
+  }
+
+  /**
+   * Gets variableValues
+   *
+   * @return value of variableValues
+   */
+  public List<VariableValue> getVariableValues() {
+    return variableValues;
+  }
+
+  /**
+   * @param variableValues The variableValues to set
+   */
+  public void setVariableValues( List<VariableValue> variableValues ) {
+    this.variableValues = variableValues;
   }
 }

@@ -30,6 +30,9 @@ import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EFont;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.dataset.TransTweak;
+import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestTweak;
+import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.trans.TransPainterExtension;
 import org.pentaho.di.trans.step.StepMeta;
@@ -48,10 +51,17 @@ public class DrawTweakOnStepExtensionPoint implements ExtensionPointInterface {
 
     TransPainterExtension ext = (TransPainterExtension) object;
     StepMeta stepMeta = ext.stepMeta;
-    String tweakDesc = stepMeta.getAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK);
+    TransUnitTest unitTest = DataSetHelper.getCurrentUnitTest( ext.transMeta );
+    if (unitTest==null) {
+      return;
+    }
+    TransUnitTestTweak tweak = unitTest.findTweak( stepMeta.getName() );
+    if (tweak==null || tweak.getTweak()==null) {
+      return;
+    }
+
     try {
-      TransTweak tweak = TransTweak.valueOf(tweakDesc);
-      switch(tweak) {
+      switch(tweak.getTweak()) {
       case NONE: break;
       case REMOVE_STEP: drawRemovedTweak(ext, stepMeta); break;
       case BYPASS_STEP: drawBypassedTweak(ext, stepMeta); break;

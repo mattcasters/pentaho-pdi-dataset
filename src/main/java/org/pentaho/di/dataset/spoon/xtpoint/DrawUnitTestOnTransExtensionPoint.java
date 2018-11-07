@@ -32,15 +32,17 @@ import org.pentaho.di.core.gui.GCInterface;
 import org.pentaho.di.core.gui.Point;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
 import org.pentaho.di.core.logging.LogChannelInterface;
+import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPainter;
 
 @ExtensionPoint(
-  id = "DrawUnitTestOnTransExtentionPoint",
+  id = "DrawUnitTestOnTransExtensionPoint",
   description = "Indicates graphically which unit test is currently selected.",
   extensionPointId = "TransPainterEnd" )
-public class DrawUnitTestOnTransExtentionPoint implements ExtensionPointInterface {
+public class DrawUnitTestOnTransExtensionPoint implements ExtensionPointInterface {
 
   @Override
   public void callExtensionPoint( LogChannelInterface log, Object object ) throws KettleException {
@@ -50,13 +52,14 @@ public class DrawUnitTestOnTransExtentionPoint implements ExtensionPointInterfac
 
     TransPainter painter = (TransPainter) object;
     TransMeta transMeta = painter.getTransMeta();
-    String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME);
-    // System.out.println("Drawing unit test usage/editing : '"+testName+"'");
-    drawUnitTestName( painter, transMeta, testName );
+    TransUnitTest unitTest = DataSetHelper.getCurrentUnitTest( transMeta );
+    drawUnitTestName( painter, transMeta, unitTest );
   }
 
-  private void drawUnitTestName( TransPainter painter, TransMeta transMeta, String unitTestName ) {
-    
+  private void drawUnitTestName( TransPainter painter, TransMeta transMeta, TransUnitTest test ) {
+
+    String unitTestName = test!=null ? test.getName() : null;
+
     GCInterface gc = painter.getGc();
     EColor color = EColor.CRYSTAL;
     
@@ -120,8 +123,8 @@ public class DrawUnitTestOnTransExtentionPoint implements ExtensionPointInterfac
 
     // Let the world know where the flask is...
     //
-    painter.getAreaOwners().add(new AreaOwner( AreaType.CUSTOM, x, y, w, h, painter.getOffset(), 
-        DataSetConst.AREA_DRAWN_UNIT_ICON, unitTestName));
+    painter.getAreaOwners().add(new AreaOwner( AreaType.CUSTOM, x, y, w, h, painter.getOffset(),
+        DataSetConst.AREA_DRAWN_UNIT_TEST_ICON, "Flask"));
 
     // Write the name of the unit test to the right...
     //
@@ -134,7 +137,7 @@ public class DrawUnitTestOnTransExtentionPoint implements ExtensionPointInterfac
       int ty = y+h/2-te.y/2;
       gc.drawText(unitTestName, tx, ty, true);
       painter.getAreaOwners().add(new AreaOwner( AreaType.CUSTOM, tx, ty, te.x, te.y, painter.getOffset(), 
-          DataSetConst.AREA_DRAWN_UNIT_ICON, unitTestName));
+          DataSetConst.AREA_DRAWN_UNIT_TEST_NAME, unitTestName));
     }
   }
 

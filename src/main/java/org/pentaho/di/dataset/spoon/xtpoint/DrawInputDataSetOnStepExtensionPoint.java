@@ -32,7 +32,11 @@ import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EFont;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.util.StringUtil;
+import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestSetLocation;
+import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
+import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPainterExtension;
 import org.pentaho.di.trans.step.StepMeta;
 
@@ -50,15 +54,22 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
 
     TransPainterExtension ext = (TransPainterExtension) object;
     StepMeta stepMeta = ext.stepMeta;
-    String dataSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT );
-    if ( !StringUtil.isEmpty( dataSetName ) ) {
-      drawInputDataSetMarker( ext, stepMeta, dataSetName );
+    TransMeta transMeta = ext.transMeta;
+    TransUnitTest unitTest = DataSetHelper.getInstance().getActiveTests().get( transMeta );
+    if (unitTest!=null) {
+      drawInputDataSetMarker( ext, stepMeta, unitTest );
     }
   }
 
-  private void drawInputDataSetMarker( TransPainterExtension ext, StepMeta stepMeta, String dataSetName ) {
+  private void drawInputDataSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest ) {
     // Now we're here, draw a marker and indicate the name of the data set name
     //
+    TransUnitTestSetLocation location = unitTest.findInputLocation( stepMeta.getName() );
+    if (location==null) {
+      return;
+    }
+    String dataSetName = Const.NVL(location.getDataSetName(), "");
+
     GCInterface gc = ext.gc;
     int iconsize = ext.iconsize;
     int x = ext.x1;

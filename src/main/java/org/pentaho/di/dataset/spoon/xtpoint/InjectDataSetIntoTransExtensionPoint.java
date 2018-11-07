@@ -88,7 +88,7 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
       return;
     }
 
-    String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    String unitTestName = trans.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
     log.logBasic("Unit test name: "+unitTestName);
     
     try {
@@ -119,26 +119,14 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
       //
       for ( final StepMeta stepMeta : trans.getTransMeta().getSteps() ) {
         String stepname = stepMeta.getName();
-        String inputDataSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT );
-        if (StringUtils.isNotEmpty(inputDataSetName)) {
-          // See if there's a unit test if the step isn't flagged...
+        TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepname );
+        if (inputLocation!=null && StringUtils.isNotEmpty(inputLocation.getDataSetName())) {
+          String inputDataSetName = inputLocation.getDataSetName();
+          log.logDetailed("Data Set location found for step '"+stepname+"' and data set  "+inputDataSetName);
+
+          // We need to inject data from the data set with the specified name into the step
           //
-          TransUnitTestSetLocation inputLocation = null;
-          if ( unitTest!=null ) {
-            inputLocation = unitTest.findInputLocation( stepname );
-            if (inputLocation!=null) {
-              log.logBasic("Data Set location found for step '"+stepname+"' and data set  "+inputDataSetName);
-            } else {
-              log.logBasic("NO data set location found for step '"+stepname+"' and data set  "+inputDataSetName);
-            }
-          }
-          
-          if ( !StringUtil.isEmpty( inputDataSetName ) && inputLocation!=null ) {
-  
-            // We need to inject data from the data set with the specified name into the step
-            //
-            injectDataSetIntoStep( trans, transMeta, inputDataSetName, factoriesHierarchy.getSetFactory(), repository, metaStore, stepMeta, inputLocation );
-          }
+          injectDataSetIntoStep( trans, transMeta, inputDataSetName, factoriesHierarchy.getSetFactory(), repository, metaStore, stepMeta, inputLocation );
         }
 
         // How about capturing rows for golden data review?

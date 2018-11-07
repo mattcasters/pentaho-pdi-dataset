@@ -64,13 +64,12 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
     final Trans trans = (Trans) object;
     final TransMeta transMeta = trans.getTransMeta();
     boolean runUnitTest = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
-    
     if ( !runUnitTest ) {
       return;
     }
 
     // We should always have a unit test name here...
-    String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    String unitTestName = transMeta.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
     if (StringUtil.isEmpty( unitTestName )) {
       return;
     }

@@ -46,6 +46,7 @@ import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestDatabaseReplacement;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
+import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.VariableValue;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -80,7 +81,7 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
       }
       return;
     }
-    String unitTestName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
+    String unitTestName = trans.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
     
     // Do we have something to work with?
     // Unit test disabled?  Github issue #5
@@ -183,37 +184,30 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     List<StepMeta> steps = transMeta.getSteps();
     for (StepMeta step : steps) {
       StepMeta stepMeta = copyTransMeta.findStep(step.getName());
-      String inputSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT );
-      String goldenSetName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN );
-      String tweakName = stepMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK );
-      
+      TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepMeta.getName() );
+      TransUnitTestSetLocation goldenLocation = unitTest.findGoldenLocation( stepMeta.getName() );
+      TransUnitTestTweak stepTweak = unitTest.findTweak( stepMeta.getName() );
+
       // See if there's a unit test if the step isn't flagged...
       //
-      if ( !StringUtil.isEmpty( inputSetName ) ) {
-        handleInputDataSet(log, inputSetName, unitTest, transMeta, stepMeta, factoriesHierarchy);        
+      if ( inputLocation!=null ) {
+        handleInputDataSet(log, inputLocation, unitTest, transMeta, stepMeta, factoriesHierarchy);
       }
       
       // Capture golden data in a dummy step instead of the regular one?
       //
-      if ( !StringUtil.isEmpty( goldenSetName )) {
-        handleGoldenDataSet(log, goldenSetName, stepMeta);
+      if ( goldenLocation!=null) {
+        handleGoldenDataSet(log, goldenLocation, stepMeta);
       }
       
-      if ( !StringUtil.isEmpty(tweakName)) {
-        TransTweak tweak;
-        try {
-          tweak = TransTweak.valueOf(tweakName);
-        } catch(Exception e) {
-          throw new KettleException("Unrecognized tweak '"+tweakName+"-", e);
-        }
-        switch(tweak) {
+      if ( stepTweak!=null && stepTweak.getTweak()!=null) {
+        switch(stepTweak.getTweak()) {
         case NONE : break;
         case REMOVE_STEP: handleTweakRemoveStep(log, copyTransMeta, stepMeta); break;
         case BYPASS_STEP: handleTweakBypassStep(log, stepMeta); break;
         default: break;
         }
       }
-      
     }
     
     
@@ -272,7 +266,7 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     }
   }
 
-  private void handleGoldenDataSet(LogChannelInterface log, String goldenSetName, StepMeta stepMeta) {
+  private void handleGoldenDataSet( LogChannelInterface log, TransUnitTestSetLocation goldenSetName, StepMeta stepMeta) {
     
     if (log.isDetailed()) {
       log.logDetailed("Replacing step '"+stepMeta.getName()+"' with an Dummy for golden dataset '"+goldenSetName+"'");
@@ -287,11 +281,9 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     stepMeta.setStepID( PluginRegistry.getInstance().getPluginId( StepPluginType.class, dummyTransMeta) );
   }
 
-  private void handleInputDataSet(LogChannelInterface log, String inputSetName, TransUnitTest unitTest, TransMeta transMeta, StepMeta stepMeta, FactoriesHierarchy factoriesHierarchy) throws KettleException {
-    TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepMeta.getName() );
-    if (inputLocation!=null) {
-      inputSetName = inputLocation.getDataSetName();
-    }
+  private void handleInputDataSet( LogChannelInterface log, TransUnitTestSetLocation inputLocation, TransUnitTest unitTest, TransMeta transMeta, StepMeta stepMeta, FactoriesHierarchy factoriesHierarchy) throws KettleException {
+
+    String inputSetName = inputLocation.getDataSetName();
   
     if (log.isDetailed()) {
       log.logDetailed("Replacing step '"+stepMeta.getName()+"' with an Injector for dataset '"+inputSetName+"'");

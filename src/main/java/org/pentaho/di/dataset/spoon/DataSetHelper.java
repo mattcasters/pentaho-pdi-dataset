@@ -26,9 +26,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.vfs2.FileObject;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
 import org.pentaho.di.core.Const;
@@ -37,6 +40,7 @@ import org.pentaho.di.core.SourceToTargetMapping;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.gui.SpoonFactory;
+import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -44,6 +48,7 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.core.variables.Variables;
+import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
@@ -89,8 +94,11 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   protected static Class<?> PKG = DataSetHelper.class; // for i18n
 
   private static DataSetHelper instance = null;
+
+  private Map<TransMeta, TransUnitTest> activeTests;
     
   private DataSetHelper() {
+    activeTests = new HashMap<>();
   }
 
   public static DataSetHelper getInstance() {
@@ -371,12 +379,14 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     if ( transGraph == null || transMeta == null || stepMeta == null ) {
       return;
     }
+
     IMetaStore metaStore = spoon.getMetaStore();
 
     if (checkTestPresent(spoon, transMeta)) {
       return;
     }
-    
+    TransUnitTest unitTest = activeTests.get( transMeta );
+
     try {
       
       List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
@@ -389,10 +399,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       String setName = esd.open();
       if ( setName != null ) {
         DataSet dataSet = setFactory.loadElement( setName );
-        
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, null);
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, dataSet.getName() );
-        
+
         // Now we need to map the fields from the input data set to the step...
         //
         RowMetaInterface setFields = dataSet.getSetRowMeta( false );
@@ -429,19 +436,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
           return;
         }
         
-        // What is the unit test we are using?
-        //
-        String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
-        if (StringUtil.isEmpty( testName )) {
-          return;
-        }
-        TransUnitTest unitTest = hierarchy.getTestFactory().loadElement( testName );
-        if (unitTest==null) {
-          // Show a message box later
-          //
-          return;
-        }
-        
         // Modify the test
         //
         
@@ -471,8 +465,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         
         // Save the unit test...
         //
-        hierarchy.getTestFactory().saveElement( unitTest );
-        
+        saveUnitTest( getHierarchy().getTestFactory(), unitTest, transMeta );
+
         stepMeta.setChanged();
 
         spoon.refreshGraph();        
@@ -483,9 +477,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   }
   
   private boolean checkTestPresent(Spoon spoon, TransMeta transMeta) {
-    
-    String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
-    if (!StringUtil.isEmpty( testName )) {
+
+    TransUnitTest activeTest = activeTests.get( transMeta );
+    if (activeTest!=null) {
       return false;
     }
     
@@ -516,6 +510,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     if (checkTestPresent(spoon, transMeta)) {
       return;
     }
+    TransUnitTest unitTest = activeTests.get( transMeta );
 
     try {
       FactoriesHierarchy hierarchy = getHierarchy();
@@ -528,11 +523,6 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       if ( setName != null ) {
         DataSet dataSet = setFactory.loadElement( setName );
 
-        // Clear possible input data set name
-        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, null);
-        // Set golden data set name
-        stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, dataSet.getName() );
-        
         // Now we need to map the fields from the step to golden data set fields...
         //
         RowMetaInterface stepFields = transMeta.getPrevStepFields( stepMeta );
@@ -566,28 +556,15 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
           return;
         }
         
-        // What is the unit test we are using?
-        //
-        String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
-        if (StringUtil.isEmpty( testName )) {
-          return;
-        }
-        TransUnitTest goldenTest = hierarchy.getTestFactory().loadElement( testName );
-        if (goldenTest==null) {
-          // Show a message box later
-          //
-          return;
-        }
-        
         // Modify the test
         //
         
         // Remove golden locations and input locations on the step to avoid duplicates
         //
-        goldenTest.removeInputAndGoldenDataSets(stepMeta.getName());
+        unitTest.removeInputAndGoldenDataSets(stepMeta.getName());
         
         TransUnitTestSetLocation goldenLocation = new TransUnitTestSetLocation();
-        goldenTest.getGoldenDataSets().add( goldenLocation );
+        unitTest.getGoldenDataSets().add( goldenLocation );
         
         goldenLocation.setStepname( stepMeta.getName() );
         goldenLocation.setDataSetName( dataSet.getName() );
@@ -608,8 +585,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         
         // Save the unit test...
         //
-        hierarchy.getTestFactory().saveElement( goldenTest );
-        
+        saveUnitTest( getHierarchy().getTestFactory(), unitTest, transMeta );
+
         stepMeta.setChanged();
 
         spoon.refreshGraph();       
@@ -628,6 +605,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     if ( transGraph == null || transMeta == null || stepMeta == null ) {
       return;
     }
+    if (checkTestPresent(spoon, transMeta)) {
+      return;
+    }
 
     try {
       TransUnitTest currentUnitTest = getCurrentUnitTest( transMeta );
@@ -637,9 +617,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         currentUnitTest.getInputDataSets().remove( inputLocation );
       }
 
-      stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_INPUT, null );
-
-      getHierarchy().getTestFactory().saveElement( currentUnitTest );
+      saveUnitTest( getHierarchy().getTestFactory(), currentUnitTest, transMeta );
 
       transGraph.redraw();
     } catch(Exception e) {
@@ -655,6 +633,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     if ( transGraph == null || transMeta == null || stepMeta == null ) {
       return;
     }
+    if (checkTestPresent(spoon, transMeta)) {
+      return;
+    }
 
     try {
       TransUnitTest currentUnitTest = getCurrentUnitTest( transMeta );
@@ -664,9 +645,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         currentUnitTest.getGoldenDataSets().remove( goldenLocation );
       }
 
-      stepMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_DATASET_GOLDEN, null );
-
-      getHierarchy().getTestFactory().saveElement( currentUnitTest );
+      saveUnitTest( getHierarchy().getTestFactory(), currentUnitTest, transMeta );
     } catch(Exception e) {
       new ErrorDialog(spoon.getShell(), "Error", "Error saving unit test", e);
     }
@@ -848,12 +827,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
       TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), transMeta, spoon.getMetaStore(), unitTest);
       if (dialog.open()) {
-        hierarchy.getTestFactory().saveElement(unitTest);
-        transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
+        saveUnitTest(hierarchy.getTestFactory(), unitTest, transMeta);
 
-        // Don't carry on old indicators...
-        //
-        DataSetConst.clearStepDataSetIndicators( transMeta );
+        activeTests.put( transMeta, unitTest );
 
         spoon.refreshGraph();
       }
@@ -861,6 +837,62 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error creating a new transformation unit test", e );
     }
+  }
+
+  private void saveUnitTest( MetaStoreFactory<TransUnitTest> testFactory, TransUnitTest unitTest, TransMeta transMeta ) throws MetaStoreException {
+
+    // Build relative path whenever a transformation is saved
+    //
+    if (StringUtils.isNotEmpty( transMeta.getFilename() )) {
+      // Set the filename to be safe
+      //
+      unitTest.setTransFilename( transMeta.getFilename() );
+
+      String basePath = unitTest.getBasePath();
+      if (StringUtils.isEmpty( basePath )) {
+        basePath = DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH;
+      }
+      basePath = transMeta.environmentSubstitute( basePath );
+      if (StringUtils.isNotEmpty( basePath )) {
+        // See if the basePath is present in the filename
+        // Then replace the filename
+        //
+        try {
+          FileObject baseFolder = KettleVFS.getFileObject( basePath );
+          FileObject transFile = KettleVFS.getFileObject( transMeta.getFilename() );
+          FileObject parent = transFile.getParent();
+          while (parent!=null) {
+            if (parent.equals( baseFolder)) {
+              // Here we are, we found the base folder in the transformation file
+              //
+              String transFilename = transFile.toString();
+              String baseFoldername = parent.toString();
+
+              // Final validation & unit test filename correction
+              //
+              if (transFilename.startsWith( baseFoldername )) {
+                String relativeFile = transFilename.substring( baseFoldername.length() );
+                String filename;
+                if (relativeFile.startsWith( "/" )) {
+                  filename= "."+relativeFile;
+                } else {
+                  filename = "./"+relativeFile;
+                }
+                // Set the transformation filename to the relative path
+                //
+                unitTest.setTransFilename( filename );
+                LogChannel.GENERAL.logBasic( "Unit test '"+unitTest.getName()+"' : Saved relative path to transformation: "+filename );
+              }
+            }
+            parent = parent.getParent();
+          }
+        } catch ( Exception e ) {
+          throw new MetaStoreException( "Error calculating relative unit test file path", e );
+        }
+      }
+    }
+
+    testFactory.saveElement(unitTest);
   }
 
   public void editUnitTest(Spoon spoon, TransMeta transMeta, String unitTestName) {
@@ -875,7 +907,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       }
       TransUnitTestDialog dialog = new TransUnitTestDialog(spoon.getShell(), transMeta, metaStore, unitTest);
       if (dialog.open()) {
-        hierarchy.getTestFactory().saveElement(unitTest);
+        saveUnitTest( hierarchy.getTestFactory(), unitTest, transMeta );
       }
     } catch(Exception exception) {
       new ErrorDialog(Spoon.getInstance().getShell(),
@@ -898,11 +930,11 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         return;
       }
 
-      transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, null );
-      transMeta.setChanged();
-      
-      DataSetConst.clearStepDataSetIndicators( transMeta );
-      
+
+      // Remove
+      //
+      activeTests.remove( transMeta );
+
       spoon.refreshGraph();
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error detaching unit test", e );
@@ -944,25 +976,13 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       new ErrorDialog( spoon.getShell(), "Error", "Error selecting a new transformation unit test", e );
     }
   }
-  
-  public static final void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) throws KettleException {
-    transMeta.setAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME, unitTest.getName() );
-    
-    DataSetConst.loadStepDataSetIndicators( transMeta, unitTest);
 
-    transMeta.setChanged();
+  public static final void selectUnitTest(TransMeta transMeta, TransUnitTest unitTest) {
+    getInstance().getActiveTests().put(transMeta, unitTest);
   }
 
-  public TransUnitTest getCurrentUnitTest(TransMeta transMeta) throws MetaStoreException, KettleException {
-    // What is the unit test we are using?
-    //
-    String testName = transMeta.getAttribute( DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_TRANS_SELECTED_UNIT_TEST_NAME );
-    if (StringUtil.isEmpty( testName )) {
-      return null;
-    }
-    Spoon spoon = Spoon.getInstance();
-    TransUnitTest unitTest = getHierarchy().getTestFactory().loadElement( testName );
-    return unitTest;
+  public static final TransUnitTest getCurrentUnitTest(TransMeta transMeta) {
+    return getInstance().getActiveTests().get( transMeta );
   }
   
   public void enableTweakRemoveStepInUnitTest() {
@@ -987,24 +1007,22 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     if ( stepMeta == null || transMeta == null ) {
       return;
     }
+    if (checkTestPresent(spoon, transMeta)) {
+      return;
+    }
 
     try {
       TransUnitTest unitTest = getCurrentUnitTest(transMeta);
-      if (unitTest==null) {
-        return;
-      }
       TransUnitTestTweak unitTestTweak = unitTest.findTweak(stepMeta.getName());
       if (unitTestTweak!=null) {
         unitTest.getTweaks().remove(unitTestTweak);
-        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK, null);
       }
       if (enable) {
         unitTest.getTweaks().add(new TransUnitTestTweak(stepTweak, stepMeta.getName()));
-        stepMeta.setAttribute(DataSetConst.ATTR_GROUP_DATASET, DataSetConst.ATTR_STEP_TWEAK, stepTweak.name());
       }
 
-      getHierarchy().getTestFactory().saveElement(unitTest);
-      
+      saveUnitTest( getHierarchy().getTestFactory(), unitTest, transMeta );
+
       spoon.refreshGraph();
       
     } catch(Exception exception) {
@@ -1144,4 +1162,19 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     Spoon.getInstance().refreshGraph();
   }
 
+  /**
+   * Gets activeTests
+   *
+   * @return value of activeTests
+   */
+  public Map<TransMeta, TransUnitTest> getActiveTests() {
+    return activeTests;
+  }
+
+  /**
+   * @param activeTests The activeTests to set
+   */
+  public void setActiveTests( Map<TransMeta, TransUnitTest> activeTests ) {
+    this.activeTests = activeTests;
+  }
 }
