@@ -34,6 +34,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.SourceToTargetMapping;
@@ -86,6 +87,7 @@ import org.pentaho.di.ui.spoon.trans.TransGraph;
 import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
+import org.pentaho.metastore.stores.delegate.DelegatingMetaStore;
 import org.pentaho.metastore.util.PentahoDefaults;
 import org.pentaho.ui.xul.dom.Document;
 import org.pentaho.ui.xul.impl.AbstractXulEventHandler;
@@ -165,30 +167,40 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       EnterSelectionDialog esd = new EnterSelectionDialog( spoon.getShell(), groupNames.toArray( new String[groupNames.size()] ), "Select the group", "Select the group to edit..." );
       String groupName = esd.open();
       if ( groupName != null ) {
-        List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
-        groupFactory.addNameList( DataSetConst.DATABASE_LIST_KEY, databases );
-        DataSetGroup dataSetGroup = groupFactory.loadElement( groupName );
-
-        DataSetGroupDialog groupDialog = new DataSetGroupDialog( spoon.getShell(), dataSetGroup, databases );
-        while ( groupDialog.open() ) {
-          String message = validateDataSetGroup( dataSetGroup, groupName, groupFactory.getElementNames() );
-
-          // Save the group ...
-          //
-          if ( message == null ) {
-            groupFactory.saveElement( dataSetGroup );
-            break;
-          } else {
-            MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
-            box.setText( "Error" );
-            box.setMessage( message );
-            box.open();
-          }
-        }
+        editDataSetGroup( groupName );
       }
     } catch ( Exception e ) {
       new ErrorDialog( spoon.getShell(), "Error", "Error retrieving the list of data set groups", e );
     }
+  }
+
+  public void editDataSetGroup( String groupName ) throws MetaStoreException, KettleException {
+
+    Spoon spoon = Spoon.getInstance();
+    DelegatingMetaStore metaStore = spoon.getMetaStore();
+    List<DatabaseMeta> databases = getAvailableDatabases( spoon.getRepository() );
+    MetaStoreFactory<DataSetGroup> groupFactory = new MetaStoreFactory<DataSetGroup>( DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE );
+
+    groupFactory.addNameList( DataSetConst.DATABASE_LIST_KEY, databases );
+    DataSetGroup dataSetGroup = groupFactory.loadElement( groupName );
+
+    DataSetGroupDialog groupDialog = new DataSetGroupDialog( spoon.getShell(), dataSetGroup, databases );
+    while ( groupDialog.open() ) {
+      String message = validateDataSetGroup( dataSetGroup, groupName, groupFactory.getElementNames() );
+
+      // Save the group ...
+      //
+      if ( message == null ) {
+        groupFactory.saveElement( dataSetGroup );
+        break;
+      } else {
+        MessageBox box = new MessageBox( spoon.getShell(), SWT.OK );
+        box.setText( "Error" );
+        box.setMessage( message );
+        box.open();
+      }
+    }
+
   }
 
   public void addDataSetGroup() {
@@ -260,18 +272,26 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.NoNameSpecified.Message" );
     } else if ( !StringUtil.isEmpty( previousName ) && !previousName.equals( newName ) ) {
       message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.RenamingOfADataSetNotSupported.Message" );
-    } else if ( dataSetGroup.getDatabaseMeta() == null ) {
-      message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.NoDatabaseSpecified.Message" );
+    } else if ( StringUtil.isEmpty( previousName ) && Const.indexOfString( newName, groupNames ) >= 0 ) {
+      message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.AGroupWithNameExists.Message", newName );
+    } else if ( dataSetGroup.getType()==null) {
+      message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.NoGroupTypeSpecified.Message" );
     } else {
-      if ( StringUtil.isEmpty( previousName ) && Const.indexOfString( newName, groupNames ) >= 0 ) {
-        message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.AGroupWithNameExists.Message", newName );
+      switch(dataSetGroup.getType()) {
+        case Database:
+          if ( dataSetGroup.getDatabaseMeta() == null ) {
+            message = BaseMessages.getString( PKG, "DataSetHelper.DataSetGroup.NoDatabaseSpecified.Message" );
+          }
+          break;
+        case CSV:
+          break;
       }
     }
 
     return message;
   }
 
-  private String validateDataSet( DataSet dataSet, String previousName, List<String> setNames ) {
+  public static String validateDataSet( DataSet dataSet, String previousName, List<String> setNames ) {
 
     String message = null;
 

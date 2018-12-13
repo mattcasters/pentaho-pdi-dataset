@@ -82,6 +82,9 @@ public class DataSetConst {
 
   public static final String AREA_DRAWN_UNIT_TEST_ICON = "Drawn_UnitTestIcon";
   public static final String AREA_DRAWN_UNIT_TEST_NAME = "Drawn_UnitTestName";
+  public static final String AREA_DRAWN_INPUT_DATA_SET = "Input_DataSet";
+  public static final String AREA_DRAWN_GOLDEN_DATA_SET = "Golden_DataSet";
+
 
   public static final String ROW_COLLECTION_MAP = "RowCollectionMap";
   public static final String UNIT_TEST_RESULTS = "UnitTestResults";
@@ -100,18 +103,7 @@ public class DataSetConst {
       BaseMessages.getString(PKG, "DataSetConst.TestType.DEVELOPMENT.Desc"),
       BaseMessages.getString(PKG, "DataSetConst.TestType.UNIT_TEST.Desc"),
       };
-  
-  public static final DataSet findDataSet( List<DataSet> list, String dataSetName ) {
-    if ( StringUtil.isEmpty( dataSetName ) ) {
-      return null;
-    }
-    for ( DataSet dataSet : list ) {
-      if ( dataSetName.equals( dataSet.getName() ) ) {
-        return dataSet;
-      }
-    }
-    return null;
-  }
+
 
   public static final DataSetGroup findDataSetGroup( List<DataSetGroup> list, String dataSetGroupName ) {
     if ( StringUtil.isEmpty( dataSetGroupName ) ) {
@@ -154,42 +146,15 @@ public class DataSetConst {
 
     return list;
   }
-  
+
   public static final DataSet writeDataSet(String name, String description, DataSetGroup dataSetGroup, String tableName, List<DataSetField> fields, List<Object[]> dataRows) throws KettleException {
+
     DataSet dataSet = new DataSet( name, description, dataSetGroup, tableName, fields );
     RowMetaInterface rowMeta = dataSet.getSetRowMeta( true );
-    List<RowMetaAndData> rows = new ArrayList<RowMetaAndData>();
-    for (Object[] dataRow : dataRows) {
-      RowMetaAndData row = new RowMetaAndData();
-      row.setRowMeta( rowMeta );
-      row.setData( dataRow );
-      rows.add( row );
-    }
-    
-    Database database = new Database( new SimpleLoggingObject( "Writing Data Set", LoggingObjectType.TRANS, null ), dataSetGroup.getDatabaseMeta());
-    try {
-      database.connect();
-      String sql;
-      if ( database.checkTableExists( tableName) ) {
-        // Clean out old junk
-        //
-        database.truncateTable( tableName );
-        sql = database.getAlterTableStatement( tableName, rowMeta, null, false, null, true );
-      } else {
-        sql = database.getCreateTableStatement( tableName, rowMeta, null, false, null, true );
-      }
-      if ( !StringUtil.isEmpty( sql ) ) {
-        database.execStatements( sql );
-      }
-      database.prepareInsert( rowMeta, tableName );
-      for ( RowMetaAndData row : rows ) {
-        database.setValuesInsert( row );
-        database.insertRow();
-      }
-      database.commit();
-    } finally {
-      database.disconnect();
-    }
+
+    // Write the rows to the data set we just created...
+    //
+    dataSetGroup.writeDataSetData(tableName, rowMeta, dataRows);
 
     return dataSet;
   }
@@ -246,7 +211,7 @@ public class DataSetConst {
 
       DataSet goldenDataSet = unitTest.getGoldenDataSet( log, hierarchy, location );
       List<Object[]> goldenRows = goldenDataSet.getAllRows( log, location );
-      RowMetaInterface goldenRowMeta = goldenDataSet.getSetRowMeta( false );
+      RowMetaInterface goldenRowMeta = goldenDataSet.getMappedDataSetFieldsRowMeta( location );
 
       log.logBasic("Found "+goldenRows.size()+" golden rows '"+location.getStepname()+"', fields: "+Arrays.toString(goldenRowMeta.getFieldNames()));
       
@@ -475,8 +440,5 @@ public class DataSetConst {
   public static final String[] getTestTypeDescriptions() {
     return testTypeDesc;
   }
-  
-  public static final String[] getTweakDescriptions() {
-    return tweakDesc;
-  }
+
 }

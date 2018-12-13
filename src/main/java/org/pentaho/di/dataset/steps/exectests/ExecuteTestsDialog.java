@@ -23,7 +23,6 @@
 package org.pentaho.di.dataset.steps.exectests;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -32,6 +31,7 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -54,7 +54,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
   
   private ExecuteTestsMeta input;
   
-  private CCombo wTypeToExecute;
+  private Combo wTypeToExecute;
   private TextVar wTransformationNameField;
   private TextVar wUnitTestNameField;
   private TextVar wDataSetNameField;
@@ -118,9 +118,8 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlTypeToExecute.right = new FormAttachment( middle, -margin );
     fdlTypeToExecute.top = new FormAttachment( lastControl, margin );
     wlTypeToExecute.setLayoutData( fdlTypeToExecute );
-    wTypeToExecute = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wTypeToExecute = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     wTypeToExecute.setItems(DataSetConst.getTestTypeDescriptions());
-    props.setLook( wTypeToExecute );
     FormData fdTypeToExecute = new FormData();
     fdTypeToExecute.left = new FormAttachment( middle, 0 );
     fdTypeToExecute.top = new FormAttachment( lastControl, margin );

@@ -57,7 +57,6 @@ public class SpoonFlagUnitTestExtensionPoint implements ExtensionPointInterface 
     if (!StringUtil.isEmpty( unitTestName )) {
       // We're running in Spoon and there's a unit test selected : test it
       //
-      System.out.println( "==== Running unit test on this transformation ====" );
       transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
       transMeta.setVariable( DataSetConst.VAR_UNIT_TEST_NAME, unitTestName );
     }

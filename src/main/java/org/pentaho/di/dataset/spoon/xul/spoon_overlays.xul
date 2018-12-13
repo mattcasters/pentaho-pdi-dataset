@@ -5,13 +5,14 @@
 	xmlns:HTML="http://www.w3.org/Profiles/XHTML-transitional" height="600"
 	width="800" xmlns:pen="http://www.pentaho.org/2008/xul">
 
-  <!-- 
-     
-     This is the overlay for the Spoon Tools menu
-     
-   -->
-  <menupopup id="tools-popup">
-    <menu id="spoon-tools-menu-dataset" label="Data set">
+
+  <!--
+Add an entry to the spoon menu bar
+-->
+  <menubar id="spoon-menubar">
+
+    <menu id="datasets" label="DataSets" accesskey="alt-6">
+
       <menupopup id="spoon-tools-menu-dataset-popup">
 
         <menu id="spoon-tools-menu-dataset-groups" label="Data set groups">
@@ -40,6 +41,7 @@
 
       </menupopup>
     </menu>
-  </menupopup>
+
+  </menubar>
 
 </overlay>

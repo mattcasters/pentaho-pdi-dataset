@@ -58,6 +58,7 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -115,15 +116,11 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
         return; // Nothing to do here, we can't reference data sets.
       }
 
-      List<DatabaseMeta> databases = DataSetConst.getAvailableDatabases( repository, transMeta.getSharedObjects() );
-      FactoriesHierarchy factoriesHierarchy = new FactoriesHierarchy( metaStore, databases );
-
       // Replace all steps with input data sets with Injector steps.
       // Replace all steps with a golden data set, attached to a unit test, with a Dummy
       // Apply tweaks
       //
       for ( final StepMeta stepMeta : trans.getTransMeta().getSteps() ) {
-        String stepname = stepMeta.getName();
 
         // We might want to pass the data from this step into a data set all by itself...
         // For this we want to attach a row listener which writes the data.
@@ -146,66 +143,33 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
 
 
   private void passStepRowsToDataSet( final Trans trans, final TransMeta transMeta, final StepMeta stepMeta, final List<SourceToTargetMapping> mappings, final DataSet dataSet ) throws KettleException {
-    final DatabaseMeta databaseMeta = dataSet.getGroup().getDatabaseMeta();
-    final Database database = new Database( trans, databaseMeta );
-
-    database.connect();
-    database.setCommit( Integer.MAX_VALUE );
-    String schemaTable = databaseMeta.getQuotedSchemaTableCombination( dataSet.getGroup().getSchemaName(), dataSet.getTableName() );
-
-    // Remove it all first. Don't truncate to keep the whole upload transactional
-    //
-    database.execStatement( "DELETE FROM " + schemaTable );
-    final RowMetaInterface columnsRowMeta = dataSet.getSetRowMeta( true );
-    database.prepareInsert( columnsRowMeta, dataSet.getGroup().getSchemaName(), dataSet.getTableName() );
-    final RowMetaAndData rmad = new RowMetaAndData();
-    rmad.setRowMeta( columnsRowMeta );
 
     // This is the step to inject into the specified data set
     //
+    final RowMetaInterface columnsRowMeta = dataSet.getSetRowMeta( true );
+
     StepInterface stepInterface = trans.findStepInterface( stepMeta.getName(), 0 );
+
+    final List<Object[]> stepForDbRows = new ArrayList<>(  );
+
     stepInterface.addRowListener( new RowAdapter() {
       public void rowWrittenEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
-        try {
-          Object[] dbRow = RowDataUtil.allocateRowData( columnsRowMeta.size() );
+          Object[] stepForDbRow = RowDataUtil.allocateRowData( columnsRowMeta.size() );
           for ( SourceToTargetMapping mapping : mappings ) {
-            dbRow[mapping.getTargetPosition()] = row[mapping.getSourcePosition()];
+            stepForDbRow[mapping.getTargetPosition()] = row[mapping.getSourcePosition()];
           }
-          rmad.setData( dbRow );
-          database.setValuesInsert( rmad );
-          database.insertRow( false );
-        } catch ( Exception e ) {
-          try {
-            trans.getLogChannel().logError("Error writing row to data set '"+dataSet.getName()+"' : "+rowMeta.getString( row ));
-          } catch ( KettleValueException e1 ) {
-            trans.getLogChannel().logError("Data conversion error on row metadata : "+rowMeta.toString()+" data : "+Arrays.toString(row));
-          }
-
-          throw new KettleStepException( e );
+          stepForDbRows.add(stepForDbRow);
         }
-      }
     } );
 
-    // we also need to clean up shop at the end of the transformation...
+    // At the end of the transformation, write it...
     //
-    trans.addTransListener( new TransAdapter() {
-      @Override
-      public void transFinished( Trans trans ) throws KettleException {
-        try {
-          if ( trans.isStopped() || trans.getErrors() > 0 ) {
-            database.rollback();
-          } else {
-            database.commit();
-          }
-          database.disconnect();
+    trans.addTransListener( new TransAdapter(){
+      @Override public void transFinished( Trans trans ) throws KettleException {
 
-          // Also clear out the mappings...
-          setsMap.remove( transMeta.getName() );
-          mappingsMap.remove( transMeta.getName() );
-          setsMap.remove( transMeta.getName() );
-        } catch ( Exception e ) {
-          throw new KettleException( "Unable to close write operation to dataset", e );
-        }
+        // Write it
+        //
+        dataSet.getGroup().writeDataSetData( dataSet.getTableName(), columnsRowMeta, stepForDbRows );
       }
     } );
 

@@ -26,6 +26,7 @@ import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
+import org.pentaho.di.core.gui.AreaOwner;
 import org.pentaho.di.core.gui.GCInterface;
 import org.pentaho.di.core.gui.Point;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
@@ -39,6 +40,8 @@ import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPainterExtension;
 import org.pentaho.di.trans.step.StepMeta;
+
+import java.util.List;
 
 @ExtensionPoint(
   id = "DrawInputDataSetOnStepExtensionPoint",
@@ -55,13 +58,14 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
     TransPainterExtension ext = (TransPainterExtension) object;
     StepMeta stepMeta = ext.stepMeta;
     TransMeta transMeta = ext.transMeta;
+
     TransUnitTest unitTest = DataSetHelper.getInstance().getActiveTests().get( transMeta );
     if (unitTest!=null) {
-      drawInputDataSetMarker( ext, stepMeta, unitTest );
+      drawInputDataSetMarker( ext, stepMeta, unitTest, ext.areaOwners );
     }
   }
 
-  private void drawInputDataSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest ) {
+  private void drawInputDataSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest, List<AreaOwner> areaOwners ) {
     // Now we're here, draw a marker and indicate the name of the data set name
     //
     TransUnitTestSetLocation location = unitTest.findInputLocation( stepMeta.getName() );
@@ -99,40 +103,8 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
     gc.drawPolygon( arrow );
     gc.drawText( dataSetName, point.x + 3, point.y + 3 );
 
-  }
-
-  protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, String testName ) {
-    // Now we're here, draw a marker and indicate the name of the unit test
+    // Leave a trace of what we drew, for memory reasons, just the name of the data set here.
     //
-    GCInterface gc = ext.gc;
-    int iconsize = ext.iconsize;
-    int x = ext.x1;
-    int y = ext.y1;
-
-    gc.setLineWidth( stepMeta.isSelected() ? 2 : 1 );
-    gc.setForeground( EColor.CRYSTAL );
-    gc.setBackground( EColor.LIGHTGRAY );
-    gc.setFont( EFont.GRAPH );
-    Point textExtent = gc.textExtent( testName );
-    textExtent.x += 6; // add a tiny bit of a margin
-    textExtent.y += 6;
-
-    // Draw it at the right hand side
-    //
-    int arrowSize = textExtent.y;
-    Point point = new Point( x + iconsize, y + ( iconsize - textExtent.y ) / 2 );
-
-    int[] arrow = new int[] {
-      point.x, point.y,
-      point.x + textExtent.x + arrowSize, point.y,
-      point.x + textExtent.x + arrowSize, point.y + textExtent.y,
-      point.x, point.y + textExtent.y,
-      point.x + arrowSize, point.y + textExtent.y / 2
-    };
-
-    gc.fillPolygon( arrow );
-    gc.drawPolygon( arrow );
-    gc.drawText( testName, point.x + arrowSize + 3, point.y + 3 );
+    areaOwners.add( new AreaOwner( AreaOwner.AreaType.CUSTOM, point.x, point.y, textExtent.x, textExtent.y, new Point(0,0), DataSetConst.AREA_DRAWN_INPUT_DATA_SET, dataSetName) );
   }
-
 }

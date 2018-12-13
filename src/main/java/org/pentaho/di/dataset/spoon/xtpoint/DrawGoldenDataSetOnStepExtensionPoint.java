@@ -26,6 +26,7 @@ import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
+import org.pentaho.di.core.gui.AreaOwner;
 import org.pentaho.di.core.gui.GCInterface;
 import org.pentaho.di.core.gui.Point;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
@@ -39,6 +40,8 @@ import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPainterExtension;
 import org.pentaho.di.trans.step.StepMeta;
+
+import java.util.List;
 
 @ExtensionPoint(
   id = "DrawGoldenDataSetOnStepExtensionPoint",
@@ -57,11 +60,11 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
     TransMeta transMeta = ext.transMeta;
     TransUnitTest unitTest = DataSetHelper.getInstance().getActiveTests().get( transMeta );
     if (unitTest!=null) {
-      drawGoldenSetMarker( ext, stepMeta, unitTest );
+      drawGoldenSetMarker( ext, stepMeta, unitTest, ext.areaOwners );
     }
   }
 
-  protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest ) {
+  protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest, List<AreaOwner> areaOwners ) {
 
     TransUnitTestSetLocation location = unitTest.findGoldenLocation( stepMeta.getName() );
     if (location==null) {
@@ -100,6 +103,11 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
     gc.fillPolygon( arrow );
     gc.drawPolygon( arrow );
     gc.drawText( dataSetName, point.x + arrowSize + 3, point.y + 3 );
+
+    // Leave a trace of what we drew, for memory reasons, just the name of the data set here.
+    //
+    areaOwners.add( new AreaOwner( AreaOwner.AreaType.CUSTOM, point.x, point.y, textExtent.x, textExtent.y, new Point(0,0), DataSetConst.AREA_DRAWN_GOLDEN_DATA_SET, dataSetName) );
+
   }
 
 }

@@ -22,13 +22,8 @@
 
 package org.pentaho.di.dataset.spoon.dialog;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -37,22 +32,21 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.DBCache;
-import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LoggingObject;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -67,8 +61,6 @@ import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.PropsUI;
-import org.pentaho.di.ui.core.database.dialog.GetTableSizeProgressDialog;
-import org.pentaho.di.ui.core.database.dialog.SQLEditor;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
@@ -82,6 +74,9 @@ import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.metastore.util.PentahoDefaults;
 
+import java.util.Collections;
+import java.util.List;
+
 public class DataSetDialog extends Dialog {
   private static Class<?> PKG = DataSetDialog.class; // for i18n purposes, needed by Translator2!!
 
@@ -94,7 +89,7 @@ public class DataSetDialog extends Dialog {
   private Text wName;
   private Text wDescription;
   private Text wTableName;
-  private CCombo wDataSetGroup;
+  private Combo wDataSetGroup;
   private TableView wFieldMapping;
 
   private Button wOK;
@@ -241,8 +236,7 @@ public class DataSetDialog extends Dialog {
       }
     });
 
-    wDataSetGroup = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wDataSetGroup );
+    wDataSetGroup = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     FormData fdDatabase = new FormData();
     fdDatabase.top = new FormAttachment( lastControl, margin );
     fdDatabase.left = new FormAttachment( middle, 0 );
@@ -257,7 +251,7 @@ public class DataSetDialog extends Dialog {
     props.setLook( wlFieldMapping );
     FormData fdlUpIns = new FormData();
     fdlUpIns.left = new FormAttachment( 0, 0 );
-    fdlUpIns.top = new FormAttachment( lastControl, margin );
+    fdlUpIns.top = new FormAttachment( lastControl, margin*2 );
     wlFieldMapping.setLayoutData( fdlUpIns );
     lastControl = wlFieldMapping;
 
@@ -389,9 +383,14 @@ public class DataSetDialog extends Dialog {
   }
   
   protected void editDataSetGroup() {
-    
+
+    String groupName = wDataSetGroup.getText();
+    if ( StringUtils.isEmpty(groupName)) {
+      return;
+    }
+
     try {
-      DataSetHelper.getInstance().editDataSetGroup();
+      DataSetHelper.getInstance().editDataSetGroup( groupName );
       refreshGroups(metaStore);   
     } catch(Exception e) {
       new ErrorDialog(shell, "Error", "Error editing data set group", e);
@@ -416,8 +415,12 @@ public class DataSetDialog extends Dialog {
    */
   protected void getMetadataFromTable() {
     try {
-      DataSetGroup group = DataSetConst.findDataSetGroup( groups, wDataSetGroup.getText() );
-      verifySettings( group );
+      verifySettings();
+
+      DataSet set = new DataSet();
+      getInfo(set);
+      DataSetGroup group = set.getGroup();
+
       String schemaTable = group.getDatabaseMeta().getQuotedSchemaTableCombination( group.getSchemaName(), wTableName.getText() );
 
       Database database = null;
@@ -452,13 +455,8 @@ public class DataSetDialog extends Dialog {
     }
   }
 
-  private DataSetGroup verifySettings() throws KettleException {
+  private void verifySettings() throws KettleException {
     DataSetGroup group = DataSetConst.findDataSetGroup( groups, wDataSetGroup.getText() );
-    verifySettings( group );
-    return group;
-  }
-
-  private void verifySettings( DataSetGroup group ) throws KettleException {
 
     if ( group == null ) {
       throw new KettleException( BaseMessages.getString( PKG, "DataSetDialog.Error.NoGroupSpecified" ) );
@@ -466,22 +464,27 @@ public class DataSetDialog extends Dialog {
     if ( StringUtil.isEmpty( wTableName.getText() ) ) {
       throw new KettleException( BaseMessages.getString( PKG, "DataSetDialog.Error.NoTableSpecified" ) );
     }
-    DatabaseMeta databaseMeta = group.getDatabaseMeta();
-    if ( databaseMeta == null ) {
-      throw new KettleException( BaseMessages.getString( PKG, "DataSetDialog.Error.GroupHasNoDatabaseSpecified" ) );
-    }
+    group.verifySettings();
+
   }
 
   /**
    * Look at the metadata specified here and create the table accordingly...
+   * - Create a table for the Database Group type
+   * - Create a metadata file for the CSV group type
    */
   protected void createTable() {
     try {
+      verifySettings();
 
-      DataSetGroup group = verifySettings();
-      DatabaseMeta databaseMeta = group.getDatabaseMeta();
-      String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), wTableName.getText() );
+      DataSet set = new DataSet();
+      getInfo(set);
+      DataSetGroup group = set.getGroup();
 
+      String tableName = wTableName.getText();
+
+      // Calculate the row metadata of the table
+      //
       RowMetaInterface rowMeta = new RowMeta();
       int nrFields = wFieldMapping.nrNonEmpty();
       for ( int i = 0; i < nrFields; i++ ) {
@@ -502,27 +505,7 @@ public class DataSetDialog extends Dialog {
         rowMeta.addValueMeta( valueMeta );
       }
 
-      Database database = null;
-      try {
-        database = new Database( new LoggingObject( "DataSetDialog" ), databaseMeta );
-        database.connect();
-        String sql;
-        if ( database.checkTableExists( schemaTable ) ) {
-          sql = database.getAlterTableStatement( schemaTable, rowMeta, null, false, null, true );
-        } else {
-          sql = database.getCreateTableStatement( schemaTable, rowMeta, null, false, null, true );
-        }
-        if ( StringUtil.isEmpty( sql ) ) {
-          sql = "-- " + Const.CR + "-- " + BaseMessages.getString( PKG, "DataSetDialog.TableOKNoSQLNeeded" ) + Const.CR + "-- " + Const.CR + Const.CR;
-        }
-        SQLEditor sqlEditor = new SQLEditor( shell, SWT.NONE, databaseMeta, DBCache.getInstance(), sql );
-        sqlEditor.open();
-
-      } finally {
-        if ( database != null ) {
-          database.disconnect();
-        }
-      }
+      group.createTable(tableName, rowMeta);
 
     } catch ( Exception e ) {
       new ErrorDialog( shell, "Error", "Error retrieving metadata from dataset table", e );
@@ -543,44 +526,13 @@ public class DataSetDialog extends Dialog {
       DataSet set = new DataSet();
       getInfo( set );
       DataSetGroup group = set.getGroup();
-      DatabaseMeta databaseMeta = group.getDatabaseMeta();
-      String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), set.getTableName() );
 
-      // First count the rows to see if we're not dealing with a very large data set...
+      // get rows from the data set...
       //
-      GetTableSizeProgressDialog pd = new GetTableSizeProgressDialog( shell, databaseMeta,
-        set.getTableName(), group.getSchemaName() );
-      Long rowCount = pd.open();
-      if ( rowCount == null ) {
-        return;
-      }
+      List<Object[]> rows = set.getAllRows( LogChannel.UI );
 
-      if ( rowCount > previewSize ) {
-        MessageBox box = new MessageBox( shell, SWT.YES | SWT.NO | SWT.ICON_QUESTION );
-        box.setText( BaseMessages.getString( PKG, "DataSetDialog.RowCountWarning.Title" ) );
-        box.setText( BaseMessages.getString( PKG, "DataSetDialog.RowCountWarning.Message", rowCount.toString() ) );
-        int anwser = box.open();
-        if ( ( anwser & SWT.NO ) != 0 ) {
-          return;
-        }
-      }
-
-      Database database = null;
-      List<Object[]> rows = null;
       RowMetaInterface fieldsRowMeta = set.getSetRowMeta( false );
       RowMetaInterface columnsRowMeta = set.getSetRowMeta( true );
-
-      try {
-        database = new Database( new LoggingObject( "DataSetDialog" ), databaseMeta );
-        database.connect();
-
-        rows = database.getRows( "SELECT * FROM " + schemaTable, 0 );
-
-      } finally {
-        if ( database != null ) {
-          database.disconnect();
-        }
-      }
 
       EditRowsDialog editRowsDialog = new EditRowsDialog( shell, SWT.NONE,
         BaseMessages.getString( PKG, "DataSetDialog.EditRows.Title" ),
@@ -589,38 +541,9 @@ public class DataSetDialog extends Dialog {
         rows );
       List<Object[]> newList = editRowsDialog.open();
       if ( newList != null ) {
-
-        RowMetaAndData rmad = new RowMetaAndData();
-        rmad.setRowMeta( columnsRowMeta );
-        boolean batch = false;
-
-        // Write these rows to the database...
+        // Write the rows back to the data set
         //
-        // For now let's just do the optimistic thing, no batch, no nothing.
-        // Delete and insert in one transaction...
-        //
-        try {
-          database = new Database( new LoggingObject( "DataSetDialog" ), databaseMeta );
-          database.connect();
-          database.setCommit( newList.size() + 10000 );
-          database.execStatement( "DELETE FROM " + schemaTable );
-          database.prepareInsert( columnsRowMeta, group.getSchemaName(), set.getTableName() );
-
-          for ( Object[] row : newList ) {
-            rmad.setData( row );
-            database.setValuesInsert( rmad );
-            database.insertRow( batch );
-          }
-          database.insertFinished( batch );
-          database.commit();
-        } catch ( Exception e ) {
-          database.rollback();
-          throw e;
-        } finally {
-          if ( database != null ) {
-            database.disconnect();
-          }
-        }
+        group.writeDataSetData(set.getTableName(), columnsRowMeta, newList );
       }
 
     } catch ( Exception e ) {
@@ -629,49 +552,17 @@ public class DataSetDialog extends Dialog {
   }
 
   protected void viewData() {
-    int previewSize = props.getDefaultPreviewSize();
     try {
-      DataSetGroup group = verifySettings();
-      DatabaseMeta databaseMeta = group.getDatabaseMeta();
-      String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), wTableName.getText() );
+      DataSet set = new DataSet();
+      getInfo( set );
+      verifySettings();
 
-      Database database = null;
-      try {
-        database = new Database( new LoggingObject( "DataSetDialog" ), databaseMeta );
-        database.connect();
+      List<Object[]> setRows = set.getAllRows(LogChannel.UI);
+      RowMetaInterface setRowMeta = set.getSetRowMeta( false );
 
-        ResultSet resultSet = database.openQuery( "SELECT * FROM " + schemaTable );
-        try {
-          List<Object[]> buffer = new ArrayList<Object[]>();
-          Object[] row = database.getRow( resultSet );
-          RowMetaInterface rowMeta = database.getReturnRowMeta();
-          while ( row != null ) {
-            buffer.add( row );
-            if ( buffer.size() > previewSize ) {
-              PreviewRowsDialog previewRowsDialog = new PreviewRowsDialog( shell, new Variables(), SWT.NONE, schemaTable, rowMeta, buffer );
-              previewRowsDialog.open();
-              buffer.clear();
-              if ( previewRowsDialog.isAskingToStop() ) {
-                break;
-              }
-            }
-            row = database.getRow( resultSet );
-          }
+      PreviewRowsDialog previewRowsDialog = new PreviewRowsDialog( shell, new Variables(), SWT.NONE, set.getName(), setRowMeta, setRows );
+      previewRowsDialog.open();
 
-          if ( buffer.size() > 0 ) {
-            PreviewRowsDialog previewRowsDialog = new PreviewRowsDialog( shell, new Variables(), SWT.NONE, schemaTable, rowMeta, buffer );
-            previewRowsDialog.open();
-            buffer.clear();
-          }
-        } finally {
-          resultSet.close();
-        }
-
-      } finally {
-        if ( database != null ) {
-          database.disconnect();
-        }
-      }
     } catch ( Exception e ) {
       new ErrorDialog( shell, "Error", "Error previewing data from dataset table", e );
     }

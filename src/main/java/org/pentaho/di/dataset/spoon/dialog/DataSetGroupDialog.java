@@ -25,7 +25,6 @@ package org.pentaho.di.dataset.spoon.dialog;
 import java.util.List;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -34,21 +33,28 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
+import org.pentaho.di.core.variables.VariableSpace;
+import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.DataSetGroup;
+import org.pentaho.di.dataset.DataSetGroupType;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.gui.WindowProperty;
+import org.pentaho.di.ui.core.widget.ComboVar;
+import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 public class DataSetGroupDialog extends Dialog {
@@ -56,15 +62,26 @@ public class DataSetGroupDialog extends Dialog {
 
   private DataSetGroup dataSetGroup;
 
+  private Group wgDatabase;
+  private Group wgCsv;
+
   private List<DatabaseMeta> databases;
 
   private Shell shell;
 
   private Text wName;
   private Text wDescription;
-  private CCombo wDatabase;
+  private Combo wGroupType;
+
+  // Database type
+  //
+  private Combo wDatabase;
   private Text wSchemaName;
 
+  // CSV type
+  //
+  private TextVar wFolderName;
+  
   private Button wOK, wCancel;
 
   private PropsUI props;
@@ -74,12 +91,17 @@ public class DataSetGroupDialog extends Dialog {
 
   private boolean ok;
 
+  private VariableSpace space;
+
   public DataSetGroupDialog( Shell parent, DataSetGroup dataSetGroup, List<DatabaseMeta> databases ) {
     super( parent, SWT.NONE );
     this.dataSetGroup = dataSetGroup;
     this.databases = databases;
     props = PropsUI.getInstance();
     ok = false;
+
+    space = new Variables();
+    space.initializeVariablesFrom( null );
   }
 
   public boolean open() {
@@ -111,7 +133,7 @@ public class DataSetGroupDialog extends Dialog {
     wName = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wName );
     FormData fdName = new FormData();
-    fdName.top = new FormAttachment( 0, 0 );
+    fdName.top = new FormAttachment( wlName, 0, SWT.CENTER);
     fdName.left = new FormAttachment( middle, 0 );
     fdName.right = new FormAttachment( 100, 0 );
     wName.setLayoutData( fdName );
@@ -130,49 +152,121 @@ public class DataSetGroupDialog extends Dialog {
     wDescription = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wDescription );
     FormData fdDescription = new FormData();
-    fdDescription.top = new FormAttachment( lastControl, margin );
+    fdDescription.top = new FormAttachment( wlDescription, 0, SWT.CENTER);
     fdDescription.left = new FormAttachment( middle, 0 );
     fdDescription.right = new FormAttachment( 100, 0 );
     wDescription.setLayoutData( fdDescription );
     lastControl = wDescription;
 
+
+    // The type of the group...
+    //
+    Label wlGroupType = new Label( shell, SWT.RIGHT );
+    props.setLook( wlGroupType );
+    wlGroupType.setText( BaseMessages.getString( PKG, "DataSetGroupDialog.GroupType.Label" ) );
+    FormData fdlGroupType = new FormData();
+    fdlGroupType.top = new FormAttachment( lastControl, margin );
+    fdlGroupType.left = new FormAttachment( 0, 0 );
+    fdlGroupType.right = new FormAttachment( middle, -margin );
+    wlGroupType.setLayoutData( fdlGroupType );
+    wGroupType = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wGroupType.setItems( DataSetGroupType.getNames() );
+    FormData fdGroupType = new FormData();
+    fdGroupType.top = new FormAttachment( wlGroupType, 0, SWT.CENTER);
+    fdGroupType.left = new FormAttachment( middle, 0 );
+    fdGroupType.right = new FormAttachment( 100, 0 );
+    wGroupType.setLayoutData( fdGroupType );
+    lastControl = wGroupType;
+
+    wGroupType.addListener( SWT.Selection, e->enableGroups() );
+
+
+    wgDatabase = new Group(shell, SWT.NO_BACKGROUND | SWT.SHADOW_ETCHED_IN);
+    props.setLook(wgDatabase);
+    wgDatabase.setText("Database settings");
+    FormLayout databaseGroupLayout = new FormLayout();
+    databaseGroupLayout.spacing = 10;
+    databaseGroupLayout.marginTop = 10;
+    databaseGroupLayout.marginBottom= 10;
+    wgDatabase.setLayout(databaseGroupLayout);
+
     // The database of the group...
     //
-    Label wlDatabase = new Label( shell, SWT.RIGHT );
+    Label wlDatabase = new Label( wgDatabase, SWT.RIGHT );
     props.setLook( wlDatabase );
     wlDatabase.setText( BaseMessages.getString( PKG, "DataSetGroupDialog.GroupDatabase.Label" ) );
     FormData fdlDatabase = new FormData();
-    fdlDatabase.top = new FormAttachment( lastControl, margin );
+    fdlDatabase.top = new FormAttachment( 0, 0 );
     fdlDatabase.left = new FormAttachment( 0, 0 );
     fdlDatabase.right = new FormAttachment( middle, -margin );
     wlDatabase.setLayoutData( fdlDatabase );
-    wDatabase = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wDatabase );
+    wDatabase = new Combo( wgDatabase, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     FormData fdDatabase = new FormData();
-    fdDatabase.top = new FormAttachment( lastControl, margin );
+    fdDatabase.top = new FormAttachment( wlDatabase, 0, SWT.CENTER);
     fdDatabase.left = new FormAttachment( middle, 0 );
     fdDatabase.right = new FormAttachment( 100, 0 );
     wDatabase.setLayoutData( fdDatabase );
-    lastControl = wDatabase;
+    Control lastGroupControl = wDatabase;
 
     // The schema in the database...
     //
-    Label wlSchemaName = new Label( shell, SWT.RIGHT );
+    Label wlSchemaName = new Label( wgDatabase, SWT.RIGHT );
     props.setLook( wlSchemaName );
     wlSchemaName.setText( BaseMessages.getString( PKG, "DataSetGroupDialog.GroupSchemaName.Label" ) );
     FormData fdlSchemaName = new FormData();
-    fdlSchemaName.top = new FormAttachment( lastControl, margin );
+    fdlSchemaName.top = new FormAttachment( lastGroupControl, margin );
     fdlSchemaName.left = new FormAttachment( 0, 0 );
     fdlSchemaName.right = new FormAttachment( middle, -margin );
     wlSchemaName.setLayoutData( fdlSchemaName );
-    wSchemaName = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wSchemaName = new Text( wgDatabase, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wSchemaName );
     FormData fdSchemaName = new FormData();
-    fdSchemaName.top = new FormAttachment( lastControl, margin );
+    fdSchemaName.top = new FormAttachment( wlSchemaName, 0, SWT.CENTER );
     fdSchemaName.left = new FormAttachment( middle, 0 );
     fdSchemaName.right = new FormAttachment( 100, 0 );
     wSchemaName.setLayoutData( fdSchemaName );
-    lastControl = wSchemaName;
+
+    FormData fdgDatabase = new FormData();
+    fdgDatabase.top = new FormAttachment( lastControl, margin*2 );
+    fdgDatabase.left = new FormAttachment( 0, 0 );
+    fdgDatabase.right = new FormAttachment( 100, 0 );
+    wgDatabase.setLayoutData( fdgDatabase );
+    lastControl = wgDatabase;
+
+    wgCsv = new Group(shell, SWT.NO_BACKGROUND | SWT.SHADOW_ETCHED_IN);
+    props.setLook(wgCsv);
+    wgCsv.setText("CSV settings");
+    FormLayout csvGroupLayout = new FormLayout();
+    csvGroupLayout.spacing = 10;
+    csvGroupLayout.marginTop = 10;
+    csvGroupLayout.marginBottom= 10;
+    wgCsv.setLayout(csvGroupLayout);
+
+
+    // The folder for the CSV files...
+    //
+    Label wlFolderName = new Label( wgCsv, SWT.RIGHT );
+    props.setLook( wlFolderName );
+    wlFolderName.setText( BaseMessages.getString( PKG, "DataSetGroupDialog.GroupFolderName.Label" ) );
+    FormData fdlFolderName = new FormData();
+    fdlFolderName.top = new FormAttachment( 0, 0 );
+    fdlFolderName.left = new FormAttachment( 0, 0 );
+    fdlFolderName.right = new FormAttachment( middle, -margin );
+    wlFolderName.setLayoutData( fdlFolderName );
+    wFolderName = new TextVar( space, wgCsv, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wFolderName );
+    FormData fdFolderName = new FormData();
+    fdFolderName.top = new FormAttachment( wlFolderName, 0, SWT.CENTER);
+    fdFolderName.left = new FormAttachment( middle, 0 );
+    fdFolderName.right = new FormAttachment( 100, 0 );
+    wFolderName.setLayoutData( fdFolderName );
+
+    FormData fdgCsv = new FormData();
+    fdgCsv.top = new FormAttachment( lastControl, margin*2 );
+    fdgCsv.left = new FormAttachment( 0, 0 );
+    fdgCsv.right = new FormAttachment( 100, 0 );
+    wgCsv.setLayoutData( fdgCsv );
+    lastControl = wgCsv;
 
     // Buttons
     wOK = new Button( shell, SWT.PUSH );
@@ -204,6 +298,8 @@ public class DataSetGroupDialog extends Dialog {
     wName.addSelectionListener( selAdapter );
     wDescription.addSelectionListener( selAdapter );
     wSchemaName.addSelectionListener( selAdapter );
+    wFolderName.addSelectionListener( selAdapter );
+    wGroupType.addSelectionListener( selAdapter );
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -226,6 +322,18 @@ public class DataSetGroupDialog extends Dialog {
     return ok;
   }
 
+  private void enableGroups() {
+    DataSetGroupType type = DataSetGroupType.fromName( wGroupType.getText() );
+
+    wgDatabase.setEnabled( type==DataSetGroupType.Database );
+    wDatabase.setEnabled( type==DataSetGroupType.Database );
+    wSchemaName.setEnabled( type==DataSetGroupType.Database );
+
+    wgCsv.setEnabled( type==DataSetGroupType.CSV );
+    wFolderName.setEnabled( type==DataSetGroupType.CSV );
+
+  }
+
   public void dispose() {
     props.setScreen( new WindowProperty( shell ) );
     shell.dispose();
@@ -239,8 +347,13 @@ public class DataSetGroupDialog extends Dialog {
 
     wName.setText( Const.NVL( dataSetGroup.getName(), "" ) );
     wDescription.setText( Const.NVL( dataSetGroup.getDescription(), "" ) );
+    wGroupType.setText( dataSetGroup.getType()==null ? DataSetGroupType.Database.name() : dataSetGroup.getType().name());
     wDatabase.setText( Const.NVL( dataSetGroup.getDatabaseMeta() == null ? null : dataSetGroup.getDatabaseMeta().getName(), "" ) );
     wSchemaName.setText( Const.NVL( dataSetGroup.getSchemaName(), "" ) );
+    wFolderName.setText( Const.NVL( dataSetGroup.getFolderName(), "" ) );
+
+    enableGroups();
+
     wName.setFocus();
   }
 
@@ -253,8 +366,10 @@ public class DataSetGroupDialog extends Dialog {
 
     dataSetGroup.setName( wName.getText() );
     dataSetGroup.setDescription( wDescription.getText() );
+    dataSetGroup.setType( DataSetGroupType.fromName( wGroupType.getText() ) );
     dataSetGroup.setDatabaseMeta( DatabaseMeta.findDatabase( databases, wDatabase.getText() ) );
     dataSetGroup.setSchemaName( wSchemaName.getText() );
+    dataSetGroup.setFolderName( wFolderName.getText() );
 
     ok = true;
 

@@ -44,6 +44,7 @@ public class TransUnitTestExecutionTest extends TestCase {
 
   public static final String NAMESPACE = "test";
 
+  public static final DataSetGroupType GROUP_TYPE = DataSetGroupType.Database;
   public static final String GROUP_NAME = "mappings";
   public static final String GROUP_DESC = "mappings";
   public static final String GROUP_SCHEMA = null;
@@ -87,7 +88,7 @@ public class TransUnitTestExecutionTest extends TestCase {
     sharedObjects.setFilename(tmpSharedObjectsFile.getAbsolutePath());
     sharedObjects.saveToFile();
     
-    dataSetGroup = new DataSetGroup( GROUP_NAME, GROUP_DESC, databaseMeta, GROUP_SCHEMA );
+    dataSetGroup = new DataSetGroup( GROUP_TYPE, GROUP_NAME, GROUP_DESC, databaseMeta, GROUP_SCHEMA );
 
     // Write an input data set...
     //
@@ -162,9 +163,9 @@ public class TransUnitTestExecutionTest extends TestCase {
     fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
 
     List<Object[]> rows = new ArrayList<Object[]>();
-    rows.add( new Object[] { Long.valueOf( 123456), "c1", "b1", "a1",  });
-    rows.add( new Object[] { Long.valueOf( 123456), "c2", "b2", "a2",  });
-    rows.add( new Object[] { Long.valueOf( 123456), "c3", "b3", "a3",  });
+    rows.add( new Object[] { 123456L, "c1", "b1", "a1",  });
+    rows.add( new Object[] { 123456L, "c2", "b2", "a2",  });
+    rows.add( new Object[] { 123456L, "c3", "b3", "a3",  });
 
     goldenDataSet = DataSetConst.writeDataSet( GOLDEN_SET_NAME, GOLDEN_SET_DESC, dataSetGroup, GOLDEN_SET_TABLE, fields, rows );
     setSize = rows.size();
@@ -257,7 +258,7 @@ public class TransUnitTestExecutionTest extends TestCase {
       assertNotNull( "Golden data set not found!", goldenDataSet );
 
       List<Object[]> goldenRows = goldenDataSet.getAllRows( trans.getLogChannel(), location );
-      RowMetaInterface goldenRowMeta = goldenDataSet.getSetRowMeta( false );
+      RowMetaInterface goldenRowMeta = goldenDataSet.getMappedDataSetFieldsRowMeta( location );
 
       assertEquals(OUTPUT_STEP_NAME, location.getStepname());
 

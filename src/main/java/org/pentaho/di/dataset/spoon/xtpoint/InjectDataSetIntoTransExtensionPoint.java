@@ -22,16 +22,7 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.lang.StringUtils;
-import org.pentaho.di.core.Const;
-import org.pentaho.di.core.RowMetaAndData;
-import org.pentaho.di.core.SourceToTargetMapping;
-import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -44,7 +35,6 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.dataset.DataSet;
-import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
@@ -53,7 +43,6 @@ import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.RowProducer;
 import org.pentaho.di.trans.Trans;
-import org.pentaho.di.trans.TransAdapter;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.RowAdapter;
 import org.pentaho.di.trans.step.StepInterface;
@@ -63,10 +52,13 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * 
  * @author matt
- *
  */
 @ExtensionPoint(
   extensionPointId = "TransformationStartThreads",
@@ -83,14 +75,17 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
     final Trans trans = (Trans) object;
     final TransMeta transMeta = trans.getTransMeta();
     boolean dataSetEnabled = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
-    log.logBasic("Data Set enabled? "+dataSetEnabled);
+    if ( log.isDetailed() ) {
+      log.logDetailed( "Data Set enabled? " + dataSetEnabled );
+    }
     if ( !dataSetEnabled ) {
       return;
     }
 
     String unitTestName = trans.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
-    log.logBasic("Unit test name: "+unitTestName);
-    
+    if ( log.isDetailed() ) {
+      log.logDetailed( "Unit test name: " + unitTestName );
+    }
     try {
       IMetaStore metaStore = transMeta.getMetaStore();
       Repository repository = transMeta.getRepository();
@@ -104,12 +99,14 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
       // If the transformation has a variable set with the unit test in it, we're dealing with a unit test situation.
       //
-      if (StringUtil.isEmpty( unitTestName )) {
+      if ( StringUtil.isEmpty( unitTestName ) ) {
         return;
       }
       TransUnitTest unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
-      if (unitTest==null) {
-        log.logBasic("Unit test '"+unitTestName+"' could not be found");
+      if ( unitTest == null ) {
+        if ( log.isDetailed() ) {
+          log.logDetailed( "Unit test '" + unitTestName + "' could not be found" );
+        }
         return;
       }
 
@@ -120,54 +117,54 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
       for ( final StepMeta stepMeta : trans.getTransMeta().getSteps() ) {
         String stepname = stepMeta.getName();
         TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepname );
-        if (inputLocation!=null && StringUtils.isNotEmpty(inputLocation.getDataSetName())) {
+        if ( inputLocation != null && StringUtils.isNotEmpty( inputLocation.getDataSetName() ) ) {
           String inputDataSetName = inputLocation.getDataSetName();
-          log.logDetailed("Data Set location found for step '"+stepname+"' and data set  "+inputDataSetName);
+          log.logDetailed( "Data Set location found for step '" + stepname + "' and data set  " + inputDataSetName );
 
           // We need to inject data from the data set with the specified name into the step
           //
-          injectDataSetIntoStep( trans, transMeta, inputDataSetName, factoriesHierarchy.getSetFactory(), repository, metaStore, stepMeta, inputLocation );
+          injectDataSetIntoStep( trans, inputDataSetName, factoriesHierarchy.getSetFactory(), stepMeta, inputLocation );
         }
 
         // How about capturing rows for golden data review?
         //
         TransUnitTestSetLocation goldenLocation = unitTest.findGoldenLocation( stepname );
-        if (goldenLocation!=null) {
+        if ( goldenLocation != null ) {
           String goldenDataSetName = goldenLocation.getDataSetName();
-          if (!StringUtil.isEmpty( goldenDataSetName )) {
-            
-            log.logBasic("Capturing rows for validation at transformation end, step='"+stepMeta.getName()+"', golden set '"+goldenDataSetName);
-            
+          if ( !StringUtil.isEmpty( goldenDataSetName ) ) {
+
+            log.logDetailed( "Capturing rows for validation at transformation end, step='" + stepMeta.getName() + "', golden set '" + goldenDataSetName );
+
             final RowCollection rowCollection = new RowCollection();
-            
+
             // Create a row collection map if it's missing...
             //
             @SuppressWarnings( "unchecked" )
-            Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get(DataSetConst.ROW_COLLECTION_MAP);
-            if (collectionMap==null) {
+            Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get( DataSetConst.ROW_COLLECTION_MAP );
+            if ( collectionMap == null ) {
               collectionMap = new HashMap<String, RowCollection>();
-              trans.getExtensionDataMap().put(DataSetConst.ROW_COLLECTION_MAP, collectionMap);
+              trans.getExtensionDataMap().put( DataSetConst.ROW_COLLECTION_MAP, collectionMap );
             }
-            
+
             // Keep the map for safe keeping...
             //
             collectionMap.put( stepMeta.getName(), rowCollection );
-            
+
             // We'll capture the rows from this one and then evaluate them after execution...
             //
             StepInterface stepInterface = trans.findStepInterface( stepMeta.getName(), 0 );
             stepInterface.addRowListener( new RowAdapter() {
               @Override
               public void rowReadEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
-                if (rowCollection.getRowMeta()==null) {
-                  rowCollection.setRowMeta( rowMeta ); 
+                if ( rowCollection.getRowMeta() == null ) {
+                  rowCollection.setRowMeta( rowMeta );
                 }
                 rowCollection.getRows().add( row );
               }
-            });
+            } );
           }
         }
-      
+
       }
     } catch ( Throwable e ) {
       throw new KettleException( "Unable to inject data set rows", e );
@@ -175,16 +172,13 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
   }
 
-  private void injectDataSetIntoStep( final Trans trans, final TransMeta transMeta,
-    final String dataSetName, final MetaStoreFactory<DataSet> dataSetFactory,
-    final Repository repository, final IMetaStore metaStore, final StepMeta stepMeta, 
-    TransUnitTestSetLocation inputLocation ) throws MetaStoreException, KettleException {
+  private void injectDataSetIntoStep( final Trans trans, final String dataSetName,
+                                      final MetaStoreFactory<DataSet> dataSetFactory, final StepMeta stepMeta,
+                                      TransUnitTestSetLocation inputLocation ) throws MetaStoreException, KettleException {
 
     final DataSet dataSet = dataSetFactory.loadElement( dataSetName );
-    final DataSetGroup group = dataSet.getGroup();
-    final Database database = new Database( trans, group.getDatabaseMeta() );
     final LogChannelInterface log = trans.getLogChannel();
-    
+
     final RowProducer rowProducer = trans.addRowProducer( stepMeta.getName(), 0 );
 
     // Look for the step into which we'll inject rows...
@@ -199,8 +193,10 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
 
     if ( combi != null ) {
 
-      final List<Object[]> dataSetRows = dataSet.getAllRows(log, inputLocation);
-      RowMetaInterface dataSetRowMeta = dataSet.getSetRowMeta( false );
+      // Get the rows of the mapped values in the mapped order sorted as asked
+      //
+      final List<Object[]> dataSetRows = dataSet.getAllRows( log, inputLocation );
+      RowMetaInterface dataSetRowMeta = dataSet.getMappedDataSetFieldsRowMeta( inputLocation );
 
       // The rows to inject are always driven by the dataset, NOT the step it replaces (!) for simplicity
       //
@@ -209,12 +205,12 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
       // Figure out which fields to pass
       // Only inject those mentioned in the field mappings...
       //
-      int[] fieldIndexes = new int[inputLocation.getFieldMappings().size()];
-      for (int i=0;i<inputLocation.getFieldMappings().size();i++) {
-        TransUnitTestFieldMapping fieldMapping = inputLocation.getFieldMappings().get(i);
-        fieldIndexes[i] = dataSetRowMeta.indexOfValue( fieldMapping.getDataSetFieldName() );
-        if (fieldIndexes[i]<0) {
-          throw new KettleException( "Unable to find mapped field '"+fieldMapping.getDataSetFieldName()+"' in data set '"+dataSet.getName()+"'" );
+      int[] fieldIndexes = new int[ inputLocation.getFieldMappings().size() ];
+      for ( int i = 0; i < inputLocation.getFieldMappings().size(); i++ ) {
+        TransUnitTestFieldMapping fieldMapping = inputLocation.getFieldMappings().get( i );
+        fieldIndexes[ i ] = dataSetRowMeta.indexOfValue( fieldMapping.getDataSetFieldName() );
+        if ( fieldIndexes[ i ] < 0 ) {
+          throw new KettleException( "Unable to find mapped field '" + fieldMapping.getDataSetFieldName() + "' in data set '" + dataSet.getName() + "'" );
         }
         ValueMetaInterface injectValueMeta = dataSetRowMeta.getValueMeta( fieldIndexes[ i ] ).clone();
         // Rename to the step output names though...
@@ -223,37 +219,35 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
         injectRowMeta.addValueMeta( injectValueMeta );
       }
 
-      log.logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: "+ Arrays.toString(injectRowMeta.getFieldNames()) );
+      log.logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: " + Arrays.toString( injectRowMeta.getFieldNames() ) );
 
       // Pass rows
-      try {
-        Runnable runnable = new Runnable() {
-          @Override
-          public void run() {
-            try {
-              
-              for( Object[] dataSetRow : dataSetRows ) {
-                // pass the row with the external names, in the right order and with the selected columns from the data set
-                //
-                Object[] row = RowDataUtil.allocateRowData( injectRowMeta.size() );
-                for (int i=0;i<fieldIndexes.length;i++) {
-                  row[i] = dataSetRow[fieldIndexes[i]];
-                }
-                rowProducer.putRow( injectRowMeta, row );                
-              }
-              rowProducer.finished();
-              
-            } catch ( Exception e ) {
-              throw new RuntimeException( "Problem injecting data set '" + dataSetName + "' row into step '" + stepMeta.getName() + "'", e );
-            }
-          }
-        };
-        Thread thread = new Thread( runnable );
-        thread.start();
+      //
+      Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+          try {
 
-      } finally {
-        database.disconnect();
-      }
+            for ( Object[] dataSetRow : dataSetRows ) {
+              // pass the row with the external names, in the right order and with the selected columns from the data set
+              //
+              Object[] row = RowDataUtil.allocateRowData( injectRowMeta.size() );
+              for ( int i = 0; i < fieldIndexes.length; i++ ) {
+                row[ i ] = dataSetRow[ fieldIndexes[ i ] ];
+              }
+              rowProducer.putRow( injectRowMeta, row );
+            }
+            rowProducer.finished();
+
+          } catch ( Exception e ) {
+            throw new RuntimeException( "Problem injecting data set '" + dataSetName + "' row into step '" + stepMeta.getName() + "'", e );
+          }
+        }
+      };
+      Thread thread = new Thread( runnable );
+      thread.start();
+
+
     }
   }
 }

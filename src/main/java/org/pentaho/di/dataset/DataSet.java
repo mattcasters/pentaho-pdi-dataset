@@ -22,12 +22,9 @@
 
 package org.pentaho.di.dataset;
 
-import org.pentaho.di.core.database.Database;
-import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettlePluginException;
 import org.pentaho.di.core.logging.LogChannelInterface;
-import org.pentaho.di.core.logging.LoggingObject;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
@@ -49,20 +46,21 @@ public class DataSet {
   @MetaStoreAttribute( key = "description" )
   private String description;
 
-  @MetaStoreAttribute( key = "group_name", nameReference = true, nameListKey = DataSetConst.GROUP_LIST_KEY )
-  private DataSetGroup group;
-
   @MetaStoreAttribute( key = "table_name" )
   private String tableName;
 
   @MetaStoreAttribute( key = "dataset_fields" )
   private List<DataSetField> fields;
 
+  @MetaStoreAttribute( key = "group_name", nameReference = true, nameListKey = DataSetConst.GROUP_LIST_KEY )
+  private DataSetGroup group;
+
+
   public DataSet() {
-    fields = new ArrayList<DataSetField>();
+    fields = new ArrayList<>(  );
   }
 
-  public DataSet( String name, String description, DataSetGroup group, String tableName, List<DataSetField> fields ) {
+  public DataSet( String name, String description, DataSetGroup group, String tableName, List<DataSetField> fields) {
     this();
     this.name = name;
     this.description = description;
@@ -73,7 +71,6 @@ public class DataSet {
 
   @Override
   public boolean equals( Object obj ) {
-
     if ( this == obj ) {
       return true;
     }
@@ -89,45 +86,6 @@ public class DataSet {
     return name.hashCode();
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public void setName( String name ) {
-    this.name = name;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription( String description ) {
-    this.description = description;
-  }
-
-  public DataSetGroup getGroup() {
-    return group;
-  }
-
-  public void setGroup( DataSetGroup group ) {
-    this.group = group;
-  }
-
-  public String getTableName() {
-    return tableName;
-  }
-
-  public void setTableName( String tableName ) {
-    this.tableName = tableName;
-  }
-
-  public List<DataSetField> getFields() {
-    return fields;
-  }
-
-  public void setFields( List<DataSetField> fields ) {
-    this.fields = fields;
-  }
 
   /**
    * Get standard Kettle row metadata from the defined data set fields
@@ -177,117 +135,115 @@ public class DataSet {
     return -1;
   }
 
-  /**
-   * Get the rows for this data set in the format of the data set.
-   *
-   * @param log      the logging channel to which you can write.
-   * @param location The fields to obtain in the order given
-   * @return The rows for the given location
-   * @throws KettleException
-   */
+
   public List<Object[]> getAllRows( LogChannelInterface log, TransUnitTestSetLocation location ) throws KettleException {
-    try {
-      DatabaseMeta databaseMeta = group.getDatabaseMeta();
-      synchronized ( databaseMeta ) {
-        String schemaTable = databaseMeta.getQuotedSchemaTableCombination( group.getSchemaName(), getTableName() );
-        Database database = null;
-        List<Object[]> rows = null;
-        List<String> sortFields = location.getFieldOrder();
+    return group.getAllRows( log, this, location );
+  }
 
-        List<String> selectColumns = new ArrayList<String>();
+  public List<Object[]> getAllRows( LogChannelInterface log) throws KettleException {
+    return group.getAllRows( log, this);
+  }
 
-        // Which columns do we need for the location (input or golden)
-        //
-        for ( DataSetField field : fields ) {
 
-          // Pick this data set field from the fields list.
-          //
-          String column = field.getColumnName();
-          selectColumns.add( column );
-        }
 
-        // Which columns are we sorting on (if any)
-        //
-        List<String> sortColumns = new ArrayList<String>();
-        for ( String sortField : sortFields ) {
-          String sortColumn = findColumnForField( sortField );
-          if ( sortColumn == null ) {
-            throw new KettleException( "Unable to find sort column with field name '" + sortField + "' (from mapping) in data set '" + getName() + "'" );
-          }
-          sortColumns.add( sortColumn );
-        }
+  /**
+   * Calculate the row metadata for the data set fields needed for the given location.
+   *
+   * @param location
+   * @return The fields metadata for those fields that are mapped against a certain step (location)
+   */
+  public RowMetaInterface getMappedDataSetFieldsRowMeta(TransUnitTestSetLocation location) throws KettlePluginException {
 
-        try {
-          database = new Database( new LoggingObject( "DataSetDialog" ), group.getDatabaseMeta() );
-          database.connect();
-
-          String sql = "SELECT ";
-          for ( int i = 0; i < selectColumns.size(); i++ ) {
-            String column = selectColumns.get( i );
-            if ( i > 0 ) {
-              sql += ", ";
-            }
-            sql += databaseMeta.quoteField( column );
-          }
-          sql += " FROM " + schemaTable;
-
-          if ( sortColumns != null && !sortColumns.isEmpty() ) {
-            sql += " ORDER BY ";
-            boolean first = true;
-            for ( String sortColumn : sortColumns ) {
-              if ( first ) {
-                first = false;
-              } else {
-                sql += ", ";
-              }
-              sql += databaseMeta.quoteField( sortColumn );
-            }
-          }
-
-          if ( log.isDetailed() ) {
-            log.logDetailed( "---------------------------------------------" );
-            log.logDetailed( "SQL = " + sql );
-            log.logDetailed( "---------------------------------------------" );
-          }
-          rows = database.getRows( sql, 0 );
-
-          // Now, our work is not done...
-          // We will probably have data conversation issues so let's handle this...
-          //
-          RowMetaInterface dbRowMeta = database.getReturnRowMeta();
-          if ( log.isDetailed() ) {
-            log.logDetailed( "DB RowMeta = " + dbRowMeta.toStringMeta() );
-            log.logDetailed( "---------------------------------------------" );
-          }
-
-          // Correct data types if needed
-          //
-          for ( int i = 0; i < dbRowMeta.size(); i++ ) {
-            // In case the data in the table is a different data type for some reasons, bring it back up to spec.
-            // The spec is given in getSetRowMeta()
-            //
-            DataSetField field = fields.get(i);
-            ValueMetaInterface dataSetValueMeta = ValueMetaFactory.createValueMeta( field.getFieldName(), field.getType(), field.getLength(), field.getPrecision() );
-
-            ValueMetaInterface dbValueMeta = dbRowMeta.getValueMeta( i );
-            if ( dbValueMeta.getType() != dataSetValueMeta.getType() ) {
-              // Convert the values in the result set...
-              //
-              for ( Object[] row : rows ) {
-                row[ i ] = dataSetValueMeta.convertData( dbValueMeta, row[ i ] );
-              }
-            }
-          }
-        } finally {
-          if ( database != null ) {
-            database.disconnect();
-          }
-        }
-
-        return rows;
-      }
-    } catch ( Exception e ) {
-      throw new KettleException( "Unable to get all rows for data set " + name, e );
+    RowMetaInterface setRowMeta = getSetRowMeta( false );
+    RowMetaInterface rowMeta = new RowMeta();
+    for (TransUnitTestFieldMapping fieldMapping : location.getFieldMappings()) {
+      ValueMetaInterface valueMeta = setRowMeta.searchValueMeta( fieldMapping.getDataSetFieldName() );
+      rowMeta.addValueMeta( valueMeta );
     }
+    return rowMeta;
+  }
+
+
+
+
+
+    /**
+     * Gets name
+     *
+     * @return value of name
+     */
+  public String getName() {
+    return name;
+  }
+
+  /**
+   * @param name The name to set
+   */
+  public void setName( String name ) {
+    this.name = name;
+  }
+
+  /**
+   * Gets description
+   *
+   * @return value of description
+   */
+  public String getDescription() {
+    return description;
+  }
+
+  /**
+   * @param description The description to set
+   */
+  public void setDescription( String description ) {
+    this.description = description;
+  }
+
+  /**
+   * Gets tableName
+   *
+   * @return value of tableName
+   */
+  public String getTableName() {
+    return tableName;
+  }
+
+  /**
+   * @param tableName The tableName to set
+   */
+  public void setTableName( String tableName ) {
+    this.tableName = tableName;
+  }
+
+  /**
+   * Gets fields
+   *
+   * @return value of fields
+   */
+  public List<DataSetField> getFields() {
+    return fields;
+  }
+
+  /**
+   * @param fields The fields to set
+   */
+  public void setFields( List<DataSetField> fields ) {
+    this.fields = fields;
+  }
+
+  /**
+   * Gets group
+   *
+   * @return value of group
+   */
+  public DataSetGroup getGroup() {
+    return group;
+  }
+
+  /**
+   * @param group The group to set
+   */
+  public void setGroup( DataSetGroup group ) {
+    this.group = group;
   }
 }

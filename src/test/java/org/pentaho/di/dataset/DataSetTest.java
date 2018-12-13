@@ -21,6 +21,7 @@ public class DataSetTest extends TestCase {
 
   public static final String NAMESPACE = "test";
 
+  public static final DataSetGroupType GROUP_TYPE = DataSetGroupType.Database;
   public static final String GROUP_NAME = "GroupName";
   public static final String GROUP_DESC = "GroupDescription";
   public static final String GROUP_SCHEMA = "GroupSchemaName";
@@ -40,7 +41,7 @@ public class DataSetTest extends TestCase {
     KettleClientEnvironment.init();
     metaStore = new MemoryMetaStore();
     databaseMeta = new DatabaseMeta( "dataset", "H2", "JDBC", null, "/tmp/datasets", null, null, null );
-    dataSetGroup = new DataSetGroup( GROUP_NAME, GROUP_DESC, databaseMeta, GROUP_SCHEMA );
+    dataSetGroup = new DataSetGroup( GROUP_TYPE, GROUP_NAME, GROUP_DESC, databaseMeta, GROUP_SCHEMA );
 
     List<DataSetField> fields = new ArrayList<>();
     for ( int i = 0; i < NR_FIELDS; i++ ) {

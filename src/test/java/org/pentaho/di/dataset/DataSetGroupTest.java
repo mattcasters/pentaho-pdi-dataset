@@ -15,6 +15,7 @@ public class DataSetGroupTest extends TestCase {
 
   public static final String NAMESPACE = "test";
 
+  public static final DataSetGroupType TYPE = DataSetGroupType.Database;
   public static final String NAME = "GroupName";
   public static final String DESC = "GroupDescription";
   public static final String SCHEMA = "SchemaName";
@@ -30,7 +31,7 @@ public class DataSetGroupTest extends TestCase {
   }
 
   public void testSerialisation() throws Exception {
-    DataSetGroup group = new DataSetGroup( NAME, DESC, databaseMeta, SCHEMA );
+    DataSetGroup group = new DataSetGroup( TYPE, NAME, DESC, databaseMeta, SCHEMA );
     MetaStoreFactory<DataSetGroup> groupFactory = new MetaStoreFactory<DataSetGroup>( DataSetGroup.class, metaStore, NAMESPACE );
 
     // save the group
@@ -45,6 +46,7 @@ public class DataSetGroupTest extends TestCase {
     // Verify loading...
     //
     assertNotNull( verify );
+    assertEquals( group.getType(), verify.getType() );
     assertEquals( group.getName(), verify.getName() );
     assertEquals( group.getDescription(), verify.getDescription() );
     assertNotNull( verify.getDatabaseMeta() );

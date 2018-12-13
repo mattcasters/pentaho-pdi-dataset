@@ -23,7 +23,6 @@
 package org.pentaho.di.dataset.spoon.dialog;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -32,6 +31,7 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
@@ -74,7 +74,7 @@ public class TransUnitTestDialog extends Dialog {
 
   private Text wName;
   private Text wDescription;
-  private CCombo wTestType;
+  private Combo wTestType;
   private TextVar wFilename;
   private TextVar wBasePath;
 
@@ -170,8 +170,7 @@ public class TransUnitTestDialog extends Dialog {
     fdlTestType.left = new FormAttachment( 0, 0 );
     fdlTestType.right = new FormAttachment( middle, -margin );
     wlTestType.setLayoutData( fdlTestType );
-    wTestType = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wTestType );
+    wTestType = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     FormData fdTestType = new FormData();
     fdTestType.top = new FormAttachment( lastControl, margin );
     fdTestType.left = new FormAttachment( middle, 0 );
