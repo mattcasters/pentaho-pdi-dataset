@@ -144,7 +144,6 @@ public class DataSetGroup {
         DataSetDatabaseGroup.writeDataSetData( loggingObject, this, tableName, rowMeta, dataRows );
         break;
       case CSV:
-        System.out.println(">>>>> Group writing CSV rows : "+dataRows.size());
         DataSetCsvGroup.writeDataSetData( loggingObject, this, tableName, rowMeta, dataRows );
         break;
       default:

@@ -187,159 +187,181 @@ public class DataSetConst {
       // Sometimes we deleted a step and it's still in the list:
       // Simply skip that one
       //
-      if (trans.getTransMeta().findStep( location.getStepname() ) == null) {
+      if ( trans.getTransMeta().findStep( location.getStepname() ) == null ) {
         continue;
       }
 
       int nrLocationErrors = 0;
       RowCollection resultCollection = collectionMap.get( location.getStepname() );
-      if (resultCollection==null || resultCollection.getRows()==null || resultCollection.getRowMeta()==null) {
+      if ( resultCollection == null || resultCollection.getRows() == null || resultCollection.getRowMeta() == null ) {
         // error occurred somewhere, we don't have results, provide dummy values to avoid exceptions, flag error
         //
         resultCollection = new RowCollection();
-        resultCollection.setRowMeta(new RowMeta());
-        resultCollection.setRows(new ArrayList<Object[]>());    
-        
+        resultCollection.setRowMeta( new RowMeta() );
+        resultCollection.setRows( new ArrayList<Object[]>() );
+
         String comment = "WARNING: no test results found for step '" + location.getStepname() + "' : check disabled hops, input and so on.";
-        results.add(new UnitTestResult(
-            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
-            false, comment));
+        results.add( new UnitTestResult(
+          trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+          false, comment ) );
       }
       final RowMetaInterface resultRowMeta = resultCollection.getRowMeta();
 
-      log.logBasic("Found "+resultCollection.getRows().size()+" results for data comparing in step '"+location.getStepname()+"', fields: "+resultRowMeta.toString());
+      log.logDetailed( "Found " + resultCollection.getRows().size() + " results for data comparing in step '" + location.getStepname() + "', fields: " + resultRowMeta.toString() );
 
       DataSet goldenDataSet = unitTest.getGoldenDataSet( log, hierarchy, location );
       List<Object[]> goldenRows = goldenDataSet.getAllRows( log, location );
       RowMetaInterface goldenRowMeta = goldenDataSet.getMappedDataSetFieldsRowMeta( location );
 
-      log.logBasic("Found "+goldenRows.size()+" golden rows '"+location.getStepname()+"', fields: "+Arrays.toString(goldenRowMeta.getFieldNames()));
-      
+      log.logDetailed( "Found " + goldenRows.size() + " golden rows '" + location.getStepname() + "', fields: " + goldenRowMeta );
+
       List<Object[]> resultRows = resultCollection.getRows();
 
       if ( resultRows.size() != goldenRows.size() ) {
-        String comment = "Incorrect number of rows received from step, golden data set '" + location.getDataSetName() + "' has " + goldenRows.size() + " rows in it and we received "+resultRows.size();
-        results.add(new UnitTestResult(
-            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
-            true, comment));
+        String comment =
+          "Incorrect number of rows received from step, golden data set '" + location.getDataSetName() + "' has " + goldenRows.size() + " rows in it and we received " + resultRows.size();
+        results.add( new UnitTestResult(
+          trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+          true, comment ) );
         nrLocationErrors++;
-      }
-
-      // To compare the 2 data sets they need to be explicitly sorted on the same keys
-      //
-      // Sort step result rows
-      //
-      final int[] resultFieldIndexes = new int[location.getFieldOrder().size()];
-      for (int i=0;i<resultFieldIndexes.length;i++) {
-        resultFieldIndexes[i] = resultRowMeta.indexOfValue( location.getFieldOrder().get( i ) );
-        if (resultFieldIndexes[i]<0) {
-          throw new KettleException( "Unable to find sort field '"+location.getFieldOrder().get( i )+"' in step results : "+Arrays.toString(resultRowMeta.getFieldNames()) );
-        }
-      }
-      try {
-        resultCollection.getRows().sort( new Comparator<Object[]>() {
-          @Override public int compare( Object[] row1, Object[] row2 ) {
-            try {
-              return resultRowMeta.compare( row1, row2, resultFieldIndexes );
-            } catch ( KettleValueException e ) {
-              throw new RuntimeException( "Error comparing golden data result rows", e );
-            }
-          }
-        } );
-      } catch(RuntimeException e) {
-        throw new KettleException( "Error sorting result rows for golden data set '"+location.getDataSetName()+"'", e );
-      }
-
-      // Golden rows
-      //
-      final int[] goldenFieldIndexes = new int[location.getFieldOrder().size()];
-      for (int i=0;i<goldenFieldIndexes.length;i++) {
-        goldenFieldIndexes[i] = goldenRowMeta.indexOfValue( location.getFieldOrder().get( i ) );
-        if (goldenFieldIndexes[i]<0) {
-          throw new KettleException( "Unable to find sort field '"+location.getFieldOrder().get( i )+"' in golden rows : "+Arrays.toString(goldenRowMeta.getFieldNames()) );
-        }
-      }
-      try {
-        goldenRows.sort( new Comparator<Object[]>() {
-          @Override public int compare( Object[] row1, Object[] row2 ) {
-            try {
-              return goldenRowMeta.compare( row1, row2, goldenFieldIndexes );
-            } catch ( KettleValueException e ) {
-              throw new RuntimeException( "Error comparing golden data set rows", e );
-            }
-          }
-        } );
-      } catch(RuntimeException e) {
-        throw new KettleException( "Error sorting golden data rows for golden data set '"+location.getDataSetName()+"'", e );
-      }
-
-      
-      if (nrLocationErrors==0) {
-        final int[] stepFieldIndices = new int[location.getFieldMappings().size()];
-        final int[] goldenIndices = new int[location.getFieldMappings().size()];
-        for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
-          TransUnitTestFieldMapping fieldMapping = location.getFieldMappings().get( i );
-  
-          stepFieldIndices[i] = resultRowMeta.indexOfValue( fieldMapping.getStepFieldName() );
-          goldenIndices[i] = goldenRowMeta.indexOfValue( fieldMapping.getDataSetFieldName() );
-        }
-        
-        for (int rowNumber=0 ; rowNumber<resultRows.size() ; rowNumber++) {
-          Object[] resultRow = resultRows.get( rowNumber );
-          Object[] goldenRow = goldenRows.get( rowNumber );
-        
-          // Now compare the input to the golden row
-          //
-          for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
-            ValueMetaInterface stepValueMeta = resultCollection.getRowMeta().getValueMeta( stepFieldIndices[i] );
-            Object stepValue = resultRow[stepFieldIndices[i]];
-    
-            ValueMetaInterface goldenValueMeta = goldenRowMeta.getValueMeta( goldenIndices[i] );
-            Object goldenValue = goldenRow[goldenIndices[i]];
-            
-            if (log.isDebug()) {
-              log.logDebug("Comparing Meta '"+stepValueMeta.toString()+"' with '"+goldenValueMeta.toString()+"'");
-              log.logDebug("Comparing Value '"+stepValue+"' with '"+goldenValue+"'");
-            }
-            
-            Object goldenValueConverted;
-            
-            // sometimes there are data conversion issues because of the the database...
-            //
-            if (goldenValueMeta.getType()==stepValueMeta.getType()) {
-              goldenValueConverted = goldenValue;
-            } else {
-              goldenValueConverted = stepValueMeta.convertData( goldenValueMeta, goldenValue );
-            }
-            
-            try {
-              int cmp = stepValueMeta.compare( stepValue, stepValueMeta, goldenValueConverted );
-              if ( cmp != 0 ) {
-                if (log.isDebug()) {
-                  log.logDebug("Unit test failure: '"+stepValue+"' <> '"+goldenValue+"'");
-                }
-                String comment = "Validation againt golden data failed for row number " + (rowNumber+1)
-                  + ": step value [" + stepValueMeta.getString( stepValue )
-                  + "] does not correspond to data set value [" + goldenValueMeta.getString( goldenValue ) + "]";
-                results.add(new UnitTestResult(
-                    trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
-                    true, comment));
-                nrLocationErrors++;
-              }
-            } catch ( KettleValueException e ) {
-              throw new KettleException( "Unable to compare step data against golden data set '" + location.getDataSetName() + "'", e );
-            }
-          }
-        }
-      }
-
-      if (nrLocationErrors==0) {
-        String comment = "Test passed succesfully against golden data set";
-        results.add(new UnitTestResult(
-            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
-            false, comment));
       } else {
-        nrErrors+=nrLocationErrors;
+
+        // To compare the 2 data sets they need to be explicitly sorted on the same keys
+        //
+        // Sort step result rows
+        //
+        final int[] resultFieldIndexes = new int[ location.getFieldOrder().size() ];
+        for ( int i = 0; i < resultFieldIndexes.length; i++ ) {
+          resultFieldIndexes[ i ] = resultRowMeta.indexOfValue( location.getFieldOrder().get( i ) );
+          if ( resultFieldIndexes[ i ] < 0 ) {
+            throw new KettleException( "Unable to find sort field '" + location.getFieldOrder().get( i ) + "' in step results : " + Arrays.toString( resultRowMeta.getFieldNames() ) );
+          }
+        }
+        try {
+          log.logDetailed( "Sorting result rows collection on fields: " + location.getFieldOrder() );
+          resultCollection.getRows().sort( new Comparator<Object[]>() {
+            @Override public int compare( Object[] row1, Object[] row2 ) {
+              try {
+                return resultRowMeta.compare( row1, row2, resultFieldIndexes );
+              } catch ( KettleValueException e ) {
+                throw new RuntimeException( "Error comparing golden data result rows", e );
+              }
+            }
+          } );
+        } catch ( RuntimeException e ) {
+          throw new KettleException( "Error sorting result rows for golden data set '" + location.getDataSetName() + "'", e );
+        }
+
+        // Print the first 10 result rows
+        //
+        if ( log.isDebug() ) {
+          for ( int i = 0; i < 10 && i < resultCollection.getRows().size(); i++ ) {
+            log.logDetailed( "Result row #" + ( i + 1 ) + " : " + resultRowMeta.getString( resultCollection.getRows().get( i ) ) );
+          }
+        }
+
+
+        // Golden rows
+        //
+        final int[] goldenFieldIndexes = new int[ location.getFieldOrder().size() ];
+        for ( int i = 0; i < goldenFieldIndexes.length; i++ ) {
+          goldenFieldIndexes[ i ] = goldenRowMeta.indexOfValue( location.getFieldOrder().get( i ) );
+          if ( goldenFieldIndexes[ i ] < 0 ) {
+            throw new KettleException( "Unable to find sort field '" + location.getFieldOrder().get( i ) + "' in golden rows : " + Arrays.toString( goldenRowMeta.getFieldNames() ) );
+          }
+        }
+        try {
+          log.logDetailed( "Sorting golden rows collection on fields: " + location.getFieldOrder() );
+
+          goldenRows.sort( new Comparator<Object[]>() {
+            @Override public int compare( Object[] row1, Object[] row2 ) {
+              try {
+                return goldenRowMeta.compare( row1, row2, goldenFieldIndexes );
+              } catch ( KettleValueException e ) {
+                throw new RuntimeException( "Error comparing golden data set rows", e );
+              }
+            }
+          } );
+        } catch ( RuntimeException e ) {
+          throw new KettleException( "Error sorting golden data rows for golden data set '" + location.getDataSetName() + "'", e );
+        }
+
+        // Print the first 10 golden rows
+        //
+        if ( log.isDebug() ) {
+          for ( int i = 0; i < 10 && i < goldenRows.size(); i++ ) {
+            log.logDetailed( "Golden row #" + ( i + 1 ) + " : " + goldenRowMeta.getString( goldenRows.get( i ) ) );
+          }
+        }
+
+        if ( nrLocationErrors == 0 ) {
+          final int[] stepFieldIndices = new int[ location.getFieldMappings().size() ];
+          final int[] goldenIndices = new int[ location.getFieldMappings().size() ];
+          for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
+            TransUnitTestFieldMapping fieldMapping = location.getFieldMappings().get( i );
+
+            stepFieldIndices[ i ] = resultRowMeta.indexOfValue( fieldMapping.getStepFieldName() );
+            goldenIndices[ i ] = goldenRowMeta.indexOfValue( fieldMapping.getDataSetFieldName() );
+            log.logDetailed( "Field to compare #" + i + " found on step index : " + stepFieldIndices[ i ] + ", golden index : " + goldenIndices[ i ] );
+          }
+
+          for ( int rowNumber = 0; rowNumber < resultRows.size(); rowNumber++ ) {
+            Object[] resultRow = resultRows.get( rowNumber );
+            Object[] goldenRow = goldenRows.get( rowNumber );
+
+            // Now compare the input to the golden row
+            //
+            for ( int i = 0; i < location.getFieldMappings().size(); i++ ) {
+              ValueMetaInterface stepValueMeta = resultCollection.getRowMeta().getValueMeta( stepFieldIndices[ i ] );
+              Object stepValue = resultRow[ stepFieldIndices[ i ] ];
+
+              ValueMetaInterface goldenValueMeta = goldenRowMeta.getValueMeta( goldenIndices[ i ] );
+              Object goldenValue = goldenRow[ goldenIndices[ i ] ];
+
+              if ( log.isDetailed() ) {
+                log.logDebug( "Comparing Meta '" + stepValueMeta.toString() + "' with '" + goldenValueMeta.toString() + "'" );
+                log.logDebug( "Comparing Value '" + stepValue + "' with '" + goldenValue + "'" );
+              }
+
+              Object goldenValueConverted;
+
+              // sometimes there are data conversion issues because of the the database...
+              //
+              if ( goldenValueMeta.getType() == stepValueMeta.getType() ) {
+                goldenValueConverted = goldenValue;
+              } else {
+                goldenValueConverted = stepValueMeta.convertData( goldenValueMeta, goldenValue );
+              }
+
+              try {
+                int cmp = stepValueMeta.compare( stepValue, stepValueMeta, goldenValueConverted );
+                if ( cmp != 0 ) {
+                  if ( log.isDebug() ) {
+                    log.logDebug( "Unit test failure: '" + stepValue + "' <> '" + goldenValue + "'" );
+                  }
+                  String comment = "Validation againt golden data failed for row number " + ( rowNumber + 1 )
+                    + ": step value [" + stepValueMeta.getString( stepValue )
+                    + "] does not correspond to data set value [" + goldenValueMeta.getString( goldenValue ) + "]";
+                  results.add( new UnitTestResult(
+                    trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+                    true, comment ) );
+                  nrLocationErrors++;
+                }
+              } catch ( KettleValueException e ) {
+                throw new KettleException( "Unable to compare step data against golden data set '" + location.getDataSetName() + "'", e );
+              }
+            }
+          }
+        }
+
+        if ( nrLocationErrors == 0 ) {
+          String comment = "Test passed succesfully against golden data set";
+          results.add( new UnitTestResult(
+            trans.getName(), unitTest.getName(), location.getDataSetName(), location.getStepname(),
+            false, comment ) );
+        } else {
+          nrErrors += nrLocationErrors;
+        }
       }
     }
     

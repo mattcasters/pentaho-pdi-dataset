@@ -254,7 +254,8 @@ public class ExecuteTests extends BaseStep implements StepInterface {
     // Make sure to run the unit test: gather data to compare after execution.
     //
     unitTestTransMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );
-    
+    unitTestTransMeta.setVariable( DataSetConst.VAR_UNIT_TEST_NAME, test.getName() );
+
     return unitTestTransMeta;
   }
   

@@ -81,8 +81,6 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
         return; // Nothing to do here, we can't reference data sets.
       }
 
-      // TODO: The next 2 lines are very expensive: see how we can cache this or move it upstairs somewhere.
-      //
       List<DatabaseMeta> databases = DataSetConst.getAvailableDatabases( repository, transMeta.getSharedObjects() );
       FactoriesHierarchy factoriesHierarchy = new FactoriesHierarchy( metaStore, databases );
 

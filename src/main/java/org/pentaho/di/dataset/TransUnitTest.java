@@ -22,14 +22,17 @@
 
 package org.pentaho.di.dataset;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -218,6 +221,25 @@ public class TransUnitTest {
         iterator.remove();
       }
     }
+  }
+
+  public String calculateCompleteFilename( VariableSpace space) {
+
+    String baseFilePath = space.environmentSubstitute( basePath );
+    if ( StringUtils.isEmpty(baseFilePath) ) {
+      // See if the base path environment variable is set
+      //
+      baseFilePath = space.getVariable( DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH );
+    }
+    if (StringUtils.isEmpty( baseFilePath )) {
+      baseFilePath="";
+    }
+    if (StringUtils.isNotEmpty( baseFilePath )) {
+      if (!baseFilePath.endsWith( File.separator )) {
+        baseFilePath+=File.separator;
+      }
+    }
+    return baseFilePath+transFilename;
   }
 
   /**

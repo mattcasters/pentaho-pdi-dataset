@@ -36,7 +36,7 @@ import java.util.List;
  */
 public class DataSetCsvGroup {
 
-  public static final String VARIABLE_DATASET_BASE_FOLDER = "DATASET_BASE_FOLDER";
+  public static final String VARIABLE_DATASETS_BASE_PATH = "DATASETS_BASE_PATH";
 
   /**
    * Get the base folder for the data set group
@@ -47,7 +47,7 @@ public class DataSetCsvGroup {
   private static String getDataSetFolder( DataSetGroup group ) {
     String folderName = group.getFolderName();
     if ( StringUtils.isEmpty( folderName ) ) {
-      folderName = System.getProperty( VARIABLE_DATASET_BASE_FOLDER );
+      folderName = System.getProperty( VARIABLE_DATASETS_BASE_PATH );
     }
     if ( StringUtils.isEmpty( folderName ) ) {
       // Local folder

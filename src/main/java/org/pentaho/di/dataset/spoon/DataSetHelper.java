@@ -455,7 +455,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         if (orderMappings==null) {
           return;
         }
-        
+
         // Modify the test
         //
         
@@ -479,10 +479,11 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         
         List<String> setFieldOrder = new ArrayList<String>();
         for (Object[] orderMapping : orderMappings) {
-          setFieldOrder.add(sortMeta.getString(orderMapping, 0));
+          String setFieldName = sortMeta.getString(orderMapping, 0);
+          setFieldOrder.add(setFieldName);
         }
         inputLocation.setFieldOrder(setFieldOrder);
-        
+
         // Save the unit test...
         //
         saveUnitTest( getHierarchy().getTestFactory(), unitTest, transMeta );
@@ -717,7 +718,9 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       RowMetaInterface rowMeta = transMeta.getStepFields( stepMeta );
       for ( int i = 0; i < rowMeta.size(); i++ ) {
         ValueMetaInterface valueMeta = rowMeta.getValueMeta( i );
-        DataSetField field = new DataSetField( valueMeta.getName(), "field" + i, valueMeta.getType(), valueMeta.getLength(), valueMeta.getPrecision(), valueMeta.getComments() );
+        String setFieldname = valueMeta.getName();
+        String columnName = "field" + i;
+        DataSetField field = new DataSetField( setFieldname, columnName, valueMeta.getType(), valueMeta.getLength(), valueMeta.getPrecision(), valueMeta.getComments() );
         dataSet.getFields().add( field );
       }
 
@@ -870,7 +873,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
       String basePath = unitTest.getBasePath();
       if (StringUtils.isEmpty( basePath )) {
-        basePath = DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH;
+        basePath = transMeta.getVariable( DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH );
       }
       basePath = transMeta.environmentSubstitute( basePath );
       if (StringUtils.isNotEmpty( basePath )) {
