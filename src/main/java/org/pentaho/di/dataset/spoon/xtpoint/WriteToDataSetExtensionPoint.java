@@ -88,7 +88,6 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
     final Trans trans = (Trans) object;
     final TransMeta transMeta = trans.getTransMeta();
     boolean writeToDataSet = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_WRITE_TO_DATASET ) );
-    log.logBasic("Writing to dataSet? "+writeToDataSet);
     if ( !writeToDataSet ) {
       return;
     }
@@ -110,7 +109,6 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
     
     try {
       IMetaStore metaStore = transMeta.getMetaStore();
-      Repository repository = transMeta.getRepository();
 
       if ( metaStore == null ) {
         return; // Nothing to do here, we can't reference data sets.
