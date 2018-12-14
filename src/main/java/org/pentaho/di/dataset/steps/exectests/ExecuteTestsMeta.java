@@ -55,6 +55,7 @@ import java.util.List;
     )
 public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface {
 
+  public static final String TAG_TEST_NAME_INPUT_FIELD = "test_name_input_field";
   public static final String TAG_TYPE_TO_EXECUTE = "type_to_execute";
   public static final String TAG_TRANSFORMATION_NAME_FIELD = "trans_name_field";
   public static final String TAG_UNIT_TEST_NAME_FIELD = "unit_test_name_field";
@@ -62,7 +63,8 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   public static final String TAG_STEP_NAME_FIELD = "step_name_field";
   public static final String TAG_ERROR_FIELD = "error_field";
   public static final String TAG_COMMENT_FIELD = "comment_field";
-  
+
+  private String testNameInputField;
   private TestType typeToExecute;
   private String transformationNameField;
   private String unitTestNameField;
@@ -93,6 +95,7 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   @Override
   public String getXML() throws KettleException {
     StringBuilder xml = new StringBuilder();
+    xml.append( XMLHandler.addTagValue( TAG_TEST_NAME_INPUT_FIELD, testNameInputField ) );
     xml.append( XMLHandler.addTagValue( TAG_TYPE_TO_EXECUTE, typeToExecute==null ? TestType.NONE.name() : typeToExecute.name() ) );
     xml.append( XMLHandler.addTagValue( TAG_TRANSFORMATION_NAME_FIELD, transformationNameField ) );
     xml.append( XMLHandler.addTagValue( TAG_UNIT_TEST_NAME_FIELD, unitTestNameField ) );
@@ -108,6 +111,7 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   public void loadXML( Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore ) throws KettleXMLException {
     try {
 
+      testNameInputField = XMLHandler.getTagValue( stepnode, TAG_TEST_NAME_INPUT_FIELD);
       String typeDesc = XMLHandler.getTagValue( stepnode, TAG_TYPE_TO_EXECUTE );
       try {
         typeToExecute = TestType.valueOf(typeDesc);
@@ -128,6 +132,7 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   
   @Override
   public void saveRep( Repository rep, IMetaStore metaStore, ObjectId id_transformation, ObjectId id_step ) throws KettleException {
+    rep.saveStepAttribute( id_transformation, id_step, TAG_UNIT_TEST_NAME_FIELD, testNameInputField );
     rep.saveStepAttribute( id_transformation, id_step, TAG_TYPE_TO_EXECUTE, typeToExecute==null ? TestType.NONE.name() : typeToExecute.name() );
     rep.saveStepAttribute( id_transformation, id_step, TAG_TRANSFORMATION_NAME_FIELD, transformationNameField );
     rep.saveStepAttribute( id_transformation, id_step, TAG_UNIT_TEST_NAME_FIELD, unitTestNameField );
@@ -140,6 +145,7 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   @Override
   public void readRep( Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases ) throws KettleException {
 
+    testNameInputField = rep.getStepAttributeString(id_step, TAG_TEST_NAME_INPUT_FIELD);
     try {
       String typeDesc = rep.getStepAttributeString( id_step, TAG_TYPE_TO_EXECUTE );
       try {
@@ -156,66 +162,6 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
     stepNameField = rep.getStepAttributeString(id_step, TAG_STEP_NAME_FIELD);
     errorField = rep.getStepAttributeString(id_step, TAG_ERROR_FIELD);
     commentField = rep.getStepAttributeString(id_step, TAG_COMMENT_FIELD);
-  }
-
-  public TestType getTypeToExecute() {
-    return typeToExecute;
-  }
-
-  public void setTypeToExecute(TestType typeToExecute) {
-    this.typeToExecute = typeToExecute;
-  }
-
-  public String getTransformationNameField() {
-    return transformationNameField;
-  }
-
-  public void setTransformationNameField(String transformationNameField) {
-    this.transformationNameField = transformationNameField;
-  }
-
-  public String getUnitTestNameField() {
-    return unitTestNameField;
-  }
-
-  public void setUnitTestNameField(String unitTestNameField) {
-    this.unitTestNameField = unitTestNameField;
-  }
-
-  public String getDataSetNameField() {
-    return dataSetNameField;
-  }
-
-  public void setDataSetNameField(String dataSetNameField) {
-    this.dataSetNameField = dataSetNameField;
-  }
-
-  public String getStepNameField() {
-    return stepNameField;
-  }
-
-  public void setStepNameField(String stepNameField) {
-    this.stepNameField = stepNameField;
-  }
-
-  public String getErrorField() {
-    return errorField;
-  }
-
-  public void setErrorField(String errorField) {
-    this.errorField = errorField;
-  }
-
-  public String getCommentField() {
-    return commentField;
-  }
-
-  public void setCommentField(String commentField) {
-    this.commentField = commentField;
-  }
-
-  public static String getTagTypeToExecute() {
-    return TAG_TYPE_TO_EXECUTE;
   }
 
   @Override
@@ -235,6 +181,7 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
 
   @Override
   public void setDefault() {
+    testNameInputField = null;
     transformationNameField = "transformation";
     unitTestNameField = "unittest";
     dataSetNameField = "dataset";
@@ -242,5 +189,134 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
     errorField = "error";
     commentField = "comment";
     
+  }
+
+
+  /**
+   * Gets testNameInputField
+   *
+   * @return value of testNameInputField
+   */
+  public String getTestNameInputField() {
+    return testNameInputField;
+  }
+
+  /**
+   * @param testNameInputField The testNameInputField to set
+   */
+  public void setTestNameInputField( String testNameInputField ) {
+    this.testNameInputField = testNameInputField;
+  }
+
+  /**
+   * Gets typeToExecute
+   *
+   * @return value of typeToExecute
+   */
+  public TestType getTypeToExecute() {
+    return typeToExecute;
+  }
+
+  /**
+   * @param typeToExecute The typeToExecute to set
+   */
+  public void setTypeToExecute( TestType typeToExecute ) {
+    this.typeToExecute = typeToExecute;
+  }
+
+  /**
+   * Gets transformationNameField
+   *
+   * @return value of transformationNameField
+   */
+  public String getTransformationNameField() {
+    return transformationNameField;
+  }
+
+  /**
+   * @param transformationNameField The transformationNameField to set
+   */
+  public void setTransformationNameField( String transformationNameField ) {
+    this.transformationNameField = transformationNameField;
+  }
+
+  /**
+   * Gets unitTestNameField
+   *
+   * @return value of unitTestNameField
+   */
+  public String getUnitTestNameField() {
+    return unitTestNameField;
+  }
+
+  /**
+   * @param unitTestNameField The unitTestNameField to set
+   */
+  public void setUnitTestNameField( String unitTestNameField ) {
+    this.unitTestNameField = unitTestNameField;
+  }
+
+  /**
+   * Gets dataSetNameField
+   *
+   * @return value of dataSetNameField
+   */
+  public String getDataSetNameField() {
+    return dataSetNameField;
+  }
+
+  /**
+   * @param dataSetNameField The dataSetNameField to set
+   */
+  public void setDataSetNameField( String dataSetNameField ) {
+    this.dataSetNameField = dataSetNameField;
+  }
+
+  /**
+   * Gets stepNameField
+   *
+   * @return value of stepNameField
+   */
+  public String getStepNameField() {
+    return stepNameField;
+  }
+
+  /**
+   * @param stepNameField The stepNameField to set
+   */
+  public void setStepNameField( String stepNameField ) {
+    this.stepNameField = stepNameField;
+  }
+
+  /**
+   * Gets errorField
+   *
+   * @return value of errorField
+   */
+  public String getErrorField() {
+    return errorField;
+  }
+
+  /**
+   * @param errorField The errorField to set
+   */
+  public void setErrorField( String errorField ) {
+    this.errorField = errorField;
+  }
+
+  /**
+   * Gets commentField
+   *
+   * @return value of commentField
+   */
+  public String getCommentField() {
+    return commentField;
+  }
+
+  /**
+   * @param commentField The commentField to set
+   */
+  public void setCommentField( String commentField ) {
+    this.commentField = commentField;
   }
 }

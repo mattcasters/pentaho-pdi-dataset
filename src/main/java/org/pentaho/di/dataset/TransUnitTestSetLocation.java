@@ -91,13 +91,4 @@ public class TransUnitTestSetLocation {
   public void setFieldOrder(List<String> fieldOrder) {
     this.fieldOrder = fieldOrder;
   }
-
-  public String findSetFieldInMapping(String stepFieldName) {
-    for (TransUnitTestFieldMapping fieldMapping : fieldMappings) {
-      if (fieldMapping.getStepFieldName().equalsIgnoreCase(stepFieldName)) {
-        return fieldMapping.getDataSetFieldName();
-      }
-    }
-    return null;
-  }
 }

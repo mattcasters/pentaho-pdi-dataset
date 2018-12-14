@@ -22,6 +22,7 @@
 
 package org.pentaho.di.dataset.steps.exectests;
 
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -40,12 +41,15 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
@@ -53,7 +57,8 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
   private static Class<?> PKG = ExecuteTestsDialog.class; // i18n
   
   private ExecuteTestsMeta input;
-  
+
+  private Combo wTestNameInputField;
   private Combo wTypeToExecute;
   private TextVar wTransformationNameField;
   private TextVar wUnitTestNameField;
@@ -61,6 +66,8 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
   private TextVar wStepNameField;
   private TextVar wErrorField;
   private TextVar wCommentField;
+
+  private boolean hasPreviousSteps;
   
   public ExecuteTestsDialog(Shell parent, Object baseStepMeta, TransMeta transMeta, String stepname) {
     super(parent, (BaseStepMeta)baseStepMeta, transMeta, stepname);
@@ -87,7 +94,20 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
 
     int middle = props.getMiddlePct();
     int margin = Const.MARGIN;
-  
+
+    String[] inputFieldNames = new String[] {};
+    hasPreviousSteps = false;
+    try {
+      StepMeta[] prevSteps = transMeta.getPrevSteps( stepMeta );
+      if (prevSteps.length>0) {
+        RowMetaInterface prevStepFields = transMeta.getPrevStepFields( stepMeta );
+        inputFieldNames = prevStepFields.getFieldNames();
+        hasPreviousSteps = true;
+      }
+    } catch( KettleException e) {
+      log.logError("Couldn't get input fields for step "+stepMeta.getName()+" : "+e.getMessage());
+    }
+
     // Step name...
     //
     wlStepname = new Label( shell, SWT.RIGHT );
@@ -107,6 +127,26 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdStepname.right = new FormAttachment( 100, 0 );
     wStepname.setLayoutData( fdStepname );
     Control lastControl = wStepname;
+
+    // Optional test name input field
+    //
+    Label wlTestNameInputField = new Label( shell, SWT.RIGHT );
+    wlTestNameInputField.setText( BaseMessages.getString( PKG, "ExecuteTestsDialog.TestNameInputField.Label" ) );
+    props.setLook( wlTestNameInputField );
+    FormData fdlTestNameInputField = new FormData();
+    fdlTestNameInputField.left = new FormAttachment( 0, 0 );
+    fdlTestNameInputField.right = new FormAttachment( middle, -margin );
+    fdlTestNameInputField.top = new FormAttachment( lastControl, margin );
+    wlTestNameInputField.setLayoutData( fdlTestNameInputField );
+    wTestNameInputField = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wTestNameInputField.setItems(inputFieldNames);
+    FormData fdTestNameInputField = new FormData();
+    fdTestNameInputField.left = new FormAttachment( middle, 0 );
+    fdTestNameInputField.top = new FormAttachment( lastControl, margin );
+    fdTestNameInputField.right = new FormAttachment( 100, 0 );
+    wTestNameInputField.setLayoutData( fdTestNameInputField );
+    wTestNameInputField.addModifyListener( e->enableFields() );
+    lastControl = wTestNameInputField;
     
     // Type to execute
     //
@@ -300,8 +340,15 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     return stepname;
   }
 
+  private void enableFields() {
+    boolean previous = hasPreviousSteps && StringUtils.isNotEmpty(wTestNameInputField.getText());
+    wTestNameInputField.setEnabled( hasPreviousSteps );
+    wTypeToExecute.setEnabled( !previous );
+  }
+
   private void getData() {
-    
+
+    wTestNameInputField.setText(Const.NVL(input.getTestNameInputField(), ""));
     wTypeToExecute.setText( DataSetConst.getTestTypeDescription(input.getTypeToExecute()));
     wTransformationNameField.setText(Const.NVL(input.getTransformationNameField(), ""));
     wUnitTestNameField.setText(Const.NVL(input.getUnitTestNameField(), ""));
@@ -309,7 +356,9 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     wStepNameField.setText(Const.NVL(input.getStepNameField(), ""));
     wErrorField.setText(Const.NVL(input.getErrorField(), ""));
     wCommentField.setText(Const.NVL(input.getCommentField(), ""));
-    
+
+    enableFields();
+
     wStepname.selectAll();
     wStepname.setFocus();
   }
@@ -328,7 +377,8 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     stepname = wStepname.getText(); // return value
 
     input.setChanged();
-    
+
+    input.setTestNameInputField( wTestNameInputField.getText() );
     input.setTypeToExecute( DataSetConst.getTestTypeForDescription(wTypeToExecute.getText()) );
     input.setTransformationNameField( wTransformationNameField.getText() );
     input.setUnitTestNameField( wUnitTestNameField.getText() );

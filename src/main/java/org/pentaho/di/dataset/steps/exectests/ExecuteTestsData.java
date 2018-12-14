@@ -39,6 +39,7 @@ public class ExecuteTestsData extends BaseStepData implements StepDataInterface 
   public Iterator<TransUnitTest> testsIterator;
   public RowMetaInterface outputRowMeta;
   public FactoriesHierarchy hierarchy;
+  public boolean hasPrevious;
 
   public ExecuteTestsData() {
   }

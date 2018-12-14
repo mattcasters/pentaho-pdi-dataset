@@ -32,14 +32,18 @@ import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.gui.AreaOwner;
 import org.pentaho.di.core.gui.Point;
 import org.pentaho.di.core.logging.LogChannelInterface;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTest;
+import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.spoon.dialog.DataSetDialog;
+import org.pentaho.di.dataset.spoon.dialog.TransUnitTestSetLocationDialog;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.trans.TransMeta;
+import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.spoon.trans.TransGraph;
@@ -47,13 +51,15 @@ import org.pentaho.di.ui.spoon.trans.TransGraphExtension;
 import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @ExtensionPoint(
-  extensionPointId = "TransGraphMouseDoubleClick",
-  id = "DataSetsMouseDoubleClickExtensionPoint",
+  extensionPointId = "TransGraphMouseDown",
+  id = "LocationMouseDoubleClickExtensionPoint",
   description = "Open a data set when double clicked on it" )
-public class DataSetsMouseDoubleClickExtensionPoint implements ExtensionPointInterface {
+public class LocationMouseDoubleClickExtensionPoint implements ExtensionPointInterface {
 
   @Override
   public void callExtensionPoint( LogChannelInterface log, Object object ) throws KettleException {
@@ -70,24 +76,56 @@ public class DataSetsMouseDoubleClickExtensionPoint implements ExtensionPointInt
       return;
     }
 
-    MouseEvent e = transGraphExtension.getEvent();
-    Point point = transGraphExtension.getPoint();
+    Spoon spoon = Spoon.getInstance();
+    try {
+      FactoriesHierarchy hierarchy = new FactoriesHierarchy( spoon.getMetaStore(), spoon.getActiveDatabases() );
+      List<DataSet> dataSets = hierarchy.getSetFactory().getElements();
+      Map<String, RowMetaInterface> stepFieldsMap = new HashMap<>();
+      for ( StepMeta stepMeta : transMeta.getSteps() ) {
+        stepFieldsMap.put(stepMeta.getName(), transMeta.getStepFields( stepMeta ));
+      }
 
-    if ( e.button == 1 || e.button == 2 ) {
-      AreaOwner areaOwner = transGraphExtension.getTransGraph().getVisibleAreaOwner( point.x, point.y );
-      if ( areaOwner != null && areaOwner.getAreaType() != null ) {
-        // Check if this is the flask...
-        //
-        if ( DataSetConst.AREA_DRAWN_INPUT_DATA_SET.equals( areaOwner.getParent() ) ||
-          DataSetConst.AREA_DRAWN_GOLDEN_DATA_SET.equals( areaOwner.getParent() ) ) {
+      // Find the location that was double clicked on...
+      //
+      MouseEvent e = transGraphExtension.getEvent();
+      Point point = transGraphExtension.getPoint();
 
-          // Open the dataset double clicked on...
+      if ( e.button == 1 || e.button == 2 ) {
+        AreaOwner areaOwner = transGraphExtension.getTransGraph().getVisibleAreaOwner( point.x, point.y );
+        if ( areaOwner != null && areaOwner.getAreaType() != null ) {
+          // Check if this is the flask...
           //
-          String dataSetName = (String) areaOwner.getOwner();
-          openDataSet( dataSetName );
+          if ( DataSetConst.AREA_DRAWN_INPUT_DATA_SET.equals( areaOwner.getParent() ) ) {
 
+            // Open the dataset double clicked on...
+            //
+            String stepName = (String) areaOwner.getOwner();
+
+            TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepName );
+            if ( inputLocation != null ) {
+              TransUnitTestSetLocationDialog dialog = new TransUnitTestSetLocationDialog( spoon.getShell(), inputLocation, dataSets, stepFieldsMap );
+              if (dialog.open()) {
+                spoon.refreshGraph();
+              }
+            }
+          } else if ( DataSetConst.AREA_DRAWN_GOLDEN_DATA_SET.equals( areaOwner.getParent() ) ) {
+
+            // Open the dataset double clicked on...
+            //
+            String stepName = (String) areaOwner.getOwner();
+
+            TransUnitTestSetLocation goldenLocation = unitTest.findGoldenLocation( stepName );
+            if ( goldenLocation != null ) {
+              TransUnitTestSetLocationDialog dialog = new TransUnitTestSetLocationDialog( spoon.getShell(), goldenLocation, dataSets, stepFieldsMap );
+              if (dialog.open()) {
+                spoon.refreshGraph();
+              }
+            }
+          }
         }
       }
+    } catch ( Exception e ) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error editing location", e );
     }
   }
 

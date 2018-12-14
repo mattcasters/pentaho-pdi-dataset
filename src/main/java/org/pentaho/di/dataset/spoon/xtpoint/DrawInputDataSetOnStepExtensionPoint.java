@@ -105,6 +105,6 @@ public class DrawInputDataSetOnStepExtensionPoint implements ExtensionPointInter
 
     // Leave a trace of what we drew, for memory reasons, just the name of the data set here.
     //
-    areaOwners.add( new AreaOwner( AreaOwner.AreaType.CUSTOM, point.x, point.y, textExtent.x, textExtent.y, new Point(0,0), DataSetConst.AREA_DRAWN_INPUT_DATA_SET, dataSetName) );
+    areaOwners.add( new AreaOwner( AreaOwner.AreaType.CUSTOM, point.x, point.y, textExtent.x, textExtent.y, new Point(0,0), DataSetConst.AREA_DRAWN_INPUT_DATA_SET, stepMeta.getName()) );
   }
 }

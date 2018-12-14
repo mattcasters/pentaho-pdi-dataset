@@ -57,6 +57,7 @@ import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
 import org.pentaho.di.dataset.DataSetGroup;
+import org.pentaho.di.dataset.DataSetGroupType;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
@@ -420,6 +421,11 @@ public class DataSetDialog extends Dialog {
       DataSet set = new DataSet();
       getInfo(set);
       DataSetGroup group = set.getGroup();
+
+      if (group.getType()!= DataSetGroupType.Database ) {
+        return;
+      }
+      group.verifySettings();
 
       String schemaTable = group.getDatabaseMeta().getQuotedSchemaTableCombination( group.getSchemaName(), wTableName.getText() );
 
