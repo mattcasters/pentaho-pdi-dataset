@@ -11,9 +11,7 @@ We also want to provide Test Driven Development (TDD) capabilities through unit 
 
 Copy file "dist/pentaho-pdi-dataset-TRUNK-SNAPSHOT.jar" to the plugins/ folder of your Pentaho Data Integration (Kettle) distribution.  Any location in that folder or subfolder is fine to make the plugin work.  Currently there are no extra libraries that need to be deployed.
 
-```html
 <p>Check the <a href="https://github.com/mattcasters/pentaho-pdi-dataset/wiki/Basic-documentation">wiki</a> for more detailed instructions</p>
-```
 
 # LICENSE
 
