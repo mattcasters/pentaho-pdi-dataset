@@ -219,7 +219,7 @@ public class InjectDataSetIntoTransExtensionPoint implements ExtensionPointInter
         injectRowMeta.addValueMeta( injectValueMeta );
       }
 
-      log.logBasic( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: " + Arrays.toString( injectRowMeta.getFieldNames() ) );
+      log.logDetailed( "Injecting data set '" + dataSetName + "' into step '" + stepMeta.getName() + "', fields: " + Arrays.toString( injectRowMeta.getFieldNames() ) );
 
       // Pass rows
       //

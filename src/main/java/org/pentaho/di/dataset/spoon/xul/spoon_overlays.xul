@@ -17,17 +17,20 @@ Add an entry to the spoon menu bar
 
         <menu id="spoon-tools-menu-dataset-groups" label="Data set groups">
           <menupopup id="spoon-tools-menu-datasetgroups-popup">
-            <menuitem label="Add data set group" command="dataSetHelper.addDataSetGroup()" />
-            <menuitem label="Edit data set group" command="dataSetHelper.editDataSetGroup()" />
-            <menuitem label="Remove data set group" command="dataSetHelper.removeDataSetGroup()" />
+            <menuitem label="Create a data set group" command="dataSetHelper.addDataSetGroup()" />
+            <menuitem label="Edit a data set group" command="dataSetHelper.editDataSetGroup()" />
+            <menuseparator/>
+            <menuitem label="Delete a data set group" command="dataSetHelper.removeDataSetGroup()" />
 
           </menupopup>
         </menu>
 
         <menu id="spoon-tools-menu-datasets" label="Data sets">
           <menupopup id="spoon-tools-menu-datasets-popup">
-            <menuitem label="Add data set" command="dataSetHelper.addDataSet()" />
-            <menuitem label="Edit data set" command="dataSetHelper.editDataSet()" />
+            <menuitem label="Create a data set" command="dataSetHelper.addDataSet()" />
+            <menuitem label="Edit a data set" command="dataSetHelper.editDataSet()" />
+            <menuseparator/>
+            <menuitem label="Delete a data set" command="dataSetHelper.deleteDataSet()" />
           </menupopup>
         </menu>
 

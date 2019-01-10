@@ -99,6 +99,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
             Listener lsDisable = event -> disableUnitTest( unitTestName );
             Listener lsDataSetNew = event -> DataSetHelper.getInstance().addDataSet();
             Listener lsDataSetEdit = event -> DataSetHelper.getInstance().editDataSet();
+            Listener lsDataSetDelete = event -> DataSetHelper.getInstance().deleteDataSet();
             Listener lsGroupNew = event -> DataSetHelper.getInstance().addDataSetGroup();
             Listener lsGroupEdit = event -> DataSetHelper.getInstance().editDataSetGroup();
             Listener lsOpenTrans = event -> DataSetHelper.getInstance().openUnitTestTransformation();
@@ -199,6 +200,13 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
             MenuItem editDataSetItem = new MenuItem( dataSetMenu, SWT.PUSH );
             editDataSetItem.setText( BaseMessages.getString( PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.EditDataSet.Label" ) );
             editDataSetItem.addListener( SWT.Selection, lsDataSetEdit );
+
+            new MenuItem( dataSetMenu, SWT.SEPARATOR );
+
+            // delete data set
+            MenuItem deleteDataSetItem = new MenuItem( dataSetMenu, SWT.PUSH );
+            deleteDataSetItem.setText( BaseMessages.getString( PKG, "ShowUnitTestMenuExtensionPoint.UnitTest.DeleteDataSet.Label" ) );
+            deleteDataSetItem.addListener( SWT.Selection, lsDataSetDelete );
 
             new MenuItem( menu, SWT.SEPARATOR );
 

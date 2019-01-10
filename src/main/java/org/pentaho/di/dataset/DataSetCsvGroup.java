@@ -15,6 +15,8 @@ import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
+import org.pentaho.di.core.variables.VariableSpace;
+import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.core.vfs.KettleVFS;
 
 import java.io.BufferedInputStream;
@@ -52,6 +54,11 @@ public class DataSetCsvGroup {
     if ( StringUtils.isEmpty( folderName ) ) {
       // Local folder
       folderName = ".";
+    } else {
+      // Let's not forget to replace variables as well...
+      //
+      VariableSpace space = Variables.getADefaultVariableSpace();
+      folderName = space.environmentSubstitute( folderName );
     }
 
     if ( !folderName.endsWith( File.separator ) ) {
@@ -111,7 +118,6 @@ public class DataSetCsvGroup {
             for ( int i = 0; i < setRowMeta.size(); i++ ) {
               ValueMetaInterface valueMeta = setRowMeta.getValueMeta( i );
               String value = csvRecord.get( i );
-              System.out.println("parsing record number : "+csvRecord.getRecordNumber()+" value='"+value+"'  metadata="+valueMeta);
               row[ i ] = valueMeta.convertDataFromString( value, constantValueMeta, null, null, ValueMetaInterface.TRIM_TYPE_NONE );
             }
             rows.add( row );
@@ -247,7 +253,6 @@ public class DataSetCsvGroup {
           String string = valueMeta.getString( row[ i ] );
           strings.add( string );
         }
-        System.out.println( "Writing strings: " + strings );
         csvPrinter.printRecord( strings );
       }
       csvPrinter.flush();
