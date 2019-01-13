@@ -132,7 +132,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
 
             Menu switchMenu = new Menu( menu );
             switchItem.setMenu( switchMenu );
-            List<TransUnitTest> tests = findUnitTests( tge.getTransGraph().getTransMeta(), spoon.getMetaStore() );
+            List<TransUnitTest> tests = DataSetHelper.findTransformationUnitTest( tge.getTransGraph().getTransMeta(), spoon.getMetaStore() );
             for ( final TransUnitTest test : tests ) {
               MenuItem testItem = new MenuItem( switchMenu, SWT.PUSH );
               testItem.setText( test.getName() );
@@ -277,61 +277,6 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
     DataSetHelper.getInstance().switchUnitTest( targetTest, transMeta );
   }
 
-  private List<TransUnitTest> findUnitTests( TransMeta transMeta, DelegatingMetaStore metaStore ) {
-    MetaStoreFactory<TransUnitTest> factory = new MetaStoreFactory<TransUnitTest>( TransUnitTest.class, metaStore, PentahoDefaults.NAMESPACE );
-    List<TransUnitTest> tests = new ArrayList<TransUnitTest>();
-
-
-    try {
-
-      List<TransUnitTest> allTests = factory.getElements();
-      for ( TransUnitTest test : allTests ) {
-        // Match the filename
-        //
-        if ( StringUtils.isNotEmpty( transMeta.getFilename() ) ) {
-
-          // What's the transformation absolute URI
-          //
-          FileObject transFile = KettleVFS.getFileObject( transMeta.getFilename() );
-          String transUri = transFile.getName().getURI();
-
-          // What's the filename referenced in the test?
-          //
-          FileObject testTransFile = KettleVFS.getFileObject( test.calculateCompleteFilename(transMeta) );
-          if (testTransFile.exists()) {
-            String testTransUri = testTransFile.getName().getURI();
-
-            if ( transUri.equals( testTransUri ) ) {
-              tests.add( test );
-            }
-          }
-        } else {
-          if ( transMeta.getRepository() != null ) {
-            // No filename, check the object_id ...
-            //
-            if ( transMeta.getObjectId() != null && transMeta.getObjectId().getId().equals( test.getTransObjectId() ) ) {
-              tests.add( test );
-            } else {
-              // Try the repository path..
-              //
-              // What is the repsository path?
-              String repositoryPath = transMeta.getRepositoryDirectory().getPath() + "/" + transMeta.getName();
-              if ( repositoryPath.equals( test.getTransRepositoryPath() ) ) {
-                tests.add( test );
-              }
-            }
-          }
-        }
-      }
-
-    } catch ( Exception exception ) {
-      new ErrorDialog( Spoon.getInstance().getShell(),
-        BaseMessages.getString( PKG, "ShowUnitTestMenuExtensionPoint.ErrorFindingUnitTestsForTransformation.Title" ),
-        BaseMessages.getString( PKG, "ShowUnitTestMenuExtensionPoint.ErrorFindingUnitTestsForTransformation.Message" ),
-        exception );
-    }
-    return tests;
-  }
 
   /**
    * Find the canvas of TransGraph.  For some reason it's not exposed.

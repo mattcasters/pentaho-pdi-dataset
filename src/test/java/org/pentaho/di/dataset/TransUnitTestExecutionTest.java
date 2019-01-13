@@ -195,7 +195,7 @@ public class TransUnitTestExecutionTest extends TestCase {
     tweaks.add( new TransUnitTestTweak(TransTweak.REMOVE_STEP, "step3") );
     
     unitTest = new TransUnitTest(UNIT_TEST_NAME, UNIT_TEST_DESCRIPTION, null, null, 
-        "src/test/resources/simple-mapping.ktr", inputs, goldens, tweaks, TestType.UNIT_TEST, null, new ArrayList<TransUnitTestDatabaseReplacement>());
+        "src/test/resources/simple-mapping.ktr", inputs, goldens, tweaks, TestType.UNIT_TEST, null, new ArrayList<TransUnitTestDatabaseReplacement>(), false);
   }
 
   public void testExecution() throws Exception {

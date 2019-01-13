@@ -77,6 +77,7 @@ public class TransUnitTestDialog extends Dialog {
   private Combo wTestType;
   private TextVar wFilename;
   private TextVar wBasePath;
+  private Button wAutoOpen;
 
   private TableView wDbReplacements;
   private TableView wVariableValues;
@@ -217,6 +218,25 @@ public class TransUnitTestDialog extends Dialog {
     wBasePath.setLayoutData( fdBasePath );
     lastControl = wBasePath;
 
+    // The base path for relative test path resolution
+    //
+    Label wlAutoOpen = new Label( shell, SWT.RIGHT );
+    props.setLook( wlAutoOpen );
+    wlAutoOpen.setText( BaseMessages.getString( PKG, "TransUnitTestDialog.AutoOpen.Label" ) );
+    FormData fdlAutoOpen = new FormData();
+    fdlAutoOpen.top = new FormAttachment( lastControl, margin );
+    fdlAutoOpen.left = new FormAttachment( 0, 0 );
+    fdlAutoOpen.right = new FormAttachment( middle, -margin );
+    wlAutoOpen.setLayoutData( fdlAutoOpen );
+    wAutoOpen = new Button( shell, SWT.CHECK );
+    props.setLook( wAutoOpen );
+    FormData fdAutoOpen = new FormData();
+    fdAutoOpen.top = new FormAttachment( lastControl, margin );
+    fdAutoOpen.left = new FormAttachment( middle, 0 );
+    fdAutoOpen.right = new FormAttachment( 100, 0 );
+    wAutoOpen.setLayoutData( fdAutoOpen );
+    lastControl = wAutoOpen;
+
     // The list of database replacements in the unit test transformation
     //
     Label wlFieldMapping = new Label( shell, SWT.NONE );
@@ -346,6 +366,7 @@ public class TransUnitTestDialog extends Dialog {
     wTestType.setText( Const.NVL( DataSetConst.getTestTypeDescription( transUnitTest.getType() ), "" ) );
     wFilename.setText( Const.NVL( transUnitTest.getFilename(), "" ) );
     wBasePath.setText( Const.NVL( transUnitTest.getBasePath(), "" ) );
+    wAutoOpen.setSelection( transUnitTest.isAutoOpening() );
 
     for ( int i = 0; i < transUnitTest.getDatabaseReplacements().size(); i++ ) {
       TransUnitTestDatabaseReplacement dbReplacement = transUnitTest.getDatabaseReplacements().get( i );
@@ -380,6 +401,7 @@ public class TransUnitTestDialog extends Dialog {
     test.setType( DataSetConst.getTestTypeForDescription( wTestType.getText() ) );
     test.setFilename( wFilename.getText() );
     test.setBasePath( wBasePath.getText() );
+    test.setAutoOpening( wAutoOpen.getSelection() );
 
     test.getDatabaseReplacements().clear();
     int nrFields = wDbReplacements.nrNonEmpty();

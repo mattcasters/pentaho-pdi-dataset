@@ -22,28 +22,24 @@
 
 package org.pentaho.di.dataset;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannelInterface;
-import org.pentaho.di.core.row.RowMeta;
-import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
-import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 /**
  * This class describes a test-case where a transformation output is verified against golden data.
- * 
- * @author matt
  *
+ * @author matt
  */
 @MetaStoreElementType(
   name = "Kettle Transformation Unit Test",
@@ -63,7 +59,7 @@ public class TransUnitTest {
 
   @MetaStoreAttribute( key = "transformation_filename" )
   protected String transFilename; // file (3rd priority)
-  
+
   @MetaStoreAttribute( key = "input_data_sets" )
   protected List<TransUnitTestSetLocation> inputDataSets;
 
@@ -73,10 +69,10 @@ public class TransUnitTest {
   @MetaStoreAttribute( key = "trans_test_tweaks" )
   protected List<TransUnitTestTweak> tweaks;
 
-  @MetaStoreAttribute( key = "test_type")
+  @MetaStoreAttribute( key = "test_type" )
   protected TestType type;
-  
-  @MetaStoreAttribute( key = "persist_filename")
+
+  @MetaStoreAttribute( key = "persist_filename" )
   protected String filename;
 
   @MetaStoreAttribute
@@ -88,6 +84,10 @@ public class TransUnitTest {
   @MetaStoreAttribute
   protected List<VariableValue> variableValues;
 
+  @MetaStoreAttribute
+  protected boolean autoOpening;
+
+
   public TransUnitTest() {
     inputDataSets = new ArrayList<TransUnitTestSetLocation>();
     goldenDataSets = new ArrayList<TransUnitTestSetLocation>();
@@ -96,16 +96,18 @@ public class TransUnitTest {
     databaseReplacements = new ArrayList<TransUnitTestDatabaseReplacement>();
     variableValues = new ArrayList<>();
     basePath = null;
+    autoOpening = false;
   }
 
-  public TransUnitTest( String name, String description, 
-      String transObjectId, String transRepositoryPath, String transFilename, 
-      List<TransUnitTestSetLocation> inputDataSets, 
-      List<TransUnitTestSetLocation> goldenDataSets,
-      List<TransUnitTestTweak> tweaks,
-      TestType type,
-      String filename, 
-      List<TransUnitTestDatabaseReplacement> databaseReplacements) {
+  public TransUnitTest( String name, String description,
+                        String transObjectId, String transRepositoryPath, String transFilename,
+                        List<TransUnitTestSetLocation> inputDataSets,
+                        List<TransUnitTestSetLocation> goldenDataSets,
+                        List<TransUnitTestTweak> tweaks,
+                        TestType type,
+                        String filename,
+                        List<TransUnitTestDatabaseReplacement> databaseReplacements,
+                        boolean autoOpening ) {
     this();
     this.name = name;
     this.description = description;
@@ -118,37 +120,38 @@ public class TransUnitTest {
     this.type = type;
     this.filename = filename;
     this.databaseReplacements = databaseReplacements;
+    this.autoOpening = autoOpening;
   }
-  
+
   @Override
   public boolean equals( Object obj ) {
-    if (obj==this) {
+    if ( obj == this ) {
       return true;
     }
-    if (!(obj instanceof TransUnitTest)) {
+    if ( !( obj instanceof TransUnitTest ) ) {
       return false;
     }
-    return ((TransUnitTest)obj).name.equalsIgnoreCase( name );
+    return ( (TransUnitTest) obj ).name.equalsIgnoreCase( name );
   }
-  
+
   @Override
   public int hashCode() {
     return name.hashCode();
   }
 
 
-  public TransUnitTestSetLocation findGoldenLocation(String stepName) {
-    for (TransUnitTestSetLocation location : goldenDataSets) {
-      if (stepName.equalsIgnoreCase( location.getStepname() )) {
+  public TransUnitTestSetLocation findGoldenLocation( String stepName ) {
+    for ( TransUnitTestSetLocation location : goldenDataSets ) {
+      if ( stepName.equalsIgnoreCase( location.getStepname() ) ) {
         return location;
       }
     }
     return null;
   }
 
-  public TransUnitTestSetLocation findInputLocation(String stepName) {
-    for (TransUnitTestSetLocation location : inputDataSets) {
-      if (stepName.equalsIgnoreCase( location.getStepname() )) {
+  public TransUnitTestSetLocation findInputLocation( String stepName ) {
+    for ( TransUnitTestSetLocation location : inputDataSets ) {
+      if ( stepName.equalsIgnoreCase( location.getStepname() ) ) {
         return location;
       }
     }
@@ -158,14 +161,13 @@ public class TransUnitTest {
   /**
    * Retrieve the golden data set for the specified location
    *
-   * @param log the logging channel to log to
+   * @param log       the logging channel to log to
    * @param hierarchy The factories to load sets with
-   * @param location the location where we want to check against golden rows
+   * @param location  the location where we want to check against golden rows
    * @return The golden data set
-   *
    * @throws KettleException
    */
-  public DataSet getGoldenDataSet(LogChannelInterface log, FactoriesHierarchy hierarchy, TransUnitTestSetLocation location) throws KettleException {
+  public DataSet getGoldenDataSet( LogChannelInterface log, FactoriesHierarchy hierarchy, TransUnitTestSetLocation location ) throws KettleException {
 
     String stepName = location.getStepname();
     String goldenDataSetName = location.getDataSetName();
@@ -173,29 +175,31 @@ public class TransUnitTest {
     try {
       // Look in the golden data sets list for the mentioned step name
       //
-      if (goldenDataSetName==null) {
-        throw new KettleException("Unable to find golden data set for step '"+stepName+"'");
+      if ( goldenDataSetName == null ) {
+        throw new KettleException( "Unable to find golden data set for step '" + stepName + "'" );
       }
 
       DataSet goldenDataSet = hierarchy.getSetFactory().loadElement( goldenDataSetName );
-      if (goldenDataSet==null) {
-        throw new KettleException("Unable to find golden data set '"+goldenDataSetName+"' for step '"+stepName+"'");
+      if ( goldenDataSet == null ) {
+        throw new KettleException( "Unable to find golden data set '" + goldenDataSetName + "' for step '" + stepName + "'" );
       }
 
       return goldenDataSet;
 
     } catch ( Exception e ) {
-      throw new KettleException( "Unable to retrieve sorted golden row data set '"+stepName+"'", e );
+      throw new KettleException( "Unable to retrieve sorted golden row data set '" + stepName + "'", e );
     }
   }
 
-  /** Find the first tweak for a certain step
+  /**
+   * Find the first tweak for a certain step
+   *
    * @param stepname the name of the step on which a tweak is put
    * @return the first tweak for a certain step or null if nothing was found
    */
-  public TransUnitTestTweak findTweak(String stepname) {
-    for (TransUnitTestTweak tweak : tweaks) {
-      if (tweak.getStepName()!=null && tweak.getStepName().equalsIgnoreCase(stepname)) {
+  public TransUnitTestTweak findTweak( String stepname ) {
+    for ( TransUnitTestTweak tweak : tweaks ) {
+      if ( tweak.getStepName() != null && tweak.getStepName().equalsIgnoreCase( stepname ) ) {
         return tweak;
       }
     }
@@ -204,42 +208,43 @@ public class TransUnitTest {
 
   /**
    * Remove all input and golden data sets on the step with the provided name
+   *
    * @param stepname the name of the step for which we need to clear out all input and golden data sets
    */
-  public void removeInputAndGoldenDataSets(String stepname) {
+  public void removeInputAndGoldenDataSets( String stepname ) {
 
-    for (Iterator<TransUnitTestSetLocation> iterator = inputDataSets.iterator() ; iterator.hasNext() ; ) {
+    for ( Iterator<TransUnitTestSetLocation> iterator = inputDataSets.iterator(); iterator.hasNext(); ) {
       TransUnitTestSetLocation inputLocation = iterator.next();
-      if (inputLocation.getStepname().equalsIgnoreCase(stepname)) {
+      if ( inputLocation.getStepname().equalsIgnoreCase( stepname ) ) {
         iterator.remove();
       }
     }
 
-    for (Iterator<TransUnitTestSetLocation> iterator = goldenDataSets.iterator() ; iterator.hasNext() ; ) {
+    for ( Iterator<TransUnitTestSetLocation> iterator = goldenDataSets.iterator(); iterator.hasNext(); ) {
       TransUnitTestSetLocation goldenLocation = iterator.next();
-      if (goldenLocation.getStepname().equalsIgnoreCase(stepname)) {
+      if ( goldenLocation.getStepname().equalsIgnoreCase( stepname ) ) {
         iterator.remove();
       }
     }
   }
 
-  public String calculateCompleteFilename( VariableSpace space) {
+  public String calculateCompleteFilename( VariableSpace space ) {
 
     String baseFilePath = space.environmentSubstitute( basePath );
-    if ( StringUtils.isEmpty(baseFilePath) ) {
+    if ( StringUtils.isEmpty( baseFilePath ) ) {
       // See if the base path environment variable is set
       //
       baseFilePath = space.getVariable( DataSetConst.VARIABLE_UNIT_TESTS_BASE_PATH );
     }
-    if (StringUtils.isEmpty( baseFilePath )) {
-      baseFilePath="";
+    if ( StringUtils.isEmpty( baseFilePath ) ) {
+      baseFilePath = "";
     }
-    if (StringUtils.isNotEmpty( baseFilePath )) {
-      if (!baseFilePath.endsWith( File.separator )) {
-        baseFilePath+=File.separator;
+    if ( StringUtils.isNotEmpty( baseFilePath ) ) {
+      if ( !baseFilePath.endsWith( File.separator ) ) {
+        baseFilePath += File.separator;
       }
     }
-    return baseFilePath+transFilename;
+    return baseFilePath + transFilename;
   }
 
   /**
@@ -448,5 +453,21 @@ public class TransUnitTest {
    */
   public void setVariableValues( List<VariableValue> variableValues ) {
     this.variableValues = variableValues;
+  }
+
+  /**
+   * Gets autoOpening
+   *
+   * @return value of autoOpening
+   */
+  public boolean isAutoOpening() {
+    return autoOpening;
+  }
+
+  /**
+   * @param autoOpening The autoOpening to set
+   */
+  public void setAutoOpening( boolean autoOpening ) {
+    this.autoOpening = autoOpening;
   }
 }
