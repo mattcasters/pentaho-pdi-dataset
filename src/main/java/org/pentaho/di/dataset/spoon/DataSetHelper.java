@@ -31,6 +31,7 @@ import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.SourceToTargetMapping;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.gui.SpoonFactory;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -474,7 +475,14 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         // Now we need to map the fields from the input data set to the step...
         //
         RowMetaInterface setFields = dataSet.getSetRowMeta( false );
-        RowMetaInterface stepFields = transMeta.getStepFields( stepMeta );
+        RowMetaInterface stepFields;
+        try {
+          stepFields = transMeta.getStepFields( stepMeta );
+        } catch( KettleStepException e) {
+          // Driver or input problems...
+          //
+          stepFields = new RowMeta();
+        }
         if ( stepFields.isEmpty() ) {
           stepFields = setFields.clone();
         }

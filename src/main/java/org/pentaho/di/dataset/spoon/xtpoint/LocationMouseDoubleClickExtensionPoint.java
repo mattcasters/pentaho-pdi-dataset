@@ -82,7 +82,12 @@ public class LocationMouseDoubleClickExtensionPoint implements ExtensionPointInt
       List<DataSet> dataSets = hierarchy.getSetFactory().getElements();
       Map<String, RowMetaInterface> stepFieldsMap = new HashMap<>();
       for ( StepMeta stepMeta : transMeta.getSteps() ) {
-        stepFieldsMap.put(stepMeta.getName(), transMeta.getStepFields( stepMeta ));
+        try {
+          RowMetaInterface stepFields = transMeta.getStepFields( stepMeta );
+          stepFieldsMap.put( stepMeta.getName(), stepFields );
+        } catch(Exception e) {
+          // Ignore GUI errors...
+        }
       }
 
       // Find the location that was double clicked on...
