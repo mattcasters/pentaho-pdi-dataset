@@ -1231,14 +1231,20 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       if ( selection != null ) {
         String filename = selection.getString( 2, null );
         if ( StringUtils.isNotEmpty( filename ) ) {
-          spoon.openFile( filename, false );
-
-          TransMeta transMeta = spoon.getActiveTransformation();
-          // Now select the unit test...
+          // Load the unit test...
+          //
           String unitTestName = selection.getString( 0, null );
           TransUnitTest targetTest = hierarchy.getTestFactory().loadElement( unitTestName );
-          if ( transMeta != null && targetTest != null ) {
-            switchUnitTest( targetTest, transMeta );
+
+          if ( targetTest != null ) {
+
+            String completeFilename = targetTest.calculateCompleteFilename( Variables.getADefaultVariableSpace() );
+            spoon.openFile( completeFilename, false );
+
+            TransMeta transMeta = spoon.getActiveTransformation();
+            if (transMeta!=null) {
+              switchUnitTest( targetTest, transMeta );
+            }
           }
         } else {
           throw new KettleException( "No filename found: repositories not supported yet for this feature" );
