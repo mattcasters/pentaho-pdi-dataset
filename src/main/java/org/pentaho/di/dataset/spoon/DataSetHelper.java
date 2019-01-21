@@ -1030,6 +1030,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
       // Remove
       //
       activeTests.remove( transMeta );
+      transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "N" );
 
       spoon.refreshGraph();
     } catch ( Exception e ) {
