@@ -55,6 +55,7 @@ import org.pentaho.di.dataset.spoon.dialog.DataSetDialog;
 import org.pentaho.di.dataset.spoon.dialog.DataSetGroupDialog;
 import org.pentaho.di.dataset.spoon.dialog.EditRowsDialog;
 import org.pentaho.di.dataset.spoon.dialog.TransUnitTestDialog;
+import org.pentaho.di.dataset.spoon.xtpoint.TransMetaModifier;
 import org.pentaho.di.dataset.spoon.xtpoint.WriteToDataSetExtensionPoint;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
@@ -580,20 +581,26 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
   public void setGoldenDataSet() {
     Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
     TransGraph transGraph = spoon.getActiveTransGraph();
-    TransMeta transMeta = spoon.getActiveTransformation();
+    TransMeta sourceTransMeta = spoon.getActiveTransformation();
     StepMeta stepMeta = transGraph.getCurrentStep();
-    if ( transGraph == null || transMeta == null || stepMeta == null ) {
+    if ( transGraph == null || sourceTransMeta == null || stepMeta == null ) {
       return;
     }
     IMetaStore metaStore = spoon.getMetaStore();
 
-    if ( checkTestPresent( spoon, transMeta ) ) {
+    if ( checkTestPresent( spoon, sourceTransMeta ) ) {
       return;
     }
-    TransUnitTest unitTest = activeTests.get( transMeta );
+    TransUnitTest unitTest = activeTests.get( sourceTransMeta );
 
     try {
       FactoriesHierarchy hierarchy = getHierarchy();
+
+      // Create a copy and modify the transformation
+      // This way we have
+      TransMetaModifier modifier = new TransMetaModifier( sourceTransMeta, unitTest );
+      TransMeta transMeta = modifier.getTestTransformation( LogChannel.UI, sourceTransMeta, hierarchy );
+
 
       MetaStoreFactory<DataSet> setFactory = hierarchy.getSetFactory();
       List<String> setNames = setFactory.getElementNames();
@@ -605,7 +612,15 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
         // Now we need to map the fields from the step to golden data set fields...
         //
-        RowMetaInterface stepFields = transMeta.getPrevStepFields( stepMeta );
+        RowMetaInterface stepFields;
+        try {
+          stepFields = transMeta.getPrevStepFields( stepMeta );
+        } catch(KettleStepException e) {
+          // Ignore error: issues with not being able to get fields because of the unit test
+          // running in a different environment.
+          //
+          stepFields = new RowMeta();
+        }
         RowMetaInterface setFields = dataSet.getSetRowMeta( false );
 
         String[] stepFieldNames = stepFields.getFieldNames();
