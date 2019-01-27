@@ -88,8 +88,9 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
     rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(stepNameField));
     rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(errorField));
     rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(commentField));
-    
-    inputRowMeta.addRowMeta( rowMeta );    
+
+    inputRowMeta.clear();
+    inputRowMeta.addRowMeta( rowMeta );
   }
 
   @Override
