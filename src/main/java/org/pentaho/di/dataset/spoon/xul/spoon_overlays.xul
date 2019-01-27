@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="file://E:/workspaces/sprint_workspace/pentaho-xul/test/resource/documents/xul.css" type="text/css"?>
 <overlay id="spoon-trans-graph-popupmenu-dataset" title="TransGraph DataSet Menu"
-	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-	xmlns:HTML="http://www.w3.org/Profiles/XHTML-transitional" height="600"
-	width="800" xmlns:pen="http://www.pentaho.org/2008/xul">
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+         height="600"
+         width="800">
 
 
   <!--
@@ -17,28 +17,28 @@ Add an entry to the spoon menu bar
 
         <menu id="spoon-tools-menu-dataset-groups" label="Data set groups">
           <menupopup id="spoon-tools-menu-datasetgroups-popup">
-            <menuitem label="Create a data set group" command="dataSetHelper.addDataSetGroup()" />
-            <menuitem label="Edit a data set group" command="dataSetHelper.editDataSetGroup()" />
+            <menuitem label="Create a data set group" command="dataSetHelper.addDataSetGroup()"/>
+            <menuitem label="Edit a data set group" command="dataSetHelper.editDataSetGroup()"/>
             <menuseparator/>
-            <menuitem label="Delete a data set group" command="dataSetHelper.removeDataSetGroup()" />
+            <menuitem label="Delete a data set group" command="dataSetHelper.removeDataSetGroup()"/>
 
           </menupopup>
         </menu>
 
         <menu id="spoon-tools-menu-datasets" label="Data sets">
           <menupopup id="spoon-tools-menu-datasets-popup">
-            <menuitem label="Create a data set" command="dataSetHelper.addDataSet()" />
-            <menuitem label="Edit a data set" command="dataSetHelper.editDataSet()" />
+            <menuitem label="Create a data set" command="dataSetHelper.addDataSet()"/>
+            <menuitem label="Edit a data set" command="dataSetHelper.editDataSet()"/>
             <menuseparator/>
-            <menuitem label="Delete a data set" command="dataSetHelper.deleteDataSet()" />
+            <menuitem label="Delete a data set" command="dataSetHelper.deleteDataSet()"/>
           </menupopup>
         </menu>
 
         <menu id="spoon-tools-menu-unittests" label="Transformation Unit tests">
           <menupopup id="spoon-tools-menu-unittests-popup">
-            <menuitem label="Open unit test transformation" command="dataSetHelper.openUnitTestTransformation()" />
+            <menuitem label="Open unit test transformation" command="dataSetHelper.openUnitTestTransformation()"/>
             <menuseparator/>
-            <menuitem label="Delete unit test" command="dataSetHelper.deleteUnitTest()" />
+            <menuitem label="Delete unit test" command="dataSetHelper.deleteUnitTest()"/>
           </menupopup>
         </menu>
 

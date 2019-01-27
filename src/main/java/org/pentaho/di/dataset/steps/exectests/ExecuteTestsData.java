@@ -22,15 +22,15 @@
 
 package org.pentaho.di.dataset.steps.exectests;
 
-import java.util.Iterator;
-import java.util.List;
-
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.metastore.persist.MetaStoreFactory;
+
+import java.util.Iterator;
+import java.util.List;
 
 public class ExecuteTestsData extends BaseStepData implements StepDataInterface {
 
@@ -43,5 +43,5 @@ public class ExecuteTestsData extends BaseStepData implements StepDataInterface 
 
   public ExecuteTestsData() {
   }
-  
+
 }

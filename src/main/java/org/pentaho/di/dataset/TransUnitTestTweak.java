@@ -36,36 +36,36 @@ public class TransUnitTestTweak {
     tweak = TransTweak.NONE;
   }
 
-  public TransUnitTestTweak(TransTweak tweak, String stepName) {
+  public TransUnitTestTweak( TransTweak tweak, String stepName ) {
     super();
     this.tweak = tweak;
     this.stepName = stepName;
   }
-  
+
   @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof TransUnitTestTweak)) {
+  public boolean equals( Object obj ) {
+    if ( !( obj instanceof TransUnitTestTweak ) ) {
       return false;
     }
-    if (obj==this) {
+    if ( obj == this ) {
       return true;
     }
-    
-    TransUnitTestTweak other = (TransUnitTestTweak)obj;
-    
-    return stepName==null ? false : stepName.equals(other.stepName);
+
+    TransUnitTestTweak other = (TransUnitTestTweak) obj;
+
+    return stepName == null ? false : stepName.equals( other.stepName );
   }
-  
+
   @Override
   public int hashCode() {
-    return stepName==null ? 0 : stepName.hashCode();
+    return stepName == null ? 0 : stepName.hashCode();
   }
 
   public TransTweak getTweak() {
     return tweak;
   }
 
-  public void setTweak(TransTweak tweak) {
+  public void setTweak( TransTweak tweak ) {
     this.tweak = tweak;
   }
 
@@ -73,7 +73,7 @@ public class TransUnitTestTweak {
     return stepName;
   }
 
-  public void setStepName(String stepName) {
+  public void setStepName( String stepName ) {
     this.stepName = stepName;
   }
 }

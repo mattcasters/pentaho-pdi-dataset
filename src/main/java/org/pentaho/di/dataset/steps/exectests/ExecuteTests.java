@@ -101,7 +101,7 @@ public class ExecuteTests extends BaseStep implements StepInterface {
         data.tests = new ArrayList<>();
         Object[] row = getRow();
 
-        if (row==null) {
+        if ( row == null ) {
           // No input and as such no tests to execute. We're all done here.
           //
           setOutputDone();

@@ -57,10 +57,10 @@ public class DataSet {
 
 
   public DataSet() {
-    fields = new ArrayList<>(  );
+    fields = new ArrayList<>();
   }
 
-  public DataSet( String name, String description, DataSetGroup group, String tableName, List<DataSetField> fields) {
+  public DataSet( String name, String description, DataSetGroup group, String tableName, List<DataSetField> fields ) {
     this();
     this.name = name;
     this.description = description;
@@ -127,7 +127,7 @@ public class DataSet {
 
   public int indexOfField( String fieldName ) {
     for ( int i = 0; i < fields.size(); i++ ) {
-      DataSetField field = fields.get(i);
+      DataSetField field = fields.get( i );
       if ( field.getFieldName().equalsIgnoreCase( fieldName ) ) {
         return i;
       }
@@ -140,10 +140,9 @@ public class DataSet {
     return group.getAllRows( log, this, location );
   }
 
-  public List<Object[]> getAllRows( LogChannelInterface log) throws KettleException {
-    return group.getAllRows( log, this);
+  public List<Object[]> getAllRows( LogChannelInterface log ) throws KettleException {
+    return group.getAllRows( log, this );
   }
-
 
 
   /**
@@ -152,11 +151,11 @@ public class DataSet {
    * @param location
    * @return The fields metadata for those fields that are mapped against a certain step (location)
    */
-  public RowMetaInterface getMappedDataSetFieldsRowMeta(TransUnitTestSetLocation location) throws KettlePluginException {
+  public RowMetaInterface getMappedDataSetFieldsRowMeta( TransUnitTestSetLocation location ) throws KettlePluginException {
 
     RowMetaInterface setRowMeta = getSetRowMeta( false );
     RowMetaInterface rowMeta = new RowMeta();
-    for (TransUnitTestFieldMapping fieldMapping : location.getFieldMappings()) {
+    for ( TransUnitTestFieldMapping fieldMapping : location.getFieldMappings() ) {
       ValueMetaInterface valueMeta = setRowMeta.searchValueMeta( fieldMapping.getDataSetFieldName() );
       rowMeta.addValueMeta( valueMeta );
     }
@@ -164,14 +163,11 @@ public class DataSet {
   }
 
 
-
-
-
-    /**
-     * Gets name
-     *
-     * @return value of name
-     */
+  /**
+   * Gets name
+   *
+   * @return value of name
+   */
   public String getName() {
     return name;
   }

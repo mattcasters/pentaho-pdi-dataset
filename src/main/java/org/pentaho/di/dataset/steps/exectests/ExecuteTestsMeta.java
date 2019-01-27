@@ -47,12 +47,12 @@ import org.w3c.dom.Node;
 import java.util.List;
 
 @Step(
-    id = "ExecuteTests",
-    description = "Execute Unit Tests",
-    name = "Execute Unit Tests",
-    image = "ui/images/TRNEx.svg",
-    categoryDescription = "Flow"
-    )
+  id = "ExecuteTests",
+  description = "Execute Unit Tests",
+  name = "Execute Unit Tests",
+  image = "ui/images/TRNEx.svg",
+  categoryDescription = "Flow"
+)
 public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface {
 
   public static final String TAG_TEST_NAME_INPUT_FIELD = "test_name_input_field";
@@ -72,22 +72,22 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   private String stepNameField;
   private String errorField;
   private String commentField;
-  
+
   public ExecuteTestsMeta() {
     super();
   }
-  
+
   @Override
-  public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, 
-      VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
+  public void getFields( RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
+                         VariableSpace space, Repository repository, IMetaStore metaStore ) throws KettleStepException {
     RowMetaInterface rowMeta = UnitTestResult.getRowMeta();
-    int index=0;
-    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(transformationNameField));
-    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(unitTestNameField));
-    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(dataSetNameField));
-    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(stepNameField));
-    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(errorField));
-    rowMeta.getValueMeta(index++).setName(space.environmentSubstitute(commentField));
+    int index = 0;
+    rowMeta.getValueMeta( index++ ).setName( space.environmentSubstitute( transformationNameField ) );
+    rowMeta.getValueMeta( index++ ).setName( space.environmentSubstitute( unitTestNameField ) );
+    rowMeta.getValueMeta( index++ ).setName( space.environmentSubstitute( dataSetNameField ) );
+    rowMeta.getValueMeta( index++ ).setName( space.environmentSubstitute( stepNameField ) );
+    rowMeta.getValueMeta( index++ ).setName( space.environmentSubstitute( errorField ) );
+    rowMeta.getValueMeta( index++ ).setName( space.environmentSubstitute( commentField ) );
 
     inputRowMeta.clear();
     inputRowMeta.addRowMeta( rowMeta );
@@ -97,14 +97,14 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   public String getXML() throws KettleException {
     StringBuilder xml = new StringBuilder();
     xml.append( XMLHandler.addTagValue( TAG_TEST_NAME_INPUT_FIELD, testNameInputField ) );
-    xml.append( XMLHandler.addTagValue( TAG_TYPE_TO_EXECUTE, typeToExecute==null ? TestType.NONE.name() : typeToExecute.name() ) );
+    xml.append( XMLHandler.addTagValue( TAG_TYPE_TO_EXECUTE, typeToExecute == null ? TestType.NONE.name() : typeToExecute.name() ) );
     xml.append( XMLHandler.addTagValue( TAG_TRANSFORMATION_NAME_FIELD, transformationNameField ) );
     xml.append( XMLHandler.addTagValue( TAG_UNIT_TEST_NAME_FIELD, unitTestNameField ) );
     xml.append( XMLHandler.addTagValue( TAG_DATASET_NAME_FIELD, dataSetNameField ) );
     xml.append( XMLHandler.addTagValue( TAG_STEP_NAME_FIELD, stepNameField ) );
     xml.append( XMLHandler.addTagValue( TAG_ERROR_FIELD, errorField ) );
     xml.append( XMLHandler.addTagValue( TAG_COMMENT_FIELD, commentField ) );
-    
+
     return xml.toString();
   }
 
@@ -112,11 +112,11 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   public void loadXML( Node stepnode, List<DatabaseMeta> databases, IMetaStore metaStore ) throws KettleXMLException {
     try {
 
-      testNameInputField = XMLHandler.getTagValue( stepnode, TAG_TEST_NAME_INPUT_FIELD);
+      testNameInputField = XMLHandler.getTagValue( stepnode, TAG_TEST_NAME_INPUT_FIELD );
       String typeDesc = XMLHandler.getTagValue( stepnode, TAG_TYPE_TO_EXECUTE );
       try {
-        typeToExecute = TestType.valueOf(typeDesc);
-      } catch(Exception e) {
+        typeToExecute = TestType.valueOf( typeDesc );
+      } catch ( Exception e ) {
         typeToExecute = TestType.NONE;
       }
       transformationNameField = XMLHandler.getTagValue( stepnode, TAG_TRANSFORMATION_NAME_FIELD );
@@ -125,16 +125,16 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
       stepNameField = XMLHandler.getTagValue( stepnode, TAG_STEP_NAME_FIELD );
       errorField = XMLHandler.getTagValue( stepnode, TAG_ERROR_FIELD );
       commentField = XMLHandler.getTagValue( stepnode, TAG_COMMENT_FIELD );
-      
+
     } catch ( Exception e ) {
       throw new KettleXMLException( "Unable to load execute test step details", e );
     }
   }
-  
+
   @Override
   public void saveRep( Repository rep, IMetaStore metaStore, ObjectId id_transformation, ObjectId id_step ) throws KettleException {
     rep.saveStepAttribute( id_transformation, id_step, TAG_UNIT_TEST_NAME_FIELD, testNameInputField );
-    rep.saveStepAttribute( id_transformation, id_step, TAG_TYPE_TO_EXECUTE, typeToExecute==null ? TestType.NONE.name() : typeToExecute.name() );
+    rep.saveStepAttribute( id_transformation, id_step, TAG_TYPE_TO_EXECUTE, typeToExecute == null ? TestType.NONE.name() : typeToExecute.name() );
     rep.saveStepAttribute( id_transformation, id_step, TAG_TRANSFORMATION_NAME_FIELD, transformationNameField );
     rep.saveStepAttribute( id_transformation, id_step, TAG_UNIT_TEST_NAME_FIELD, unitTestNameField );
     rep.saveStepAttribute( id_transformation, id_step, TAG_DATASET_NAME_FIELD, dataSetNameField );
@@ -146,35 +146,35 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
   @Override
   public void readRep( Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases ) throws KettleException {
 
-    testNameInputField = rep.getStepAttributeString(id_step, TAG_TEST_NAME_INPUT_FIELD);
+    testNameInputField = rep.getStepAttributeString( id_step, TAG_TEST_NAME_INPUT_FIELD );
     try {
       String typeDesc = rep.getStepAttributeString( id_step, TAG_TYPE_TO_EXECUTE );
       try {
-        typeToExecute = TestType.valueOf(typeDesc);
-      } catch(Exception e) {
+        typeToExecute = TestType.valueOf( typeDesc );
+      } catch ( Exception e ) {
         typeToExecute = TestType.NONE;
       }
     } catch ( Exception e ) {
       throw new KettleXMLException( "Unable to load execute tests step details from the repository", e );
-    } 
-    transformationNameField = rep.getStepAttributeString(id_step, TAG_TRANSFORMATION_NAME_FIELD);
-    unitTestNameField = rep.getStepAttributeString(id_step, TAG_UNIT_TEST_NAME_FIELD);
-    dataSetNameField = rep.getStepAttributeString(id_step, TAG_DATASET_NAME_FIELD);
-    stepNameField = rep.getStepAttributeString(id_step, TAG_STEP_NAME_FIELD);
-    errorField = rep.getStepAttributeString(id_step, TAG_ERROR_FIELD);
-    commentField = rep.getStepAttributeString(id_step, TAG_COMMENT_FIELD);
+    }
+    transformationNameField = rep.getStepAttributeString( id_step, TAG_TRANSFORMATION_NAME_FIELD );
+    unitTestNameField = rep.getStepAttributeString( id_step, TAG_UNIT_TEST_NAME_FIELD );
+    dataSetNameField = rep.getStepAttributeString( id_step, TAG_DATASET_NAME_FIELD );
+    stepNameField = rep.getStepAttributeString( id_step, TAG_STEP_NAME_FIELD );
+    errorField = rep.getStepAttributeString( id_step, TAG_ERROR_FIELD );
+    commentField = rep.getStepAttributeString( id_step, TAG_COMMENT_FIELD );
   }
 
   @Override
-  public StepInterface getStep(StepMeta meta, StepDataInterface data, int copy, TransMeta transMeta, Trans trans) {
-    return new ExecuteTests(meta, data, copy, transMeta, trans);
+  public StepInterface getStep( StepMeta meta, StepDataInterface data, int copy, TransMeta transMeta, Trans trans ) {
+    return new ExecuteTests( meta, data, copy, transMeta, trans );
   }
 
   @Override
   public StepDataInterface getStepData() {
     return new ExecuteTestsData();
   }
-  
+
   @Override
   public String getDialogClassName() {
     return ExecuteTestsDialog.class.getName();
@@ -189,7 +189,7 @@ public class ExecuteTestsMeta extends BaseStepMeta implements StepMetaInterface 
     stepNameField = "step";
     errorField = "error";
     commentField = "comment";
-    
+
   }
 
 

@@ -22,52 +22,31 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
-import org.apache.commons.lang.StringUtils;
-import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.SourceToTargetMapping;
-import org.pentaho.di.core.database.Database;
-import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowDataUtil;
-import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.dataset.DataSet;
-import org.pentaho.di.dataset.DataSetGroup;
-import org.pentaho.di.dataset.TransUnitTest;
-import org.pentaho.di.dataset.TransUnitTestFieldMapping;
-import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.util.DataSetConst;
-import org.pentaho.di.dataset.util.FactoriesHierarchy;
-import org.pentaho.di.repository.Repository;
-import org.pentaho.di.trans.RowProducer;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransAdapter;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.RowAdapter;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
-import org.pentaho.di.trans.step.StepMetaDataCombi;
 import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.api.exceptions.MetaStoreException;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 
  * @author matt
- *
  */
 @ExtensionPoint(
   extensionPointId = "TransformationStartThreads",
@@ -97,7 +76,7 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
         // Remove the flag when done.
         // We don't want to write to the data set every time we run
         //
-        transMeta.setVariable(DataSetConst.VAR_WRITE_TO_DATASET, null );
+        transMeta.setVariable( DataSetConst.VAR_WRITE_TO_DATASET, null );
 
         // Prevent memory leaking as well
         //
@@ -106,7 +85,7 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
         WriteToDataSetExtensionPoint.setsMap.remove( transMeta.getName() );
       }
     } );
-    
+
     try {
       IMetaStore metaStore = transMeta.getMetaStore();
 
@@ -139,8 +118,8 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
   }
 
 
-
-  private void passStepRowsToDataSet( final Trans trans, final TransMeta transMeta, final StepMeta stepMeta, final List<SourceToTargetMapping> mappings, final DataSet dataSet ) throws KettleException {
+  private void passStepRowsToDataSet( final Trans trans, final TransMeta transMeta, final StepMeta stepMeta, final List<SourceToTargetMapping> mappings, final DataSet dataSet )
+    throws KettleException {
 
     // This is the step to inject into the specified data set
     //
@@ -148,21 +127,21 @@ public class WriteToDataSetExtensionPoint implements ExtensionPointInterface {
 
     StepInterface stepInterface = trans.findStepInterface( stepMeta.getName(), 0 );
 
-    final List<Object[]> stepForDbRows = new ArrayList<>(  );
+    final List<Object[]> stepForDbRows = new ArrayList<>();
 
     stepInterface.addRowListener( new RowAdapter() {
       public void rowWrittenEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
-          Object[] stepForDbRow = RowDataUtil.allocateRowData( columnsRowMeta.size() );
-          for ( SourceToTargetMapping mapping : mappings ) {
-            stepForDbRow[mapping.getTargetPosition()] = row[mapping.getSourcePosition()];
-          }
-          stepForDbRows.add(stepForDbRow);
+        Object[] stepForDbRow = RowDataUtil.allocateRowData( columnsRowMeta.size() );
+        for ( SourceToTargetMapping mapping : mappings ) {
+          stepForDbRow[ mapping.getTargetPosition() ] = row[ mapping.getSourcePosition() ];
         }
+        stepForDbRows.add( stepForDbRow );
+      }
     } );
 
     // At the end of the transformation, write it...
     //
-    trans.addTransListener( new TransAdapter(){
+    trans.addTransListener( new TransAdapter() {
       @Override public void transFinished( Trans trans ) throws KettleException {
 
         // Write it

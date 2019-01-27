@@ -22,10 +22,10 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
+import org.pentaho.di.core.row.RowMetaInterface;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.pentaho.di.core.row.RowMetaInterface;
 
 public class RowCollection {
 
@@ -41,19 +41,19 @@ public class RowCollection {
     this.rowMeta = rowMeta;
     this.rows = rows;
   }
-  
+
   public RowMetaInterface getRowMeta() {
     return rowMeta;
   }
-  
+
   public void setRowMeta( RowMetaInterface rowMeta ) {
     this.rowMeta = rowMeta;
   }
-  
+
   public List<Object[]> getRows() {
     return rows;
   }
-  
+
   public void setRows( List<Object[]> rows ) {
     this.rows = rows;
   }

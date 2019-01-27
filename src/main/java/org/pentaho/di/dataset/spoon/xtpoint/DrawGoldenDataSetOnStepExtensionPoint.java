@@ -32,7 +32,6 @@ import org.pentaho.di.core.gui.Point;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EFont;
 import org.pentaho.di.core.logging.LogChannelInterface;
-import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
@@ -59,7 +58,7 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
     StepMeta stepMeta = ext.stepMeta;
     TransMeta transMeta = ext.transMeta;
     TransUnitTest unitTest = DataSetHelper.getInstance().getActiveTests().get( transMeta );
-    if (unitTest!=null) {
+    if ( unitTest != null ) {
       drawGoldenSetMarker( ext, stepMeta, unitTest, ext.areaOwners );
     }
   }
@@ -67,10 +66,10 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
   protected void drawGoldenSetMarker( TransPainterExtension ext, StepMeta stepMeta, TransUnitTest unitTest, List<AreaOwner> areaOwners ) {
 
     TransUnitTestSetLocation location = unitTest.findGoldenLocation( stepMeta.getName() );
-    if (location==null) {
+    if ( location == null ) {
       return;
     }
-    String dataSetName = Const.NVL(location.getDataSetName(), "");
+    String dataSetName = Const.NVL( location.getDataSetName(), "" );
 
     // Now we're here, draw a marker and indicate the name of the unit test
     //
@@ -93,7 +92,7 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
     Point point = new Point( x + iconsize, y + ( iconsize - textExtent.y ) / 2 );
 
     int[] arrow = new int[] {
-      point.x, point.y + textExtent.y/2,
+      point.x, point.y + textExtent.y / 2,
       point.x + arrowSize, point.y,
       point.x + textExtent.x + arrowSize, point.y,
       point.x + textExtent.x + arrowSize, point.y + textExtent.y,
@@ -106,7 +105,7 @@ public class DrawGoldenDataSetOnStepExtensionPoint implements ExtensionPointInte
 
     // Leave a trace of what we drew, for memory reasons, just the name of the data set here.
     //
-    areaOwners.add( new AreaOwner( AreaOwner.AreaType.CUSTOM, point.x, point.y, textExtent.x, textExtent.y, new Point(0,0), DataSetConst.AREA_DRAWN_GOLDEN_DATA_SET, stepMeta.getName()) );
+    areaOwners.add( new AreaOwner( AreaOwner.AreaType.CUSTOM, point.x, point.y, textExtent.x, textExtent.y, new Point( 0, 0 ), DataSetConst.AREA_DRAWN_GOLDEN_DATA_SET, stepMeta.getName() ) );
 
   }
 

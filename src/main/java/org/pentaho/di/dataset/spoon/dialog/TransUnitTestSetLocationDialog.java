@@ -43,45 +43,26 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.SourceToTargetMapping;
-import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.logging.LogChannel;
-import org.pentaho.di.core.logging.LoggingObject;
-import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.row.value.ValueMetaFactory;
-import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.dataset.DataSet;
-import org.pentaho.di.dataset.DataSetField;
-import org.pentaho.di.dataset.DataSetGroup;
 import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
-import org.pentaho.di.dataset.spoon.DataSetHelper;
-import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.EnterMappingDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
-import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.gui.WindowProperty;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
-import org.pentaho.di.ui.trans.step.TableItemInsertListener;
-import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.api.exceptions.MetaStoreException;
-import org.pentaho.metastore.persist.MetaStoreFactory;
-import org.pentaho.metastore.util.PentahoDefaults;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class TransUnitTestSetLocationDialog extends Dialog {
   private static Class<?> PKG = TransUnitTestSetLocationDialog.class; // for i18n purposes, needed by Translator2!!
@@ -104,7 +85,7 @@ public class TransUnitTestSetLocationDialog extends Dialog {
   private Button wMapFields;
   private Button wGetSortFields;
   private Button wCancel;
-  
+
   private PropsUI props;
 
   private int middle;
@@ -122,10 +103,10 @@ public class TransUnitTestSetLocationDialog extends Dialog {
     props = PropsUI.getInstance();
     ok = false;
 
-    stepNames = stepFieldsMap.keySet().toArray( new String[0] );
-    datasetNames = new String[dataSets.size()];
-    for (int i=0;i<datasetNames.length;i++) {
-      datasetNames[i] = dataSets.get(i).getName();
+    stepNames = stepFieldsMap.keySet().toArray( new String[ 0 ] );
+    datasetNames = new String[ dataSets.size() ];
+    for ( int i = 0; i < datasetNames.length; i++ ) {
+      datasetNames[ i ] = dataSets.get( i ).getName();
     }
   }
 
@@ -175,14 +156,14 @@ public class TransUnitTestSetLocationDialog extends Dialog {
     fdlDatasetName.right = new FormAttachment( middle, -margin );
     wlDatasetName.setLayoutData( fdlDatasetName );
     wDatasetName = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    wDatasetName.setItems( datasetNames);
+    wDatasetName.setItems( datasetNames );
     FormData fdDatasetName = new FormData();
     fdDatasetName.top = new FormAttachment( lastControl, margin );
     fdDatasetName.left = new FormAttachment( middle, 0 );
     fdDatasetName.right = new FormAttachment( 100, 0 );
     wDatasetName.setLayoutData( fdDatasetName );
     lastControl = wDatasetName;
-    
+
     // The field mapping from the step to the data set...
     //
     Label wlFieldMapping = new Label( shell, SWT.LEFT );
@@ -191,7 +172,7 @@ public class TransUnitTestSetLocationDialog extends Dialog {
     FormData fdlFieldMapping = new FormData();
     fdlFieldMapping.left = new FormAttachment( 0, 0 );
     fdlFieldMapping.right = new FormAttachment( 60, -margin );
-    fdlFieldMapping.top = new FormAttachment( lastControl, margin*2 );
+    fdlFieldMapping.top = new FormAttachment( lastControl, margin * 2 );
     wlFieldMapping.setLayoutData( fdlFieldMapping );
 
     Label wlFieldOrder = new Label( shell, SWT.LEFT );
@@ -200,12 +181,11 @@ public class TransUnitTestSetLocationDialog extends Dialog {
     FormData fdlFieldOrder = new FormData();
     fdlFieldOrder.left = new FormAttachment( 60, margin );
     fdlFieldOrder.right = new FormAttachment( 100, 0 );
-    fdlFieldOrder.top = new FormAttachment( lastControl, margin*2 );
+    fdlFieldOrder.top = new FormAttachment( lastControl, margin * 2 );
     wlFieldOrder.setLayoutData( fdlFieldOrder );
 
     lastControl = wlFieldMapping;
-    
-    
+
 
     // Buttons at the bottom...
     //
@@ -272,7 +252,6 @@ public class TransUnitTestSetLocationDialog extends Dialog {
     wFieldOrder.setLayoutData( fdFieldOrder );
 
 
-
     // Add listeners
     wOK.addListener( SWT.Selection, new Listener() {
       public void handleEvent( Event e ) {
@@ -329,39 +308,39 @@ public class TransUnitTestSetLocationDialog extends Dialog {
     try {
 
       TransUnitTestSetLocation loc = new TransUnitTestSetLocation();
-      getInfo(loc);
+      getInfo( loc );
 
       String stepName = wStepName.getText();
       String datasetName = wDatasetName.getText();
-      if (StringUtils.isEmpty( stepName ) || StringUtils.isEmpty( datasetName )) {
-       throw new KettleException( "Please select a step and a data set to map fields between" );
+      if ( StringUtils.isEmpty( stepName ) || StringUtils.isEmpty( datasetName ) ) {
+        throw new KettleException( "Please select a step and a data set to map fields between" );
       }
 
-      RowMetaInterface stepRowMeta = stepFieldsMap.get(stepName);
-      if (stepRowMeta==null) {
-        throw new KettleException( "Unable to find fields for step "+stepName );
+      RowMetaInterface stepRowMeta = stepFieldsMap.get( stepName );
+      if ( stepRowMeta == null ) {
+        throw new KettleException( "Unable to find fields for step " + stepName );
       }
       String[] stepFieldNames = stepRowMeta.getFieldNames();
 
-      DataSet dataSet = findDataSet(datasetName);
+      DataSet dataSet = findDataSet( datasetName );
       RowMetaInterface setRowMeta = dataSet.getSetRowMeta( false );
       String[] setFieldNames = setRowMeta.getFieldNames();
 
       // Get the current mappings...
       //
-      List<SourceToTargetMapping> currentMappings = new ArrayList<>(  );
-      for (TransUnitTestFieldMapping mapping : loc.getFieldMappings()) {
+      List<SourceToTargetMapping> currentMappings = new ArrayList<>();
+      for ( TransUnitTestFieldMapping mapping : loc.getFieldMappings() ) {
         int stepFieldIndex = stepRowMeta.indexOfValue( mapping.getStepFieldName() );
         int setFieldIndex = stepRowMeta.indexOfValue( mapping.getDataSetFieldName() );
-        if (stepFieldIndex>=0 && setFieldIndex>=0) {
-          currentMappings.add(new SourceToTargetMapping(stepFieldIndex, setFieldIndex));
+        if ( stepFieldIndex >= 0 && setFieldIndex >= 0 ) {
+          currentMappings.add( new SourceToTargetMapping( stepFieldIndex, setFieldIndex ) );
         }
       }
       // Edit them
       //
       EnterMappingDialog mappingDialog = new EnterMappingDialog( shell, stepFieldNames, setFieldNames, currentMappings );
       List<SourceToTargetMapping> newMappings = mappingDialog.open();
-      if (newMappings!=null) {
+      if ( newMappings != null ) {
         // Simply clean everything and add the new mappings
         //
         wFieldMappings.clearAll();
@@ -380,22 +359,22 @@ public class TransUnitTestSetLocationDialog extends Dialog {
   }
 
   private DataSet findDataSet( String datasetName ) throws KettleException {
-    for (DataSet dataSet : dataSets) {
-      if (dataSet.getName().equalsIgnoreCase( datasetName )) {
+    for ( DataSet dataSet : dataSets ) {
+      if ( dataSet.getName().equalsIgnoreCase( datasetName ) ) {
         return dataSet;
       }
     }
-    throw new KettleException( "Unable to find data set with name "+datasetName );
+    throw new KettleException( "Unable to find data set with name " + datasetName );
   }
 
   protected void getSortFields() {
     try {
       String datasetName = wDatasetName.getText();
-      if (StringUtils.isEmpty( datasetName )) {
+      if ( StringUtils.isEmpty( datasetName ) ) {
         throw new KettleException( "Please select a data set to get order fields from" );
       }
 
-      DataSet dataSet = findDataSet(datasetName);
+      DataSet dataSet = findDataSet( datasetName );
       RowMetaInterface setRowMeta = dataSet.getSetRowMeta( false );
       String[] setFieldNames = setRowMeta.getFieldNames();
 
@@ -465,7 +444,7 @@ public class TransUnitTestSetLocationDialog extends Dialog {
       int colnr = 1;
       String stepFieldName = item.getText( colnr++ );
       String dataSetFieldName = item.getText( colnr++ );
-      loc.getFieldMappings().add(new TransUnitTestFieldMapping( stepFieldName, dataSetFieldName ));
+      loc.getFieldMappings().add( new TransUnitTestFieldMapping( stepFieldName, dataSetFieldName ) );
     }
 
     loc.getFieldOrder().clear();
@@ -474,7 +453,7 @@ public class TransUnitTestSetLocationDialog extends Dialog {
       TableItem item = wFieldOrder.getNonEmpty( i );
       int colnr = 1;
       String fieldname = item.getText( colnr++ );
-      loc.getFieldOrder().add(fieldname);
+      loc.getFieldOrder().add( fieldname );
     }
   }
 

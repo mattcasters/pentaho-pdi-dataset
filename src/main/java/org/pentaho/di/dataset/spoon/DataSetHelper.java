@@ -479,7 +479,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         RowMetaInterface stepFields;
         try {
           stepFields = transMeta.getStepFields( stepMeta );
-        } catch( KettleStepException e) {
+        } catch ( KettleStepException e ) {
           // Driver or input problems...
           //
           stepFields = new RowMeta();
@@ -615,7 +615,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         RowMetaInterface stepFields;
         try {
           stepFields = transMeta.getPrevStepFields( stepMeta );
-        } catch(KettleStepException e) {
+        } catch ( KettleStepException e ) {
           // Ignore error: issues with not being able to get fields because of the unit test
           // running in a different environment.
           //
@@ -1243,7 +1243,7 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
             spoon.openFile( completeFilename, false );
 
             TransMeta transMeta = spoon.getActiveTransformation();
-            if (transMeta!=null) {
+            if ( transMeta != null ) {
               switchUnitTest( targetTest, transMeta );
             }
           }
@@ -1288,8 +1288,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
 
           // What's the filename referenced in the test?
           //
-          FileObject testTransFile = KettleVFS.getFileObject( test.calculateCompleteFilename(transMeta) );
-          if (testTransFile.exists()) {
+          FileObject testTransFile = KettleVFS.getFileObject( test.calculateCompleteFilename( transMeta ) );
+          if ( testTransFile.exists() ) {
             String testTransUri = testTransFile.getName().getURI();
 
             if ( transUri.equals( testTransUri ) ) {

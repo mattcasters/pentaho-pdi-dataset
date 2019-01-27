@@ -99,7 +99,7 @@ public class DataSetDialog extends Dialog {
   private Button wEditData;
   private Button wViewData;
   private Button wCancel;
-  
+
   private Button wNewGroup;
 
   private PropsUI props;
@@ -209,33 +209,33 @@ public class DataSetDialog extends Dialog {
     fdlDatabase.right = new FormAttachment( middle, -margin );
     wlGroup.setLayoutData( fdlDatabase );
 
-    wNewGroup = new Button( shell, SWT.PUSH);
+    wNewGroup = new Button( shell, SWT.PUSH );
     props.setLook( wNewGroup );
     wNewGroup.setText( BaseMessages.getString( PKG, "DataSetDialog.NewGroup.Label" ) );
     FormData fdlNewGroup = new FormData();
     fdlNewGroup.top = new FormAttachment( lastControl, margin );
     fdlNewGroup.right = new FormAttachment( 100, -margin );
     wNewGroup.setLayoutData( fdlNewGroup );
-    wNewGroup.addSelectionListener(new SelectionAdapter() {
+    wNewGroup.addSelectionListener( new SelectionAdapter() {
       @Override
-      public void widgetSelected(SelectionEvent arg0) {
+      public void widgetSelected( SelectionEvent arg0 ) {
         addDataSetGroup();
       }
-    });
-    
-    wEditGroup = new Button( shell, SWT.PUSH);
+    } );
+
+    wEditGroup = new Button( shell, SWT.PUSH );
     props.setLook( wEditGroup );
     wEditGroup.setText( BaseMessages.getString( PKG, "DataSetDialog.EditGroup.Label" ) );
     FormData fdlEditGroup = new FormData();
     fdlEditGroup.top = new FormAttachment( lastControl, margin );
     fdlEditGroup.right = new FormAttachment( wNewGroup, -margin );
     wEditGroup.setLayoutData( fdlEditGroup );
-    wEditGroup.addSelectionListener(new SelectionAdapter() {
+    wEditGroup.addSelectionListener( new SelectionAdapter() {
       @Override
-      public void widgetSelected(SelectionEvent arg0) {
+      public void widgetSelected( SelectionEvent arg0 ) {
         editDataSetGroup();
       }
-    });
+    } );
 
     wDataSetGroup = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     FormData fdDatabase = new FormData();
@@ -252,7 +252,7 @@ public class DataSetDialog extends Dialog {
     props.setLook( wlFieldMapping );
     FormData fdlUpIns = new FormData();
     fdlUpIns.left = new FormAttachment( 0, 0 );
-    fdlUpIns.top = new FormAttachment( lastControl, margin*2 );
+    fdlUpIns.top = new FormAttachment( lastControl, margin * 2 );
     wlFieldMapping.setLayoutData( fdlUpIns );
     lastControl = wlFieldMapping;
 
@@ -374,43 +374,43 @@ public class DataSetDialog extends Dialog {
   }
 
   protected void addDataSetGroup() {
-    
+
     try {
       DataSetHelper.getInstance().addDataSetGroup();
-      refreshGroups(metaStore);
-    } catch(Exception e) {
-      new ErrorDialog(shell, "Error", "Error creating new data set group", e);
+      refreshGroups( metaStore );
+    } catch ( Exception e ) {
+      new ErrorDialog( shell, "Error", "Error creating new data set group", e );
     }
   }
-  
+
   protected void editDataSetGroup() {
 
     String groupName = wDataSetGroup.getText();
-    if ( StringUtils.isEmpty(groupName)) {
+    if ( StringUtils.isEmpty( groupName ) ) {
       return;
     }
 
     try {
       DataSetHelper.getInstance().editDataSetGroup( groupName );
-      refreshGroups(metaStore);   
-    } catch(Exception e) {
-      new ErrorDialog(shell, "Error", "Error editing data set group", e);
+      refreshGroups( metaStore );
+    } catch ( Exception e ) {
+      new ErrorDialog( shell, "Error", "Error editing data set group", e );
     }
   }
 
-  private void refreshGroups(IMetaStore metaStore) throws MetaStoreException {
-    
-    MetaStoreFactory<DataSetGroup> factory = new MetaStoreFactory<DataSetGroup>(DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE);
+  private void refreshGroups( IMetaStore metaStore ) throws MetaStoreException {
+
+    MetaStoreFactory<DataSetGroup> factory = new MetaStoreFactory<DataSetGroup>( DataSetGroup.class, metaStore, PentahoDefaults.NAMESPACE );
     factory.addNameList( DataSetConst.DATABASE_LIST_KEY, databases );
-    
+
     groups = factory.getElements();
-    
+
     List<String> names = factory.getElementNames();
-    Collections.sort(names);
-    wDataSetGroup.setItems(names.toArray(new String[names.size()]));      
+    Collections.sort( names );
+    wDataSetGroup.setItems( names.toArray( new String[ names.size() ] ) );
 
   }
-  
+
   /**
    * Look at the metadata specified here and create the table accordingly...
    */
@@ -419,10 +419,10 @@ public class DataSetDialog extends Dialog {
       verifySettings();
 
       DataSet set = new DataSet();
-      getInfo(set);
+      getInfo( set );
       DataSetGroup group = set.getGroup();
 
-      if (group.getType()!= DataSetGroupType.Database ) {
+      if ( group.getType() != DataSetGroupType.Database ) {
         return;
       }
       group.verifySettings();
@@ -484,7 +484,7 @@ public class DataSetDialog extends Dialog {
       verifySettings();
 
       DataSet set = new DataSet();
-      getInfo(set);
+      getInfo( set );
       DataSetGroup group = set.getGroup();
 
       String tableName = wTableName.getText();
@@ -511,7 +511,7 @@ public class DataSetDialog extends Dialog {
         rowMeta.addValueMeta( valueMeta );
       }
 
-      group.createTable(tableName, rowMeta);
+      group.createTable( tableName, rowMeta );
 
     } catch ( Exception e ) {
       new ErrorDialog( shell, "Error", "Error retrieving metadata from dataset table", e );
@@ -549,7 +549,7 @@ public class DataSetDialog extends Dialog {
       if ( newList != null ) {
         // Write the rows back to the data set
         //
-        group.writeDataSetData(set.getTableName(), columnsRowMeta, newList );
+        group.writeDataSetData( set.getTableName(), columnsRowMeta, newList );
       }
 
     } catch ( Exception e ) {
@@ -563,7 +563,7 @@ public class DataSetDialog extends Dialog {
       getInfo( set );
       verifySettings();
 
-      List<Object[]> setRows = set.getAllRows(LogChannel.UI);
+      List<Object[]> setRows = set.getAllRows( LogChannel.UI );
       RowMetaInterface setRowMeta = set.getSetRowMeta( false );
 
       PreviewRowsDialog previewRowsDialog = new PreviewRowsDialog( shell, new Variables(), SWT.NONE, set.getName(), setRowMeta, setRows );
@@ -653,7 +653,7 @@ public class DataSetDialog extends Dialog {
     return metaStore;
   }
 
-  public void setMetaStore(IMetaStore metaStore) {
+  public void setMetaStore( IMetaStore metaStore ) {
     this.metaStore = metaStore;
   }
 

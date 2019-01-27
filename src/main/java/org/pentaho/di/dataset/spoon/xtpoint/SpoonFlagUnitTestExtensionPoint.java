@@ -22,7 +22,6 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
-import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
@@ -44,17 +43,17 @@ public class SpoonFlagUnitTestExtensionPoint implements ExtensionPointInterface 
     if ( !( object instanceof TransMeta ) ) {
       return;
     }
-    
+
     TransMeta transMeta = (TransMeta) object;
 
     TransUnitTest unitTest = DataSetHelper.getCurrentUnitTest( transMeta );
-    if (unitTest==null) {
+    if ( unitTest == null ) {
       return;
     }
 
     String unitTestName = unitTest.getName();
-    
-    if (!StringUtil.isEmpty( unitTestName )) {
+
+    if ( !StringUtil.isEmpty( unitTestName ) ) {
       // We're running in Spoon and there's a unit test selected : test it
       //
       transMeta.setVariable( DataSetConst.VAR_RUN_UNIT_TEST, "Y" );

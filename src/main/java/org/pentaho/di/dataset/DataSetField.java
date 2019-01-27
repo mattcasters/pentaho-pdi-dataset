@@ -73,7 +73,7 @@ public class DataSetField {
       && precision == cmp.precision
       && ( comment == null && cmp.comment == null || comment != null && comment.equals( cmp.comment ) );
   }
-  
+
   @Override
   public int hashCode() {
     return fieldName.hashCode();

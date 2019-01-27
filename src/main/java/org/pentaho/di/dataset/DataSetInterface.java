@@ -38,7 +38,6 @@ public interface DataSetInterface {
   public List<Object[]> getAllRows( LogChannelInterface log, DataSetGroup group, TransUnitTestSetLocation location ) throws KettleException;
 
 
-
   /**
    * Gets fields
    *

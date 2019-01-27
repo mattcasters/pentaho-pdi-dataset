@@ -22,13 +22,6 @@
 
 package org.pentaho.di.dataset.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -56,6 +49,13 @@ import org.pentaho.di.shared.SharedObjectInterface;
 import org.pentaho.di.shared.SharedObjects;
 import org.pentaho.di.trans.Trans;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
 public class DataSetConst {
   private static Class<?> PKG = DataSetConst.class; // for i18n purposes, needed by Translator2!!
 
@@ -82,17 +82,17 @@ public class DataSetConst {
   public static final String VARIABLE_UNIT_TESTS_BASE_PATH = "UNIT_TESTS_BASE_PATH";
 
   private static final String[] tweakDesc = new String[] {
-      BaseMessages.getString(PKG, "DataSetConst.Tweak.NONE.Desc"),
-      BaseMessages.getString(PKG, "DataSetConst.Tweak.BYPASS_STEP.Desc"),
-      BaseMessages.getString(PKG, "DataSetConst.Tweak.REMOVE_STEP.Desc"),      
-      };
+    BaseMessages.getString( PKG, "DataSetConst.Tweak.NONE.Desc" ),
+    BaseMessages.getString( PKG, "DataSetConst.Tweak.BYPASS_STEP.Desc" ),
+    BaseMessages.getString( PKG, "DataSetConst.Tweak.REMOVE_STEP.Desc" ),
+  };
 
   private static final String[] testTypeDesc = new String[] {
-      BaseMessages.getString(PKG, "DataSetConst.TestType.NONE.Desc"),
-      BaseMessages.getString(PKG, "DataSetConst.TestType.CONCEPTUAL.Desc"),
-      BaseMessages.getString(PKG, "DataSetConst.TestType.DEVELOPMENT.Desc"),
-      BaseMessages.getString(PKG, "DataSetConst.TestType.UNIT_TEST.Desc"),
-      };
+    BaseMessages.getString( PKG, "DataSetConst.TestType.NONE.Desc" ),
+    BaseMessages.getString( PKG, "DataSetConst.TestType.CONCEPTUAL.Desc" ),
+    BaseMessages.getString( PKG, "DataSetConst.TestType.DEVELOPMENT.Desc" ),
+    BaseMessages.getString( PKG, "DataSetConst.TestType.UNIT_TEST.Desc" ),
+  };
 
 
   public static final DataSetGroup findDataSetGroup( List<DataSetGroup> list, String dataSetGroupName ) {
@@ -137,42 +137,43 @@ public class DataSetConst {
     return list;
   }
 
-  public static final DataSet writeDataSet(String name, String description, DataSetGroup dataSetGroup, String tableName, List<DataSetField> fields, List<Object[]> dataRows) throws KettleException {
+  public static final DataSet writeDataSet( String name, String description, DataSetGroup dataSetGroup, String tableName, List<DataSetField> fields, List<Object[]> dataRows ) throws KettleException {
 
     DataSet dataSet = new DataSet( name, description, dataSetGroup, tableName, fields );
     RowMetaInterface rowMeta = dataSet.getSetRowMeta( true );
 
     // Write the rows to the data set we just created...
     //
-    dataSetGroup.writeDataSetData(tableName, rowMeta, dataRows);
+    dataSetGroup.writeDataSetData( tableName, rowMeta, dataRows );
 
     return dataSet;
   }
 
   /**
    * Validate the execution results of a transformation against the golden data sets of a unit test.
-   * @param trans The transformation after execution
-   * @param unitTest The unit test
+   *
+   * @param trans     The transformation after execution
+   * @param unitTest  The unit test
    * @param hierarchy The factories to load unit test and data set information
-   * @param results The results list to add comments to
+   * @param results   The results list to add comments to
    * @return The nr of errors, 0 if no errors found
    * @throws KettleException In case there was an error loading data or metadata.
    */
-  public static final int validateTransResultAgainstUnitTest(Trans trans, TransUnitTest unitTest, FactoriesHierarchy hierarchy, List<UnitTestResult> results) throws KettleException {
+  public static final int validateTransResultAgainstUnitTest( Trans trans, TransUnitTest unitTest, FactoriesHierarchy hierarchy, List<UnitTestResult> results ) throws KettleException {
     int nrErrors = 0;
-    
+
     LogChannelInterface log = trans.getLogChannel();
-    
+
     @SuppressWarnings( "unchecked" )
     Map<String, RowCollection> collectionMap = (Map<String, RowCollection>) trans.getExtensionDataMap().get( DataSetConst.ROW_COLLECTION_MAP );
-    if (collectionMap==null) {
-      
+    if ( collectionMap == null ) {
+
       String comment = "No step output result data found to validate against";
-      results.add(new UnitTestResult( trans.getName(), unitTest.getName(), null, null, false, comment));
+      results.add( new UnitTestResult( trans.getName(), unitTest.getName(), null, null, false, comment ) );
       return nrErrors;
     }
-    
-    for (TransUnitTestSetLocation location : unitTest.getGoldenDataSets()) {
+
+    for ( TransUnitTestSetLocation location : unitTest.getGoldenDataSets() ) {
 
       // Sometimes we deleted a step and it's still in the list:
       // Simply skip that one
@@ -225,9 +226,9 @@ public class DataSetConst {
         final int[] resultFieldIndexes = new int[ location.getFieldOrder().size() ];
         for ( int i = 0; i < resultFieldIndexes.length; i++ ) {
           String dataSetOrderField = location.getFieldOrder().get( i );
-          String stepOrderField = location.findStepField(dataSetOrderField);
-          if (stepOrderField==null) {
-            throw new KettleException( "There is no step field provided in the mappings so I don't know which field to use to sort '"+dataSetOrderField+"'" );
+          String stepOrderField = location.findStepField( dataSetOrderField );
+          if ( stepOrderField == null ) {
+            throw new KettleException( "There is no step field provided in the mappings so I don't know which field to use to sort '" + dataSetOrderField + "'" );
           }
           resultFieldIndexes[ i ] = resultRowMeta.indexOfValue( stepOrderField );
           if ( resultFieldIndexes[ i ] < 0 ) {
@@ -361,30 +362,30 @@ public class DataSetConst {
         }
       }
     }
-    
-    if (nrErrors==0) {
+
+    if ( nrErrors == 0 ) {
       String comment = "Test passed succesfully against unit test";
-      results.add(new UnitTestResult(
-          trans.getName(), unitTest.getName(), null, null,
-          false, comment));
-    
+      results.add( new UnitTestResult(
+        trans.getName(), unitTest.getName(), null, null,
+        false, comment ) );
+
     }
     return nrErrors;
   }
 
-  public static final String getDirectoryFromPath(String path) {
-    int lastSlashIndex = path.lastIndexOf('/');
-    if (lastSlashIndex>=0) {
-      return path.substring(0, lastSlashIndex);
+  public static final String getDirectoryFromPath( String path ) {
+    int lastSlashIndex = path.lastIndexOf( '/' );
+    if ( lastSlashIndex >= 0 ) {
+      return path.substring( 0, lastSlashIndex );
     } else {
       return "/";
     }
   }
-  
-  public static final String getNameFromPath(String path) {
-    int lastSlashIndex = path.lastIndexOf('/');
-    if (lastSlashIndex>=0) {
-      return path.substring(lastSlashIndex+1);
+
+  public static final String getNameFromPath( String path ) {
+    int lastSlashIndex = path.lastIndexOf( '/' );
+    if ( lastSlashIndex >= 0 ) {
+      return path.substring( lastSlashIndex + 1 );
     } else {
       return path;
     }
@@ -394,11 +395,11 @@ public class DataSetConst {
     RowMetaInterface dataSetRowMeta = dataSet.getSetRowMeta( false );
     RowMetaInterface outputRowMeta = new RowMeta();
 
-    for (int i=0;i<inputLocation.getFieldMappings().size();i++) {
-      TransUnitTestFieldMapping fieldMapping = inputLocation.getFieldMappings().get(i);
+    for ( int i = 0; i < inputLocation.getFieldMappings().size(); i++ ) {
+      TransUnitTestFieldMapping fieldMapping = inputLocation.getFieldMappings().get( i );
       ValueMetaInterface injectValueMeta = dataSetRowMeta.searchValueMeta( fieldMapping.getDataSetFieldName() );
-      if (injectValueMeta==null) {
-        throw new KettleException( "Unable to find mapped field '"+fieldMapping.getDataSetFieldName()+"' in data set '"+dataSet.getName()+"'" );
+      if ( injectValueMeta == null ) {
+        throw new KettleException( "Unable to find mapped field '" + fieldMapping.getDataSetFieldName() + "' in data set '" + dataSet.getName() + "'" );
       }
       // Rename to the step output names though...
       //
@@ -411,51 +412,53 @@ public class DataSetConst {
 
   /**
    * Get the TransTweak for a tweak description (from the dialog)
+   *
    * @param tweakDescription The description to look for
    * @return the tweak or NONE if nothing matched
    */
-  public TransTweak getTweakForDescription(String tweakDescription) {
-    if (StringUtils.isEmpty(tweakDescription)) {
+  public TransTweak getTweakForDescription( String tweakDescription ) {
+    if ( StringUtils.isEmpty( tweakDescription ) ) {
       return TransTweak.NONE;
     }
-    int index = Const.indexOfString(tweakDescription, tweakDesc);
-    if (index<0) {
+    int index = Const.indexOfString( tweakDescription, tweakDesc );
+    if ( index < 0 ) {
       return TransTweak.NONE;
     }
-    return TransTweak.values()[index];
+    return TransTweak.values()[ index ];
   }
-  
-  public static final String getTestTypeDescription(TestType testType) {
+
+  public static final String getTestTypeDescription( TestType testType ) {
     int index = 0; // NONE
-    if (testType!=null) {
+    if ( testType != null ) {
       TestType[] testTypes = TestType.values();
-      for (int i=0;i<testTypes.length;i++) {
-        if (testTypes[i]==testType) {
-          index=i;
+      for ( int i = 0; i < testTypes.length; i++ ) {
+        if ( testTypes[ i ] == testType ) {
+          index = i;
           break;
         }
       }
     }
-    
-    return testTypeDesc[index];
+
+    return testTypeDesc[ index ];
   }
 
   /**
    * Get the TestType for a tweak description (from the dialog)
+   *
    * @param testTypeDescription The description to look for
    * @return the test type or NONE if nothing matched
    */
-  public static final TestType getTestTypeForDescription(String testTypeDescription) {
-    if (StringUtils.isEmpty(testTypeDescription)) {
+  public static final TestType getTestTypeForDescription( String testTypeDescription ) {
+    if ( StringUtils.isEmpty( testTypeDescription ) ) {
       return TestType.NONE;
     }
-    int index = Const.indexOfString(testTypeDescription, testTypeDesc);
-    if (index<0) {
+    int index = Const.indexOfString( testTypeDescription, testTypeDesc );
+    if ( index < 0 ) {
       return TestType.NONE;
     }
-    return TestType.values()[index];
+    return TestType.values()[ index ];
   }
-  
+
   public static final String[] getTestTypeDescriptions() {
     return testTypeDesc;
   }

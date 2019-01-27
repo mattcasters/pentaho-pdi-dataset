@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="file://E:/workspaces/sprint_workspace/pentaho-xul/test/resource/documents/xul.css" type="text/css"?>
 <overlay id="spoon-tools-menu-dataset" title="Spoon Tools Menu Data Set"
-	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-	xmlns:HTML="http://www.w3.org/Profiles/XHTML-transitional" height="600"
-	width="800" xmlns:pen="http://www.pentaho.org/2008/xul">
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+         height="600"
+         width="800">
 
   <!-- 
      
@@ -11,26 +11,26 @@
      
    -->
   <menupopup id="trans-graph-entry">
-     <menu id="trans-graph-step-dataset" label="Unit test">
+    <menu id="trans-graph-step-dataset" label="Unit test">
       <menupopup id="trans-graph-step-dataset-popup">
-        <menuitem label="Input data : select a data set" command="dataSetHelper.setInputDataSet()" />
-        <menuitem label="Clear input data set" command="dataSetHelper.clearInputDataSet()" />
-        <menuseparator />
-        <menuitem label="Golden data : select a data set" command="dataSetHelper.setGoldenDataSet()" />
-        <menuitem label="Clear golden data set" command="dataSetHelper.clearGoldenDataSet()" />
-        <menuseparator />
-        <menuitem label="Define data set with step output" command="dataSetHelper.createDataSetFromStep()" />
-        <menuitem label="Write data from step to data set" command="dataSetHelper.writeStepDataToDataSet()" />
-        <menuseparator />
-        <menuitem label="Enable tweak : remove step in unit test" command="dataSetHelper.enableTweakRemoveStepInUnitTest()" />
-        <menuitem label="Disable tweak : remove step in unit test" command="dataSetHelper.disableTweakRemoveStepInUnitTest()" />
-        <menuseparator />
-        <menuitem label="EnableTweak : bypass step in unit test" command="dataSetHelper.enableTweakBypassStepInUnitTest()" />
-        <menuitem label="DisableTweak : bypass step in unit test" command="dataSetHelper.disableTweakBypassStepInUnitTest()" />
-        <menuseparator />
+        <menuitem label="Input data : select a data set" command="dataSetHelper.setInputDataSet()"/>
+        <menuitem label="Clear input data set" command="dataSetHelper.clearInputDataSet()"/>
+        <menuseparator/>
+        <menuitem label="Golden data : select a data set" command="dataSetHelper.setGoldenDataSet()"/>
+        <menuitem label="Clear golden data set" command="dataSetHelper.clearGoldenDataSet()"/>
+        <menuseparator/>
+        <menuitem label="Define data set with step output" command="dataSetHelper.createDataSetFromStep()"/>
+        <menuitem label="Write data from step to data set" command="dataSetHelper.writeStepDataToDataSet()"/>
+        <menuseparator/>
+        <menuitem label="Enable tweak : remove step in unit test" command="dataSetHelper.enableTweakRemoveStepInUnitTest()"/>
+        <menuitem label="Disable tweak : remove step in unit test" command="dataSetHelper.disableTweakRemoveStepInUnitTest()"/>
+        <menuseparator/>
+        <menuitem label="EnableTweak : bypass step in unit test" command="dataSetHelper.enableTweakBypassStepInUnitTest()"/>
+        <menuitem label="DisableTweak : bypass step in unit test" command="dataSetHelper.disableTweakBypassStepInUnitTest()"/>
+        <menuseparator/>
 
       </menupopup>
-     </menu>        
+    </menu>
   </menupopup>
 
   <!-- 

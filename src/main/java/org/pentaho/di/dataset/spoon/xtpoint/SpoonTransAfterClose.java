@@ -15,9 +15,9 @@ import org.pentaho.di.trans.TransMeta;
 public class SpoonTransAfterClose implements ExtensionPointInterface {
 
   @Override public void callExtensionPoint( LogChannelInterface log, Object object ) throws KettleException {
-    if (!(object instanceof TransMeta )) {
+    if ( !( object instanceof TransMeta ) ) {
       return;
     }
-    DataSetHelper.getInstance().getActiveTests().remove( (TransMeta)object );
+    DataSetHelper.getInstance().getActiveTests().remove( (TransMeta) object );
   }
 }

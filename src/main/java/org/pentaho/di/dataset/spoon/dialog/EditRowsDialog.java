@@ -22,9 +22,6 @@
 
 package org.pentaho.di.dataset.spoon.dialog;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
@@ -58,6 +55,9 @@ import org.pentaho.di.ui.core.gui.WindowProperty;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Allows the user to edit a list of rows in a TableView.
@@ -109,7 +109,7 @@ public class EditRowsDialog {
   private RowMetaInterface stringRowMeta;
 
   public EditRowsDialog( Shell parent, int style,
-    String title, String message, RowMetaInterface rowMeta, List<Object[]> rowBuffer ) {
+                         String title, String message, RowMetaInterface rowMeta, List<Object[]> rowBuffer ) {
     this.title = title;
     this.message = message;
     this.rowBuffer = rowBuffer;
@@ -219,12 +219,12 @@ public class EditRowsDialog {
     }
 
     // ColumnInfo[] colinf = new ColumnInfo[rowMeta==null ? 0 : rowMeta.size()];
-    ColumnInfo[] colinf = new ColumnInfo[rowMeta.size()];
+    ColumnInfo[] colinf = new ColumnInfo[ rowMeta.size() ];
     for ( int i = 0; i < rowMeta.size(); i++ ) {
       ValueMetaInterface v = rowMeta.getValueMeta( i );
-      colinf[i] = new ColumnInfo( v.getName(), ColumnInfo.COLUMN_TYPE_TEXT, v.isNumeric() );
-      colinf[i].setToolTip( v.toStringMeta() );
-      colinf[i].setValueMeta( v );
+      colinf[ i ] = new ColumnInfo( v.getName(), ColumnInfo.COLUMN_TYPE_TEXT, v.isNumeric() );
+      colinf[ i ].setToolTip( v.toStringMeta() );
+      colinf[ i ].setValueMeta( v );
     }
 
     wFields = new TableView(
@@ -292,7 +292,7 @@ public class EditRowsDialog {
       ValueMetaInterface v = rowMeta.getValueMeta( c );
       String show;
       try {
-        show = v.getString( row[c] );
+        show = v.getString( row[ c ] );
         if ( v.isBinary() && show != null && show.length() > MAX_BINARY_STRING_PREVIEW_SIZE ) {
           // We want to limit the size of the strings during preview to keep all SWT widgets happy.
           //
@@ -335,10 +335,10 @@ public class EditRowsDialog {
 
         int colnr = i + 1;
         if ( GUIResource.getInstance().getColorBlue().equals( item.getForeground( colnr ) ) ) {
-          row[i] = null; // <null> value
+          row[ i ] = null; // <null> value
         } else {
           String string = item.getText( colnr );
-          row[i] = valueMeta.convertDataFromString( string, stringValueMeta,
+          row[ i ] = valueMeta.convertDataFromString( string, stringValueMeta,
             null, null, ValueMetaInterface.TRIM_TYPE_NONE );
         }
       }

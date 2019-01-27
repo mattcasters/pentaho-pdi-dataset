@@ -55,7 +55,7 @@ import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInterface {
   private static Class<?> PKG = ExecuteTestsDialog.class; // i18n
-  
+
   private ExecuteTestsMeta input;
 
   private Combo wTestNameInputField;
@@ -68,23 +68,23 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
   private TextVar wCommentField;
 
   private boolean hasPreviousSteps;
-  
-  public ExecuteTestsDialog(Shell parent, Object baseStepMeta, TransMeta transMeta, String stepname) {
-    super(parent, (BaseStepMeta)baseStepMeta, transMeta, stepname);
-    
+
+  public ExecuteTestsDialog( Shell parent, Object baseStepMeta, TransMeta transMeta, String stepname ) {
+    super( parent, (BaseStepMeta) baseStepMeta, transMeta, stepname );
+
     input = (ExecuteTestsMeta) baseStepMeta;
   }
 
   @Override
   public String open() {
-    
+
     Shell parent = getParent();
     Display display = parent.getDisplay();
 
     shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MIN | SWT.MAX );
     props.setLook( shell );
     setShellImage( shell, input );
-    
+
     FormLayout formLayout = new FormLayout();
     formLayout.marginWidth = Const.FORM_MARGIN;
     formLayout.marginHeight = Const.FORM_MARGIN;
@@ -99,13 +99,13 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     hasPreviousSteps = false;
     try {
       StepMeta[] prevSteps = transMeta.getPrevSteps( stepMeta );
-      if (prevSteps.length>0) {
+      if ( prevSteps.length > 0 ) {
         RowMetaInterface prevStepFields = transMeta.getPrevStepFields( stepMeta );
         inputFieldNames = prevStepFields.getFieldNames();
         hasPreviousSteps = true;
       }
-    } catch( KettleException e) {
-      log.logError("Couldn't get input fields for step "+stepMeta.getName()+" : "+e.getMessage());
+    } catch ( KettleException e ) {
+      log.logError( "Couldn't get input fields for step " + stepMeta.getName() + " : " + e.getMessage() );
     }
 
     // Step name...
@@ -139,15 +139,15 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlTestNameInputField.top = new FormAttachment( lastControl, margin );
     wlTestNameInputField.setLayoutData( fdlTestNameInputField );
     wTestNameInputField = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    wTestNameInputField.setItems(inputFieldNames);
+    wTestNameInputField.setItems( inputFieldNames );
     FormData fdTestNameInputField = new FormData();
     fdTestNameInputField.left = new FormAttachment( middle, 0 );
     fdTestNameInputField.top = new FormAttachment( lastControl, margin );
     fdTestNameInputField.right = new FormAttachment( 100, 0 );
     wTestNameInputField.setLayoutData( fdTestNameInputField );
-    wTestNameInputField.addModifyListener( e->enableFields() );
+    wTestNameInputField.addModifyListener( e -> enableFields() );
     lastControl = wTestNameInputField;
-    
+
     // Type to execute
     //
     Label wlTypeToExecute = new Label( shell, SWT.RIGHT );
@@ -159,14 +159,14 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdlTypeToExecute.top = new FormAttachment( lastControl, margin );
     wlTypeToExecute.setLayoutData( fdlTypeToExecute );
     wTypeToExecute = new Combo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    wTypeToExecute.setItems(DataSetConst.getTestTypeDescriptions());
+    wTypeToExecute.setItems( DataSetConst.getTestTypeDescriptions() );
     FormData fdTypeToExecute = new FormData();
     fdTypeToExecute.left = new FormAttachment( middle, 0 );
     fdTypeToExecute.top = new FormAttachment( lastControl, margin );
     fdTypeToExecute.right = new FormAttachment( 100, 0 );
     wTypeToExecute.setLayoutData( fdTypeToExecute );
     lastControl = wTypeToExecute;
-    
+
     // Transformation name field
     //
     Label wlTransformationNameField = new Label( shell, SWT.RIGHT );
@@ -185,7 +185,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdTransformationNameField.right = new FormAttachment( 100, 0 );
     wTransformationNameField.setLayoutData( fdTransformationNameField );
     lastControl = wTransformationNameField;
-    
+
     // Unit test name field
     //
     Label wlUnitTestNameField = new Label( shell, SWT.RIGHT );
@@ -204,7 +204,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdUnitTestNameField.right = new FormAttachment( 100, 0 );
     wUnitTestNameField.setLayoutData( fdUnitTestNameField );
     lastControl = wUnitTestNameField;
-    
+
     // Data Set Name field
     //
     Label wlDataSetNameField = new Label( shell, SWT.RIGHT );
@@ -280,8 +280,8 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     fdCommentField.right = new FormAttachment( 100, 0 );
     wCommentField.setLayoutData( fdCommentField );
     lastControl = wCommentField;
-    
-    
+
+
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
@@ -303,7 +303,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     wOK.addListener( SWT.Selection, lsOK );
     setButtonPositions( new Button[] { wOK, wCancel }, margin, null );
 
-    
+
     lsDef = new SelectionAdapter() {
       public void widgetDefaultSelected( SelectionEvent e ) {
         ok();
@@ -316,7 +316,7 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     wStepNameField.addSelectionListener( lsDef );
     wErrorField.addSelectionListener( lsDef );
     wCommentField.addSelectionListener( lsDef );
-    
+
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -341,21 +341,21 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
   }
 
   private void enableFields() {
-    boolean previous = hasPreviousSteps && StringUtils.isNotEmpty(wTestNameInputField.getText());
+    boolean previous = hasPreviousSteps && StringUtils.isNotEmpty( wTestNameInputField.getText() );
     wTestNameInputField.setEnabled( hasPreviousSteps );
     wTypeToExecute.setEnabled( !previous );
   }
 
   private void getData() {
 
-    wTestNameInputField.setText(Const.NVL(input.getTestNameInputField(), ""));
-    wTypeToExecute.setText( DataSetConst.getTestTypeDescription(input.getTypeToExecute()));
-    wTransformationNameField.setText(Const.NVL(input.getTransformationNameField(), ""));
-    wUnitTestNameField.setText(Const.NVL(input.getUnitTestNameField(), ""));
-    wDataSetNameField.setText(Const.NVL(input.getDataSetNameField(), ""));
-    wStepNameField.setText(Const.NVL(input.getStepNameField(), ""));
-    wErrorField.setText(Const.NVL(input.getErrorField(), ""));
-    wCommentField.setText(Const.NVL(input.getCommentField(), ""));
+    wTestNameInputField.setText( Const.NVL( input.getTestNameInputField(), "" ) );
+    wTypeToExecute.setText( DataSetConst.getTestTypeDescription( input.getTypeToExecute() ) );
+    wTransformationNameField.setText( Const.NVL( input.getTransformationNameField(), "" ) );
+    wUnitTestNameField.setText( Const.NVL( input.getUnitTestNameField(), "" ) );
+    wDataSetNameField.setText( Const.NVL( input.getDataSetNameField(), "" ) );
+    wStepNameField.setText( Const.NVL( input.getStepNameField(), "" ) );
+    wErrorField.setText( Const.NVL( input.getErrorField(), "" ) );
+    wCommentField.setText( Const.NVL( input.getCommentField(), "" ) );
 
     enableFields();
 
@@ -379,14 +379,14 @@ public class ExecuteTestsDialog extends BaseStepDialog implements StepDialogInte
     input.setChanged();
 
     input.setTestNameInputField( wTestNameInputField.getText() );
-    input.setTypeToExecute( DataSetConst.getTestTypeForDescription(wTypeToExecute.getText()) );
+    input.setTypeToExecute( DataSetConst.getTestTypeForDescription( wTypeToExecute.getText() ) );
     input.setTransformationNameField( wTransformationNameField.getText() );
     input.setUnitTestNameField( wUnitTestNameField.getText() );
     input.setDataSetNameField( wDataSetNameField.getText() );
     input.setStepNameField( wStepNameField.getText() );
     input.setErrorField( wErrorField.getText() );
     input.setCommentField( wCommentField.getText() );
-    
+
     dispose();
   }
 }

@@ -22,41 +22,24 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-
 import org.apache.commons.lang.StringUtils;
-import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
-import org.pentaho.di.core.plugins.PluginRegistry;
-import org.pentaho.di.core.plugins.StepPluginType;
-import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.core.xml.XMLHandler;
-import org.pentaho.di.dataset.DataSet;
-import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
-import org.pentaho.di.dataset.TransUnitTestDatabaseReplacement;
-import org.pentaho.di.dataset.TransUnitTestSetLocation;
-import org.pentaho.di.dataset.TransUnitTestTweak;
-import org.pentaho.di.dataset.VariableValue;
 import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.dataset.util.FactoriesHierarchy;
 import org.pentaho.di.trans.Trans;
-import org.pentaho.di.trans.TransHopMeta;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.StepMeta;
-import org.pentaho.di.trans.steps.dummytrans.DummyTransMeta;
-import org.pentaho.di.trans.steps.injector.InjectorMeta;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
+
+import java.io.OutputStream;
+import java.util.List;
 
 @ExtensionPoint(
   extensionPointId = "TransformationPrepareExecution",
@@ -74,29 +57,29 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     TransMeta transMeta = trans.getTransMeta();
 
     boolean runUnitTest = "Y".equalsIgnoreCase( transMeta.getVariable( DataSetConst.VAR_RUN_UNIT_TEST ) );
-    if (!runUnitTest) {
+    if ( !runUnitTest ) {
       // No business here...
-      if (log.isDetailed()) {
-        log.logDetailed("Not running unit test...");
+      if ( log.isDetailed() ) {
+        log.logDetailed( "Not running unit test..." );
       }
       return;
     }
     String unitTestName = trans.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
-    
+
     // Do we have something to work with?
     // Unit test disabled?  Github issue #5
     //
-    if (StringUtils.isEmpty( unitTestName )) {
-      if (log.isDetailed()) {
-        log.logDetailed("Unit test disabled.");
+    if ( StringUtils.isEmpty( unitTestName ) ) {
+      if ( log.isDetailed() ) {
+        log.logDetailed( "Unit test disabled." );
       }
       return;
     }
-    
+
     TransUnitTest unitTest = null;
     FactoriesHierarchy factoriesHierarchy = null;
-    
-    
+
+
     // The next factory hierarchy initialization is very expensive. 
     // See how we can cache this or move it upstairs somewhere.
     //
@@ -104,12 +87,12 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     try {
       factoriesHierarchy = new FactoriesHierarchy( transMeta.getMetaStore(), databases );
       unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
-    } catch(MetaStoreException e) {
-      throw new KettleException("Unable to load unit test '"+unitTestName+"'", e);
+    } catch ( MetaStoreException e ) {
+      throw new KettleException( "Unable to load unit test '" + unitTestName + "'", e );
     }
 
-    if (unitTest==null) {
-      throw new KettleException("Unit test '"+unitTestName+"' was not found or could not be loaded");
+    if ( unitTest == null ) {
+      throw new KettleException( "Unit test '" + unitTestName + "' was not found or could not be loaded" );
     }
 
     // Get a modified copy of the transformation using the unit test information
@@ -121,16 +104,16 @@ public class ChangeTransMetaPriorToExecutionExtensionPoint implements ExtensionP
     // Now replace the metadata in the Trans object...
     //
     trans.setTransMeta( copyTransMeta );
-    
-    String testFilename = trans.environmentSubstitute(unitTest.getFilename());
-    if (!StringUtil.isEmpty(testFilename)) {
+
+    String testFilename = trans.environmentSubstitute( unitTest.getFilename() );
+    if ( !StringUtil.isEmpty( testFilename ) ) {
       try {
-        OutputStream os = KettleVFS.getOutputStream(testFilename, false);
+        OutputStream os = KettleVFS.getOutputStream( testFilename, false );
         os.write( XMLHandler.getXMLHeader().getBytes() );
         os.write( copyTransMeta.getXML().getBytes() );
-        os.close();    
-      } catch(Exception e) {
-        throw new KettleException("Error writing test filename to '"+testFilename+"'", e);
+        os.close();
+      } catch ( Exception e ) {
+        throw new KettleException( "Error writing test filename to '" + testFilename + "'", e );
       }
     }
   }

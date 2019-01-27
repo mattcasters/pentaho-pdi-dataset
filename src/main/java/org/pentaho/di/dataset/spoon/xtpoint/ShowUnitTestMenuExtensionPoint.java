@@ -23,7 +23,6 @@
 package org.pentaho.di.dataset.spoon.xtpoint;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.vfs2.FileObject;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Point;
@@ -40,7 +39,6 @@ import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.gui.AreaOwner;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
@@ -53,11 +51,7 @@ import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.spoon.trans.TransGraphExtension;
-import org.pentaho.metastore.persist.MetaStoreFactory;
-import org.pentaho.metastore.stores.delegate.DelegatingMetaStore;
-import org.pentaho.metastore.util.PentahoDefaults;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -148,7 +142,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
             Menu locationsMenu = new Menu( menu );
             locationsItem.setMenu( locationsMenu );
 
-            if (unitTest!=null) {
+            if ( unitTest != null ) {
               List<TransUnitTestSetLocation> inputLocations = unitTest.getInputDataSets();
               for ( final TransUnitTestSetLocation location : inputLocations ) {
                 MenuItem testItem = new MenuItem( locationsMenu, SWT.PUSH );
@@ -164,7 +158,7 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
               }
             }
 
-            locationsItem.setEnabled( unitTest!=null );
+            locationsItem.setEnabled( unitTest != null );
 
 
             new MenuItem( menu, SWT.SEPARATOR );
@@ -242,16 +236,16 @@ public class ShowUnitTestMenuExtensionPoint implements ExtensionPointInterface {
     try {
       FactoriesHierarchy hierarchy = new FactoriesHierarchy( spoon.getMetaStore(), spoon.getActiveDatabases() );
 
-      Map<String, RowMetaInterface> stepFieldsMap = new HashMap<>(  );
+      Map<String, RowMetaInterface> stepFieldsMap = new HashMap<>();
       for ( StepMeta stepMeta : transMeta.getSteps() ) {
-        stepFieldsMap.put(stepMeta.getName(), transMeta.getStepFields( stepMeta ));
+        stepFieldsMap.put( stepMeta.getName(), transMeta.getStepFields( stepMeta ) );
       }
       TransUnitTestSetLocationDialog dialog = new TransUnitTestSetLocationDialog( spoon.getShell(), location, hierarchy.getSetFactory().getElements(), stepFieldsMap );
-      if (dialog.open()) {
+      if ( dialog.open() ) {
         spoon.refreshGraph();
       }
-    } catch(Exception e) {
-      new ErrorDialog(spoon.getShell(), "Error", "Error editing dataset location", e);
+    } catch ( Exception e ) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error editing dataset location", e );
     }
   }
 

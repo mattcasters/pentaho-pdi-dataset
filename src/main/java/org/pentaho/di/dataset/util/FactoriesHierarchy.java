@@ -22,8 +22,6 @@
 
 package org.pentaho.di.dataset.util;
 
-import java.util.List;
-
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetGroup;
@@ -32,6 +30,8 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.metastore.util.PentahoDefaults;
+
+import java.util.List;
 
 public class FactoriesHierarchy {
   private IMetaStore metaStore;

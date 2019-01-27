@@ -111,10 +111,10 @@ public class DataSetCsvGroup {
 
       try (
         Reader reader = new InputStreamReader( new BufferedInputStream( KettleVFS.getInputStream( file ) ) );
-        CSVParser csvParser = new CSVParser(reader, getCsvFormat( setRowMeta ));
+        CSVParser csvParser = new CSVParser( reader, getCsvFormat( setRowMeta ) );
       ) {
         for ( CSVRecord csvRecord : csvParser ) {
-          if (csvRecord.getRecordNumber()>1) {
+          if ( csvRecord.getRecordNumber() > 1 ) {
             Object[] row = RowDataUtil.allocateRowData( setRowMeta.size() );
             for ( int i = 0; i < setRowMeta.size(); i++ ) {
               ValueMetaInterface valueMeta = setRowMeta.getValueMeta( i );
@@ -122,7 +122,7 @@ public class DataSetCsvGroup {
               row[ i ] = valueMeta.convertDataFromString( value, constantValueMeta, null, null, ValueMetaInterface.TRIM_TYPE_NONE );
             }
             rows.add( row );
-           }
+          }
         }
       }
 
@@ -177,10 +177,10 @@ public class DataSetCsvGroup {
 
       try (
         Reader reader = new InputStreamReader( new BufferedInputStream( KettleVFS.getInputStream( file ) ) );
-        CSVParser csvParser = new CSVParser( reader, CSVFormat.DEFAULT);
+        CSVParser csvParser = new CSVParser( reader, CSVFormat.DEFAULT );
       ) {
         for ( CSVRecord csvRecord : csvParser ) {
-           if (csvRecord.getRecordNumber()>1) {
+          if ( csvRecord.getRecordNumber() > 1 ) {
             Object[] row = RowDataUtil.allocateRowData( dataSetFieldIndexes.length );
 
             // Only get certain values...
@@ -193,7 +193,7 @@ public class DataSetCsvGroup {
               row[ i ] = valueMeta.convertDataFromString( value, constantValueMeta, null, null, ValueMetaInterface.TRIM_TYPE_NONE );
             }
             rows.add( row );
-           }
+          }
         }
       }
 
@@ -245,7 +245,7 @@ public class DataSetCsvGroup {
       FileObject file = KettleVFS.getFileObject( dataSetFilename );
       outputStream = KettleVFS.getOutputStream( file, false );
       writer = new BufferedWriter( new OutputStreamWriter( outputStream ) );
-      CSVFormat csvFormat = getCsvFormat(rowMeta);
+      CSVFormat csvFormat = getCsvFormat( rowMeta );
       csvPrinter = new CSVPrinter( writer, csvFormat );
 
       for ( Object[] row : rows ) {
@@ -279,7 +279,7 @@ public class DataSetCsvGroup {
     }
   }
 
-  public static CSVFormat getCsvFormat(RowMetaInterface rowMeta) {
+  public static CSVFormat getCsvFormat( RowMetaInterface rowMeta ) {
     return CSVFormat.DEFAULT.withHeader( rowMeta.getFieldNames() ).withQuote( '\"' ).withQuoteMode( QuoteMode.MINIMAL );
   }
 

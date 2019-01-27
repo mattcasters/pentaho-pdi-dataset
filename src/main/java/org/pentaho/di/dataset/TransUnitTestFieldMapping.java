@@ -26,8 +26,8 @@ import org.pentaho.metastore.persist.MetaStoreAttribute;
 
 /**
  * This class simply describes a mapping between the step fields we want to test and the data set fields you want to match with.
- * @author matt
  *
+ * @author matt
  */
 public class TransUnitTestFieldMapping {
 

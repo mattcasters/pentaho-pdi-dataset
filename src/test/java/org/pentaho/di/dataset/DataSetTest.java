@@ -1,9 +1,6 @@
 package org.pentaho.di.dataset;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+import junit.framework.TestCase;
 import org.junit.Test;
 import org.pentaho.di.core.KettleClientEnvironment;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -13,7 +10,9 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.metastore.stores.memory.MemoryMetaStore;
 
-import junit.framework.TestCase;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class DataSetTest extends TestCase {
 

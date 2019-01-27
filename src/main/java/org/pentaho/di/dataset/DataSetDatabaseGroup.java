@@ -19,7 +19,7 @@ public class DataSetDatabaseGroup {
 
   // Simply get all rows in the data set
   //
-  public static final List<Object[]> getAllRows(LogChannelInterface log, DataSetGroup group, DataSet dataSet) throws KettleException {
+  public static final List<Object[]> getAllRows( LogChannelInterface log, DataSetGroup group, DataSet dataSet ) throws KettleException {
 
     try {
       DatabaseMeta databaseMeta = group.getDatabaseMeta();
@@ -165,7 +165,7 @@ public class DataSetDatabaseGroup {
 
 
   public static final void writeDataSetData( LoggingObjectInterface loggingObject, DataSetGroup dataSetGroup, String tableName,
-                                            RowMetaInterface rowMeta, List<Object[]> rows ) throws KettleException {
+                                             RowMetaInterface rowMeta, List<Object[]> rows ) throws KettleException {
 
     Database database = new Database( loggingObject, dataSetGroup.getDatabaseMeta() );
     try {

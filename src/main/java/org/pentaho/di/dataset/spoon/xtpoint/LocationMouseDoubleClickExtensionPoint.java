@@ -85,7 +85,7 @@ public class LocationMouseDoubleClickExtensionPoint implements ExtensionPointInt
         try {
           RowMetaInterface stepFields = transMeta.getStepFields( stepMeta );
           stepFieldsMap.put( stepMeta.getName(), stepFields );
-        } catch(Exception e) {
+        } catch ( Exception e ) {
           // Ignore GUI errors...
         }
       }
@@ -109,7 +109,7 @@ public class LocationMouseDoubleClickExtensionPoint implements ExtensionPointInt
             TransUnitTestSetLocation inputLocation = unitTest.findInputLocation( stepName );
             if ( inputLocation != null ) {
               TransUnitTestSetLocationDialog dialog = new TransUnitTestSetLocationDialog( spoon.getShell(), inputLocation, dataSets, stepFieldsMap );
-              if (dialog.open()) {
+              if ( dialog.open() ) {
                 spoon.refreshGraph();
               }
             }
@@ -122,7 +122,7 @@ public class LocationMouseDoubleClickExtensionPoint implements ExtensionPointInt
             TransUnitTestSetLocation goldenLocation = unitTest.findGoldenLocation( stepName );
             if ( goldenLocation != null ) {
               TransUnitTestSetLocationDialog dialog = new TransUnitTestSetLocationDialog( spoon.getShell(), goldenLocation, dataSets, stepFieldsMap );
-              if (dialog.open()) {
+              if ( dialog.open() ) {
                 spoon.refreshGraph();
               }
             }

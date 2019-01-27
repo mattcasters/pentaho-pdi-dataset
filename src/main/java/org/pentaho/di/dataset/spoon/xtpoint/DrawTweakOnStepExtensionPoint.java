@@ -29,79 +29,83 @@ import org.pentaho.di.core.gui.GCInterface;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EColor;
 import org.pentaho.di.core.gui.PrimitiveGCInterface.EFont;
 import org.pentaho.di.core.logging.LogChannelInterface;
-import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.spoon.DataSetHelper;
-import org.pentaho.di.dataset.util.DataSetConst;
 import org.pentaho.di.trans.TransPainterExtension;
 import org.pentaho.di.trans.step.StepMeta;
 
 @ExtensionPoint(
-    id = "DrawTweakOnStepExtensionPoint", 
-    description = "Draws a marker on top of a step if is tweaked", 
-    extensionPointId = "TransPainterStep")
+  id = "DrawTweakOnStepExtensionPoint",
+  description = "Draws a marker on top of a step if is tweaked",
+  extensionPointId = "TransPainterStep" )
 public class DrawTweakOnStepExtensionPoint implements ExtensionPointInterface {
 
   @Override
-  public void callExtensionPoint(LogChannelInterface log, Object object) throws KettleException {
-    if (!(object instanceof TransPainterExtension)) {
+  public void callExtensionPoint( LogChannelInterface log, Object object ) throws KettleException {
+    if ( !( object instanceof TransPainterExtension ) ) {
       return;
     }
 
     TransPainterExtension ext = (TransPainterExtension) object;
     StepMeta stepMeta = ext.stepMeta;
     TransUnitTest unitTest = DataSetHelper.getCurrentUnitTest( ext.transMeta );
-    if (unitTest==null) {
+    if ( unitTest == null ) {
       return;
     }
     TransUnitTestTweak tweak = unitTest.findTweak( stepMeta.getName() );
-    if (tweak==null || tweak.getTweak()==null) {
+    if ( tweak == null || tweak.getTweak() == null ) {
       return;
     }
 
     try {
-      switch(tweak.getTweak()) {
-      case NONE: break;
-      case REMOVE_STEP: drawRemovedTweak(ext, stepMeta); break;
-      case BYPASS_STEP: drawBypassedTweak(ext, stepMeta); break;
-      default: break;
+      switch ( tweak.getTweak() ) {
+        case NONE:
+          break;
+        case REMOVE_STEP:
+          drawRemovedTweak( ext, stepMeta );
+          break;
+        case BYPASS_STEP:
+          drawBypassedTweak( ext, stepMeta );
+          break;
+        default:
+          break;
       }
-    } catch(Exception e) {
+    } catch ( Exception e ) {
       // Ignore
-    }    
+    }
   }
 
-  private void drawRemovedTweak(TransPainterExtension ext, StepMeta stepMeta) {
+  private void drawRemovedTweak( TransPainterExtension ext, StepMeta stepMeta ) {
     // Now we're here, mark the step as removed: a cross over the step icon
     //
     GCInterface gc = ext.gc;
     int iconsize = ext.iconsize;
-    int x = ext.x1-5;
-    int y = ext.y1-5;
+    int x = ext.x1 - 5;
+    int y = ext.y1 - 5;
 
-    gc.setLineWidth(stepMeta.isSelected() ? 4 : 3);
-    gc.setForeground(EColor.CRYSTAL);
-    gc.setBackground(EColor.LIGHTGRAY);
-    gc.setFont(EFont.GRAPH);
+    gc.setLineWidth( stepMeta.isSelected() ? 4 : 3 );
+    gc.setForeground( EColor.CRYSTAL );
+    gc.setBackground( EColor.LIGHTGRAY );
+    gc.setFont( EFont.GRAPH );
 
-    gc.drawLine(x               , y, x + iconsize / 2, y + iconsize / 2);
-    gc.drawLine(x + iconsize / 2, y, x               , y + iconsize / 2);
+    gc.drawLine( x, y, x + iconsize / 2, y + iconsize / 2 );
+    gc.drawLine( x + iconsize / 2, y, x, y + iconsize / 2 );
   }
 
-  protected void drawBypassedTweak(TransPainterExtension ext, StepMeta stepMeta) {
+  protected void drawBypassedTweak( TransPainterExtension ext, StepMeta stepMeta ) {
     // put an arrow over the step to indicate bypass
     //
     GCInterface gc = ext.gc;
     int iconsize = ext.iconsize;
-    int x = ext.x1-5;
-    int y = ext.y1-5;
+    int x = ext.x1 - 5;
+    int y = ext.y1 - 5;
 
-    int aW = iconsize/2;
-    int aH = 3*iconsize/8;
+    int aW = iconsize / 2;
+    int aH = 3 * iconsize / 8;
 
-    gc.setForeground(EColor.CRYSTAL);
-    gc.setBackground(EColor.CRYSTAL);
+    gc.setForeground( EColor.CRYSTAL );
+    gc.setBackground( EColor.CRYSTAL );
 
     //                 C\
     //                 | \
@@ -111,15 +115,15 @@ public class DrawTweakOnStepExtensionPoint implements ExtensionPointInterface {
     //                 | /
     //                 E/  
     //
-    int[] arrow = new int[] { 
-        x, y + aH/3, // A
-        x + 5 * aW / 8, y + aH/3, // B
-        x + 5 * aW / 8, y,  // C
-        x + aW, y + aH / 2, // D
-        x + 5 * aW / 8, y + aH,  // E
-        x + 5 * aW / 8, y + 2*aH/3, // F
-        x, y + 2*aH/3, // G        
-      };
-    gc.fillPolygon(arrow);
+    int[] arrow = new int[] {
+      x, y + aH / 3, // A
+      x + 5 * aW / 8, y + aH / 3, // B
+      x + 5 * aW / 8, y,  // C
+      x + aW, y + aH / 2, // D
+      x + 5 * aW / 8, y + aH,  // E
+      x + 5 * aW / 8, y + 2 * aH / 3, // F
+      x, y + 2 * aH / 3, // G
+    };
+    gc.fillPolygon( arrow );
   }
 }

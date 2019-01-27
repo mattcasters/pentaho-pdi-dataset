@@ -22,9 +22,6 @@
 
 package org.pentaho.di.dataset.spoon.xtpoint;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.eclipse.swt.SWT;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -43,10 +40,11 @@ import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.metastore.api.IMetaStore;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * 
  * @author matt
- *
  */
 @ExtensionPoint(
   extensionPointId = "TransformationFinish",
@@ -69,10 +67,10 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
 
     // We should always have a unit test name here...
     String unitTestName = transMeta.getVariable( DataSetConst.VAR_UNIT_TEST_NAME );
-    if (StringUtil.isEmpty( unitTestName )) {
+    if ( StringUtil.isEmpty( unitTestName ) ) {
       return;
     }
-    
+
     try {
       IMetaStore metaStore = transMeta.getMetaStore();
       Repository repository = transMeta.getRepository();
@@ -87,45 +85,45 @@ public class ValidateTransUnitTestExtensionPoint implements ExtensionPointInterf
       // If the transformation has a variable set with the unit test in it, we're dealing with a unit test situation.
       //
       TransUnitTest unitTest = factoriesHierarchy.getTestFactory().loadElement( unitTestName );
-      
+
       final List<UnitTestResult> results = new ArrayList<UnitTestResult>();
-      trans.getExtensionDataMap().put(DataSetConst.UNIT_TEST_RESULTS, results);
-      
-      
+      trans.getExtensionDataMap().put( DataSetConst.UNIT_TEST_RESULTS, results );
+
+
       // Validate execution results with what's in the data sets...
       //
       int errors = DataSetConst.validateTransResultAgainstUnitTest( trans, unitTest, factoriesHierarchy, results );
-      if (errors==0) {
-        log.logBasic( "Unit test '"+unitTest.getName()+"' passed succesfully" );
+      if ( errors == 0 ) {
+        log.logBasic( "Unit test '" + unitTest.getName() + "' passed succesfully" );
       } else {
-        log.logBasic( "Unit test '"+unitTest.getName()+"' failed, "+errors+" errors detected, "+results.size()+" comments to report." );
-        
-        String dontShowResults = transMeta.getVariable(DataSetConst.VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS, "N");
-        
+        log.logBasic( "Unit test '" + unitTest.getName() + "' failed, " + errors + " errors detected, " + results.size() + " comments to report." );
+
+        String dontShowResults = transMeta.getVariable( DataSetConst.VAR_DO_NOT_SHOW_UNIT_TEST_ERRORS, "N" );
+
         final Spoon spoon = Spoon.getInstance();
-        if (spoon!=null && "N".equalsIgnoreCase(dontShowResults)) {
-          spoon.getShell().getDisplay().asyncExec(new Runnable() {
+        if ( spoon != null && "N".equalsIgnoreCase( dontShowResults ) ) {
+          spoon.getShell().getDisplay().asyncExec( new Runnable() {
             @Override
             public void run() {
-              PreviewRowsDialog dialog = new PreviewRowsDialog(spoon.getShell(), trans, SWT.NONE, 
-                  "Unit test results", 
-                  UnitTestResult.getRowMeta(), 
-                  UnitTestResult.getRowData(results));
-              dialog.setDynamic(false);
-              dialog.setProposingToGetMoreRows(false);
-              dialog.setProposingToStop(false);
-              dialog.setTitleMessage("Unit test results", "Here are the results of the unit test validations:");
+              PreviewRowsDialog dialog = new PreviewRowsDialog( spoon.getShell(), trans, SWT.NONE,
+                "Unit test results",
+                UnitTestResult.getRowMeta(),
+                UnitTestResult.getRowData( results ) );
+              dialog.setDynamic( false );
+              dialog.setProposingToGetMoreRows( false );
+              dialog.setProposingToStop( false );
+              dialog.setTitleMessage( "Unit test results", "Here are the results of the unit test validations:" );
               dialog.open();
             }
-          });
+          } );
         }
       }
       log.logBasic( "----------------------------------------------" );
-      for (UnitTestResult result : results) {
-        if (result.getDataSetName()!=null) {
-          log.logBasic(result.getStepName()+" - "+result.getDataSetName()+" : "+result.getComment());
+      for ( UnitTestResult result : results ) {
+        if ( result.getDataSetName() != null ) {
+          log.logBasic( result.getStepName() + " - " + result.getDataSetName() + " : " + result.getComment() );
         } else {
-          log.logBasic(result.getComment());
+          log.logBasic( result.getComment() );
         }
       }
       log.logBasic( "----------------------------------------------" );
