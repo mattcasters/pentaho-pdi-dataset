@@ -60,6 +60,15 @@ public class TransUnitTestSetLocation {
     this.fieldOrder = fieldOrder;
   }
 
+  public String findStepField( String dataSetField ) {
+    for (TransUnitTestFieldMapping fieldMapping : fieldMappings) {
+      if (fieldMapping.getDataSetFieldName().equalsIgnoreCase( dataSetField )) {
+        return fieldMapping.getStepFieldName();
+      }
+    }
+    return null;
+  }
+
   public String getStepname() {
     return stepname;
   }
@@ -91,4 +100,5 @@ public class TransUnitTestSetLocation {
   public void setFieldOrder(List<String> fieldOrder) {
     this.fieldOrder = fieldOrder;
   }
+
 }

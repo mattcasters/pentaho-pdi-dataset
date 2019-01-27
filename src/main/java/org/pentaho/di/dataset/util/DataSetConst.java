@@ -26,25 +26,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.RowMetaAndData;
-import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettlePluginException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.logging.LogChannelInterface;
-import org.pentaho.di.core.logging.LoggingObjectType;
-import org.pentaho.di.core.logging.SimpleLoggingObject;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.util.StringUtil;
 import org.pentaho.di.dataset.DataSet;
 import org.pentaho.di.dataset.DataSetField;
@@ -54,7 +47,6 @@ import org.pentaho.di.dataset.TransTweak;
 import org.pentaho.di.dataset.TransUnitTest;
 import org.pentaho.di.dataset.TransUnitTestFieldMapping;
 import org.pentaho.di.dataset.TransUnitTestSetLocation;
-import org.pentaho.di.dataset.TransUnitTestTweak;
 import org.pentaho.di.dataset.UnitTestResult;
 import org.pentaho.di.dataset.spoon.xtpoint.RowCollection;
 import org.pentaho.di.i18n.BaseMessages;
@@ -63,8 +55,6 @@ import org.pentaho.di.repository.Repository;
 import org.pentaho.di.shared.SharedObjectInterface;
 import org.pentaho.di.shared.SharedObjects;
 import org.pentaho.di.trans.Trans;
-import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.StepMeta;
 
 public class DataSetConst {
   private static Class<?> PKG = DataSetConst.class; // for i18n purposes, needed by Translator2!!
@@ -227,14 +217,21 @@ public class DataSetConst {
       } else {
 
         // To compare the 2 data sets they need to be explicitly sorted on the same keys
+        // The added problem is that the user provided a field mapping.
+        // So for every "location field order" we need to find the step source field
         //
         // Sort step result rows
         //
         final int[] resultFieldIndexes = new int[ location.getFieldOrder().size() ];
         for ( int i = 0; i < resultFieldIndexes.length; i++ ) {
-          resultFieldIndexes[ i ] = resultRowMeta.indexOfValue( location.getFieldOrder().get( i ) );
+          String dataSetOrderField = location.getFieldOrder().get( i );
+          String stepOrderField = location.findStepField(dataSetOrderField);
+          if (stepOrderField==null) {
+            throw new KettleException( "There is no step field provided in the mappings so I don't know which field to use to sort '"+dataSetOrderField+"'" );
+          }
+          resultFieldIndexes[ i ] = resultRowMeta.indexOfValue( stepOrderField );
           if ( resultFieldIndexes[ i ] < 0 ) {
-            throw new KettleException( "Unable to find sort field '" + location.getFieldOrder().get( i ) + "' in step results : " + Arrays.toString( resultRowMeta.getFieldNames() ) );
+            throw new KettleException( "Unable to find sort field '" + stepOrderField + "' in step results : " + Arrays.toString( resultRowMeta.getFieldNames() ) );
           }
         }
         try {
