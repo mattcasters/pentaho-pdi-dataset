@@ -4,6 +4,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.csv.QuoteMode;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.pentaho.di.core.exception.KettleDatabaseException;
@@ -110,7 +111,7 @@ public class DataSetCsvGroup {
 
       try (
         Reader reader = new InputStreamReader( new BufferedInputStream( KettleVFS.getInputStream( file ) ) );
-        CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT);
+        CSVParser csvParser = new CSVParser(reader, getCsvFormat( setRowMeta ));
       ) {
         for ( CSVRecord csvRecord : csvParser ) {
           if (csvRecord.getRecordNumber()>1) {
@@ -244,7 +245,8 @@ public class DataSetCsvGroup {
       FileObject file = KettleVFS.getFileObject( dataSetFilename );
       outputStream = KettleVFS.getOutputStream( file, false );
       writer = new BufferedWriter( new OutputStreamWriter( outputStream ) );
-      csvPrinter = new CSVPrinter( writer, CSVFormat.DEFAULT.withHeader( rowMeta.getFieldNames() ) );
+      CSVFormat csvFormat = getCsvFormat(rowMeta);
+      csvPrinter = new CSVPrinter( writer, csvFormat );
 
       for ( Object[] row : rows ) {
         List<String> strings = new ArrayList<>();
@@ -275,6 +277,10 @@ public class DataSetCsvGroup {
         throw new KettleException( "Error closing file " + dataSetFilename + " : ", e );
       }
     }
+  }
+
+  public static CSVFormat getCsvFormat(RowMetaInterface rowMeta) {
+    return CSVFormat.DEFAULT.withHeader( rowMeta.getFieldNames() ).withQuote( '\"' ).withQuoteMode( QuoteMode.MINIMAL );
   }
 
 
