@@ -104,7 +104,10 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
     if ( instance == null ) {
       instance = new DataSetHelper();
       Spoon spoon = ( (Spoon) SpoonFactory.getInstance() );
-      spoon.addSpoonMenuController( instance );
+
+      if (spoon != null) {
+        spoon.addSpoonMenuController(instance);
+      }
     }
     return instance;
   }
