@@ -145,5 +145,5 @@
   </dependencyManagement>
 
   <groupId>pentaho-kettle-dataset</groupId>
-  <version>3.4.3-SNAPSHOT</version>
+  <version>3.4.4-SNAPSHOT</version>
 </project>
