@@ -204,7 +204,12 @@ public class DataSetCsvGroup {
         sortIndexes[ i ] = outputRowMeta.indexOfValue( sortFields.get( i ) );
       }
 
-      if ( !sortFields.isEmpty() ) {
+      if (outputRowMeta.isEmpty()) {
+        log.logError( "WARNING: No field mappings selected for data set '"+dataSet.getName()+"', returning empty set of rows" );
+        return new ArrayList<>();
+      }
+
+      if ( !sortFields.isEmpty()) {
 
         // Sort the rows...
         //
