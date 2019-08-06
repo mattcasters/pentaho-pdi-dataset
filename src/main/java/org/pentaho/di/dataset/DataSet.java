@@ -103,6 +103,7 @@ public class DataSet {
         field.getLength(),
         field.getPrecision() );
       valueMeta.setComments( field.getComment() );
+      valueMeta.setConversionMask( field.getFormat() );
       rowMeta.addValueMeta( valueMeta );
     }
     return rowMeta;

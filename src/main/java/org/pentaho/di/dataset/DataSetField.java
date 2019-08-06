@@ -24,6 +24,8 @@ package org.pentaho.di.dataset;
 
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 
+import java.util.Objects;
+
 public class DataSetField {
   @MetaStoreAttribute( key = "field_name" )
   private String fieldName;
@@ -43,11 +45,14 @@ public class DataSetField {
   @MetaStoreAttribute( key = "field_comment" )
   private String comment;
 
+  @MetaStoreAttribute( key = "field_format" )
+  private String format;
+
   public DataSetField() {
     // Empty constructor for MetaStoreFactory.
   }
 
-  public DataSetField( String fieldName, String columnName, int type, int length, int precision, String comment ) {
+  public DataSetField( String fieldName, String columnName, int type, int length, int precision, String comment, String format ) {
     super();
     this.fieldName = fieldName;
     this.columnName = columnName;
@@ -55,76 +60,133 @@ public class DataSetField {
     this.length = length;
     this.precision = precision;
     this.comment = comment;
+    this.format = format;
   }
 
-  @Override
-  public boolean equals( Object obj ) {
-    if ( this == obj ) {
+  @Override public boolean equals( Object o ) {
+    if ( this == o ) {
       return true;
     }
-    if ( !( obj instanceof DataSetField ) ) {
+    if ( o == null || getClass() != o.getClass() ) {
       return false;
     }
-    DataSetField cmp = (DataSetField) obj;
-    return fieldName.equals( cmp.fieldName )
-      && columnName.equals( cmp.columnName )
-      && type == cmp.type
-      && length == cmp.length
-      && precision == cmp.precision
-      && ( comment == null && cmp.comment == null || comment != null && comment.equals( cmp.comment ) );
+    DataSetField that = (DataSetField) o;
+    return Objects.equals( fieldName, that.fieldName );
   }
 
-  @Override
-  public int hashCode() {
-    return fieldName.hashCode();
+  @Override public int hashCode() {
+    return Objects.hash( fieldName );
   }
 
+  /**
+   * Gets fieldName
+   *
+   * @return value of fieldName
+   */
   public String getFieldName() {
     return fieldName;
   }
 
+  /**
+   * @param fieldName The fieldName to set
+   */
   public void setFieldName( String fieldName ) {
     this.fieldName = fieldName;
   }
 
+  /**
+   * Gets columnName
+   *
+   * @return value of columnName
+   */
   public String getColumnName() {
     return columnName;
   }
 
+  /**
+   * @param columnName The columnName to set
+   */
   public void setColumnName( String columnName ) {
     this.columnName = columnName;
   }
 
+  /**
+   * Gets type
+   *
+   * @return value of type
+   */
   public int getType() {
     return type;
   }
 
+  /**
+   * @param type The type to set
+   */
   public void setType( int type ) {
     this.type = type;
   }
 
+  /**
+   * Gets length
+   *
+   * @return value of length
+   */
   public int getLength() {
     return length;
   }
 
+  /**
+   * @param length The length to set
+   */
   public void setLength( int length ) {
     this.length = length;
   }
 
+  /**
+   * Gets precision
+   *
+   * @return value of precision
+   */
   public int getPrecision() {
     return precision;
   }
 
+  /**
+   * @param precision The precision to set
+   */
   public void setPrecision( int precision ) {
     this.precision = precision;
   }
 
+  /**
+   * Gets comment
+   *
+   * @return value of comment
+   */
   public String getComment() {
     return comment;
   }
 
+  /**
+   * @param comment The comment to set
+   */
   public void setComment( String comment ) {
     this.comment = comment;
   }
 
+  /**
+   * Gets format
+   *
+   * @return value of format
+   */
+  public String getFormat() {
+    return format;
+  }
+
+  /**
+   * @param format The format to set
+   */
+  public void setFormat( String format ) {
+    this.format = format;
+  }
 }

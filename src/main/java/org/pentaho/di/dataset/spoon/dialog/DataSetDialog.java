@@ -288,6 +288,8 @@ public class DataSetDialog extends Dialog {
         ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "" }, false ),
       new ColumnInfo( BaseMessages.getString( PKG, "DataSetDialog.ColumnInfo.FieldType" ),
         ColumnInfo.COLUMN_TYPE_CCOMBO, ValueMetaFactory.getAllValueMetaNames(), false ),
+      new ColumnInfo( BaseMessages.getString( PKG, "DataSetDialog.ColumnInfo.FieldFormat" ),
+        ColumnInfo.COLUMN_TYPE_TEXT, true, false ),
       new ColumnInfo( BaseMessages.getString( PKG, "DataSetDialog.ColumnInfo.FieldLength" ),
         ColumnInfo.COLUMN_TYPE_TEXT, true, false ),
       new ColumnInfo( BaseMessages.getString( PKG, "DataSetDialog.ColumnInfo.FieldPrecision" ),
@@ -595,6 +597,7 @@ public class DataSetDialog extends Dialog {
       wFieldMapping.setText( Const.NVL( field.getFieldName(), "" ), colnr++, i );
       wFieldMapping.setText( Const.NVL( field.getColumnName(), "" ), colnr++, i );
       wFieldMapping.setText( ValueMetaFactory.getValueMetaName( field.getType() ), colnr++, i );
+      wFieldMapping.setText( Const.NVL( field.getFormat(), ""), colnr++, i );
       wFieldMapping.setText( field.getLength() >= 0 ? Integer.toString( field.getLength() ) : "", colnr++, i );
       wFieldMapping.setText( field.getPrecision() >= 0 ? Integer.toString( field.getPrecision() ) : "", colnr++, i );
       wFieldMapping.setText( Const.NVL( field.getComment(), "" ), colnr++, i );
@@ -624,11 +627,12 @@ public class DataSetDialog extends Dialog {
       String fieldName = item.getText( colnr++ );
       String columnName = item.getText( colnr++ );
       int type = ValueMetaFactory.getIdForValueMeta( item.getText( colnr++ ) );
+      String format = item.getText( colnr++ );
       int length = Const.toInt( item.getText( colnr++ ), -1 );
       int precision = Const.toInt( item.getText( colnr++ ), -1 );
       String comment = item.getText( colnr++ );
 
-      DataSetField field = new DataSetField( fieldName, columnName, type, length, precision, comment );
+      DataSetField field = new DataSetField( fieldName, columnName, type, length, precision, comment, format );
       set.getFields().add( field );
     }
 

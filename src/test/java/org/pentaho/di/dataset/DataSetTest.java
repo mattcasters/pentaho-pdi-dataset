@@ -44,7 +44,7 @@ public class DataSetTest extends TestCase {
 
     List<DataSetField> fields = new ArrayList<>();
     for ( int i = 0; i < NR_FIELDS; i++ ) {
-      fields.add( new DataSetField( "field" + i, "column" + i, ValueMetaInterface.TYPE_STRING, 50, 0, "comment" + i ) );
+      fields.add( new DataSetField( "field" + i, "column" + i, ValueMetaInterface.TYPE_STRING, 50, 0, "comment" + i, null ) );
     }
     dataSet = new DataSet( NAME, DESC, dataSetGroup, TABLE, fields );
   }

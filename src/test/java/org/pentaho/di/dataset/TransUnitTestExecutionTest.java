@@ -137,9 +137,9 @@ public class TransUnitTestExecutionTest extends TestCase {
 
   private void createInputDataSet() throws KettleException {
     List<DataSetField> fields = new ArrayList<>();
-    fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
-    fields.add( new DataSetField( "b", "column_b", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
-    fields.add( new DataSetField( "c", "column_c", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
+    fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null, null ) );
+    fields.add( new DataSetField( "b", "column_b", ValueMetaInterface.TYPE_STRING, 20, 0, null, null ) );
+    fields.add( new DataSetField( "c", "column_c", ValueMetaInterface.TYPE_STRING, 20, 0, null, null ) );
 
     List<Object[]> rows = new ArrayList<Object[]>();
     rows.add( new Object[] { "a1", "b1", "c1", } );
@@ -154,10 +154,10 @@ public class TransUnitTestExecutionTest extends TestCase {
 
     // Add the fields in a different order to see if we can correctly compare data against it!
     //
-    fields.add( new DataSetField( "d", "column_d", ValueMetaInterface.TYPE_INTEGER, 6, 0, null ) );
-    fields.add( new DataSetField( "c", "column_c", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
-    fields.add( new DataSetField( "b", "column_b", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
-    fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null ) );
+    fields.add( new DataSetField( "d", "column_d", ValueMetaInterface.TYPE_INTEGER, 6, 0, null, null ) );
+    fields.add( new DataSetField( "c", "column_c", ValueMetaInterface.TYPE_STRING, 20, 0, null, null ) );
+    fields.add( new DataSetField( "b", "column_b", ValueMetaInterface.TYPE_STRING, 20, 0, null, null ) );
+    fields.add( new DataSetField( "a", "column_a", ValueMetaInterface.TYPE_STRING, 20, 0, null, null ) );
 
     List<Object[]> rows = new ArrayList<Object[]>();
     rows.add( new Object[] { 123456L, "c1", "b1", "a1", } );

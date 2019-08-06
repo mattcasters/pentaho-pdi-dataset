@@ -797,7 +797,8 @@ public class DataSetHelper extends AbstractXulEventHandler implements ISpoonMenu
         ValueMetaInterface valueMeta = rowMeta.getValueMeta( i );
         String setFieldname = valueMeta.getName();
         String columnName = "field" + i;
-        DataSetField field = new DataSetField( setFieldname, columnName, valueMeta.getType(), valueMeta.getLength(), valueMeta.getPrecision(), valueMeta.getComments() );
+        DataSetField field = new DataSetField( setFieldname, columnName, valueMeta.getType(), valueMeta.getLength(),
+          valueMeta.getPrecision(), valueMeta.getComments(), valueMeta.getFormatMask() );
         dataSet.getFields().add( field );
       }
 

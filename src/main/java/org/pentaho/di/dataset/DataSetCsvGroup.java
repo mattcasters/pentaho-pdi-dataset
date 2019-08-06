@@ -71,18 +71,20 @@ public class DataSetCsvGroup {
 
   private static void setValueFormats( RowMetaInterface rowMeta ) {
     for ( ValueMetaInterface valueMeta : rowMeta.getValueMetaList() ) {
-      switch ( valueMeta.getType() ) {
-        case ValueMetaInterface.TYPE_INTEGER:
-          valueMeta.setConversionMask( "0" );
-          break;
-        case ValueMetaInterface.TYPE_NUMBER:
-          valueMeta.setConversionMask( "0.#" );
-          break;
-        case ValueMetaInterface.TYPE_DATE:
-          valueMeta.setConversionMask( "yyyyMMdd-HHmmss.SSS" );
-          break;
-        default:
-          break;
+      if ( StringUtils.isEmpty( valueMeta.getConversionMask() ) ) {
+        switch ( valueMeta.getType() ) {
+          case ValueMetaInterface.TYPE_INTEGER:
+            valueMeta.setConversionMask( "0" );
+            break;
+          case ValueMetaInterface.TYPE_NUMBER:
+            valueMeta.setConversionMask( "0.#" );
+            break;
+          case ValueMetaInterface.TYPE_DATE:
+            valueMeta.setConversionMask( "yyyyMMdd-HHmmss.SSS" );
+            break;
+          default:
+            break;
+        }
       }
     }
   }
@@ -117,15 +119,15 @@ public class DataSetCsvGroup {
           if ( csvRecord.getRecordNumber() > 1 ) {
             Object[] row = RowDataUtil.allocateRowData( setRowMeta.size() );
             for ( int i = 0; i < setRowMeta.size(); i++ ) {
-              ValueMetaInterface valueMeta = setRowMeta.getValueMeta( i );
+              ValueMetaInterface valueMeta = setRowMeta.getValueMeta( i ).clone();
+              constantValueMeta.setConversionMetadata( valueMeta );
               String value = csvRecord.get( i );
-              row[ i ] = valueMeta.convertDataFromString( value, constantValueMeta, null, null, ValueMetaInterface.TRIM_TYPE_NONE );
+              row[ i ] = valueMeta.convertData( constantValueMeta, value );
             }
             rows.add( row );
           }
         }
       }
-
       return rows;
     } catch ( Exception e ) {
       throw new KettleException( "Unable to get all rows for CSV data set '" + dataSet.getName() + "'", e );
@@ -204,12 +206,12 @@ public class DataSetCsvGroup {
         sortIndexes[ i ] = outputRowMeta.indexOfValue( sortFields.get( i ) );
       }
 
-      if (outputRowMeta.isEmpty()) {
-        log.logError( "WARNING: No field mappings selected for data set '"+dataSet.getName()+"', returning empty set of rows" );
+      if ( outputRowMeta.isEmpty() ) {
+        log.logError( "WARNING: No field mappings selected for data set '" + dataSet.getName() + "', returning empty set of rows" );
         return new ArrayList<>();
       }
 
-      if ( !sortFields.isEmpty()) {
+      if ( !sortFields.isEmpty() ) {
 
         // Sort the rows...
         //
