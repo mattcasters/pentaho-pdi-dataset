@@ -191,8 +191,9 @@ public class DataSetCsvGroup {
               int index = dataSetFieldIndexes[ i ];
 
               ValueMetaInterface valueMeta = setRowMeta.getValueMeta( index );
+              constantValueMeta.setConversionMetadata( valueMeta );
               String value = csvRecord.get( index );
-              row[ i ] = valueMeta.convertDataFromString( value, constantValueMeta, null, null, ValueMetaInterface.TRIM_TYPE_NONE );
+              row[ i ] = valueMeta.convertData( constantValueMeta, value );
             }
             rows.add( row );
           }
